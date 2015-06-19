@@ -1,4 +1,4 @@
-sous## Source: http://www.ncbi.nlm.nih.gov/pubmed/20463205
+## Source: http://www.ncbi.nlm.nih.gov/pubmed/20463205
 ## J Neurophysiol. 2010 Aug;104(2):1195-210. doi: 10.1152/jn.00106.2010. Epub 2010 May 12.
 ## Measuring phase-amplitude coupling between neuronal oscillations of different frequencies.
 ## Tort AB1, Komorowski R, Eichenbaum H, Kopell N.
