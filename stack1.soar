@@ -1,0 +1,109 @@
+# -*- mode:soar -*-
+# Backward chaining parallel mode
+
+sp { stack*propose*init
+    (state <s> ^superstate nil -^name)
+-->
+    (<s> ^operator <o> +)
+    (<o> ^name init)
+}
+
+sp { stack*apply*init
+    (state <s> ^operator.name init)
+-->
+    (<s> ^name BACKWARD ^hypo <hypo> ^kb <kb>)
+    (<hypo> ^name H_1 ^val unknown)
+    (<kb> ^rule <r1>)
+    (<kb> ^rule <r2>)
+    (<kb> ^rule <r3>)
+    (<kb> ^cond <c1>)
+    (<kb> ^cond <c2>)
+    (<kb> ^cond <c3>)
+    (<r1> ^name RULE_1 ^val FALSE	^hypo <hypo>)
+    (<r2> ^name RULE_2 ^val unknown	^hypo <hypo>)
+    (<r3> ^name RULE_3 ^val unknown	^hypo <hypo>)
+    (<c1> ^name COND_2_1 ^val TRUE	^rule <r2>)
+    (<c2> ^name COND_2_2 ^val FALSE	^rule <r2>)
+    (<c3> ^name COND_3_1 ^val TRUE	^rule <r3>)
+}
+
+# Precheck for an already known TRUE rule, or all known FALSE rules in backward chaining
+
+# Note: Several rules may be known TRUE, just pick one of the matches
+sp { stack*propose*backward*precheck*onetrue
+    (state <s> ^name BACKWARD ^hypo <hypo> ^kb <kb>)
+    (<kb> ^rule <rule>)
+    (<rule> ^hypo <hypo> ^val TRUE)
+    (<hypo> ^val unknown)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name backward*precheck*rule*true ^rule <rule>)
+}
+
+sp { stack*apply*backward*precheck*onetrue
+    (state <s> ^hypo <hypo> ^operator <o>)
+    (<o> ^name backward*precheck*rule*true ^rule.val TRUE)
+    (<hypo> ^val <val>)
+-->
+    (<hypo> ^val <val> -)
+    (<hypo> ^val TRUE)
+}
+
+# Note: <rule> in a negated condition has to be unlinked from <s>
+sp { stack*propose*backward*precheck*allfalse
+    (state <s> ^name BACKWARD ^hypo <hypo>)
+    -(<rule> ^hypo <hypo> ^val << unknown TRUE >>)
+    (<hypo> ^val unknown)
+-->
+    (<s> ^operator <o> +)
+    (<o> ^name backward*precheck*rule*false)
+}
+
+sp { stack*apply*backward*precheck*allfalse
+    (state <s> ^hypo <hypo> ^operator <o>)
+    (<o> ^name backward*precheck*rule*false)
+    (<hypo> ^val <val>)
+-->
+    (<hypo> ^val <val> -)
+    (<hypo> ^val FALSE)
+}
+
+#
+
+# As there might be several unknown rules make them indifferent to
+# each other (order does not count) and lower priorities than known true
+# rules if any.
+sp { stack*propose*backward*check
+    (state <s> ^name BACKWARD ^hypo <hypo>)
+    (<hypo> ^val unknown)
+    (<rule> ^hypo <hypo> ^val unknown)
+-->
+    (<s> ^operator <o> + <)
+    (<s> ^operator <o> + =)
+    (<o> ^name backward*check*rule ^rule <rule>)
+}
+
+sp { stack*apply*backward*check*onefalse
+    (state <s> ^name BACKWARD ^hypo <hypo> ^operator <o>)
+    (<o> ^name backward*check*rule ^rule <rule>)
+    (<rule> ^val <val>)
+    (<cond> ^rule <rule> ^val FALSE)
+-->
+    (<rule> ^val <val> -)
+    (<rule> ^val FALSE)
+}
+
+sp { stack*apply*backward*check*alltrue
+    (state <s> ^name BACKWARD ^hypo <hypo> ^operator <o>)
+    (<o> ^name backward*check*rule ^rule <rule>)
+    (<rule> ^val <val>)
+    -(<cond> ^rule <rule> ^val << FALSE unknown >>)
+-->
+    (<rule> ^val <val> -)
+    (<rule> ^val TRUE)
+}
+
+
+
+
+

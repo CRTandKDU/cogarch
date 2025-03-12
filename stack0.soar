@@ -1,0 +1,115 @@
+# -*- mode:soar -*-
+sp { stack*propose*init
+    (state <s> ^superstate nil -^name)
+-->
+    (<s> ^operator <o> +)
+    (<o> ^name init)
+}
+
+sp { stack*apply*init
+    (state <s> ^operator.name init)
+-->
+    (<s> ^name STACK ^top <r1> ^val unknown)
+    (<r1> ^name RULE_1 ^val FALSE ^next <r2>)
+    (<r2> ^name RULE_2 ^val unknown ^next <r3> ^top <c2_1>)
+    (<r3> ^name RULE_3 ^val TRUE  ^next none)
+    (<c2_1> ^name COND_2_1 ^val TRUE ^next <c2_2>)
+    (<c2_2> ^name COND_2_2 ^val TRUE ^next none)
+}
+
+sp { stack*elaborate
+    (state <s> ^name STACK ^top <t> ^val unknown)
+-->
+    (<t> ^focus OR-TYPE)
+}
+
+#
+
+sp { focus*propose*eval*or
+    (state <s> ^superstate <ss>)
+    (<ss> ^name STACK)
+    (<node> ^focus OR-TYPE)
+-->
+    (<s> ^name rule-eval ^operator <o> + )
+    (<o> ^name focus-ruleeval ^node <node>)
+}
+
+sp { focus*apply*eval-true*or
+    (state <s> ^name rule-eval ^operator <o> ^superstate <ss>)
+    (<ss> ^val <old>)
+    (<o> ^name focus-ruleeval ^node <node>)
+    (<node> ^val TRUE)
+-->
+    (<node> ^focus OR-TYPE -)
+    (<ss> ^val <old> -)
+    (<ss> ^val TRUE)
+}
+
+sp { focus*apply*eval-false-last*or
+    (state <s> ^name rule-eval ^operator <o> ^superstate <ss>)
+    (<ss> ^val <old>)
+    (<o> ^name focus-ruleeval ^node <node>)
+    (<node> ^val FALSE ^next none)
+-->
+    (<node> ^focus OR-TYPE -)
+    (<ss> ^val <old> -)
+    (<ss> ^val FALSE)
+}
+
+sp { focus*apply*eval-false*or
+    (state <s> ^name rule-eval ^operator <o> ^superstate <ss>)
+    (<ss> ^val <old>)
+    (<o> ^name focus-ruleeval ^node <node>)
+    (<node> ^val FALSE ^next {<n> <> none})
+-->
+    (<node> ^focus OR-TYPE -)
+    (<ss> ^val <old> -)
+    (<ss> ^val FALSE)
+    (<n> ^focus OR-TYPE)
+}
+
+#
+
+
+#
+
+sp { focus*propose*eval*and
+    (state <s> -^name ^superstate <ss>)
+    (<ss> ^name rule-eval ^operator <oper>)
+    (<oper> ^name focus-ruleeval ^node <root>)
+    (<root> ^top {<n> <> none})
+-->
+    (<s> ^operator <o> +)
+    (<n> ^focus AND-TYPE)
+    (<o> ^name focus-condeval ^node <n> ^root <root>)
+}
+
+sp { focus*apply*eval-false*and
+    (state <s> ^name cond-eval ^operator <o>)
+    (<o> ^name focus-condeval ^node <node>  ^root <r>)
+    (<node> ^val FALSE)
+    (<r> ^val <old>)
+-->
+    (<node> ^focus AND-TYPE -)
+    (<r> ^val <old> -)
+    (<r> ^val FALSE)
+}
+
+sp { focus*apply*eval-true-last*and
+    (state <s> ^name cond-eval ^operator <o>)
+    (<o> ^name focus-condeval ^node <node>  ^root <r>)
+    (<node> ^val TRUE ^next none)
+    (<r> ^val <old>)
+-->
+    (<node> ^focus AND-TYPE -)
+    (<r> ^val <old> -)
+    (<r> ^val TRUE)
+}
+
+sp { focus*apply*eval-true*and
+    (state <s> ^name cond-eval ^operator <o>)
+    (<o> ^name focus-condeval ^node <node>  ^root <r>)
+    (<node> ^val TRUE ^next {<n> <> none})
+-->
+    (<node> ^focus AND-TYPE -)
+}

@@ -1,0 +1,86 @@
+# -*- mode:soar; -*-
+# Wednesday, March 5, 2025
+
+# Initialize the problem representation
+sp { hypo*propose*initialize
+    (state <s> ^type state -^name)
+-->
+    (<s> ^operator <o> +)
+    (<o> ^name initialize)
+}
+
+sp { hypo*apply*initialize
+    (state <s> ^operator.name initialize)
+-->
+    (<s> ^name hypo-bw ^hypo H ^lhs <cond1> <cond2> <cond3> ^val unknown)
+    (<cond1> ^op YES ^var <varA> ^val TRUE)
+    (<cond2> ^op NO ^var <varB> ^val TRUE)
+    (<cond3> ^op YES ^var <varC> ^val TRUE)
+    (<varA> ^var A ^val unknown)
+    (<varB> ^var B ^val unknown)
+    (<varC> ^var C ^val unknown)
+}
+
+# Check 
+sp { rule*done
+    (state <s> ^name hypo-bw)
+    (<s> -^val unknown)
+-->
+    (write (crlf) |Done!|)
+    (halt)
+}
+
+# Single rule evaluation
+sp { rule*propose*bweval
+    (state <s> ^name hypo-bw ^hypo <h> ^lhs <cond> ^val unknown)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name ruleeval ^hypo <h> ^lhs <cond>)
+}
+
+sp { rule*select*bweval
+    (state <s> ^name hypo-bw ^operator <o> + ^val <val>)
+    (<o> ^name ruleeval ^lhs <cond>)
+    (<cond> ^val FALSE)
+-->
+    (<s> ^operator <o> >)
+}
+
+sp { rule*apply*bweval*one*false
+    (state <s> ^name hypo-bw ^operator <o> ^val unknown)
+    (<o> ^name ruleeval ^lhs <cond>)
+    (<cond> ^val FALSE)
+-->
+    (<s> ^val unknown -)
+    (<s> ^val FALSE)
+}
+
+sp { rule*apply*bweval*all*true
+    (state <s> ^name hypo-bw -^operator.lhs.val  << FALSE unknown >> ^val unknown)
+-->
+    (<s> ^val unknown -)
+    (<s> ^val TRUE)
+}
+
+# Eval condition in substate
+sp { cond*propose*eval
+    (state <s> ^superstate <super>)
+    (<super> ^name hypo-bw ^operator <o>)
+    (<o> ^name ruleeval ^lhs <cond>)
+    (<cond> ^val unknown)
+-->
+    (<s> ^operator <ocond> + =)
+    (<ocond> ^name condeval ^lhs <cond>)
+}
+
+sp { cond*apply*eval
+    (state <s> ^superstate <super>  ^operator <o>)
+    (<super> ^name hypo-bw ^io.input-link.answer <answer>)
+    (<o> ^name condeval ^lhs <cond>)
+    (<cond> ^val unknown)
+-->
+    (<cond> ^val unknown -)
+    (<cond> ^val <answer>)
+}
+
+

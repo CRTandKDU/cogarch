@@ -1,0 +1,237 @@
+# -*- mode:soar; -*-
+sp { wjug0*propose*initialize
+    (state <s> ^type state -^name)
+-->
+    (<s> ^operator <o> +)
+    (<o> ^name initialize)
+}
+
+sp { wjug0*apply*initialize
+    (state <s> ^operator.name initialize)
+-->
+    (<s> ^name wjug0 ^jug <j1> ^jug <j2>)
+    (<j1> ^volume 5 ^contents 0)
+    (<j2> ^volume 3 ^contents 0)
+    (<s> ^goaljug <k>)
+    (<k> ^volume 5 ^contents 2)
+}
+
+
+# Elaboration (advice, demon)
+
+sp { wjug0*elaborate*empty
+    (state <s> ^name wjug0 ^jug <j>)
+    (<j> ^volume <v> ^contents <c>)
+-->
+    (<j> ^empty (- <v> <c>))
+}
+
+# Action propose/apply rules
+
+sp { wjug0*propose*fill
+    (state <s> ^name wjug0 ^jug <j>)
+    (<j> -^empty 0)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name fill ^fill-jug <j>)
+}
+
+sp { wjug0*apply*fill
+    (state <s> ^name wjug0 ^operator <o> ^jug <j>)
+    (<o> ^name fill ^fill-jug <j>)
+    (<j> ^volume <volume> ^contents <contents>)
+-->
+    (<j> ^contents <volume>)
+    (<j> ^contents <contents> -)
+    (<s> ^goto trace)
+}
+
+
+sp { wjug0*propose*empty
+    (state <s> ^name wjug0 ^jug <j>)
+    (<j> ^contents > 0)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name empty ^empty-jug <j>)
+}
+
+sp { wjug0*apply*empty
+    (state <s> ^name wjug0 ^operator <o> ^jug <j>)
+    (<o> ^name empty ^empty-jug <j>)
+    (<j> ^volume <volume> ^contents <contents>)
+-->
+    (<j> ^contents 0)
+    (<j> ^contents <contents> -)
+    (<s> ^goto trace)
+}
+
+
+sp { wjug0*propose*pour
+    (state <s> ^name wjug0 ^jug <i> ^jug { <j> <> <i> })
+    (<i> ^contents > 0)
+    (<j> ^empty > 0)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+}
+
+sp { wjug0*apply*pour*will-empty-empty-jug
+    (state <s> ^name wjug0 ^operator <o>)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+    (<j> ^volume <jvol> ^contents <jcon> ^empty <jempty>)
+    (<i> ^volume <ivol> ^contents { <icon> <= <jempty> })
+-->
+    (<i> ^contents 0 ^contents <icon> -)
+    (<j> ^contents (+ <jcon> <icon>) ^contents <jcon> -)
+    (<s> ^goto trace)
+}
+
+sp { wjug0*apply*pour*will-not-empty-empty-jug
+    (state <s> ^name wjug0 ^operator <o>)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+    (<j> ^volume <jvol> ^contents <jcon> ^empty <jempty>)
+    (<i> ^volume <ivol> ^contents { <icon> > <jempty> })
+-->
+    (<i> ^contents (- <icon> <jempty>) ^contents <icon> -)
+    (<j> ^contents <jvol> ^contents <jcon> -)
+    (<s> ^goto trace)
+}
+
+# Trace
+
+sp { wjug0*monitor*state
+    (state <s> ^name wjug0 ^jug <i> <j>)
+    (<i> ^volume 3 ^contents <icon>)
+    (<j> ^volume 5 ^contents <jcon>)
+-->
+    (write (crlf) | 3:| <icon> | 5:| <jcon> )
+}
+
+sp { wjug0*monitor*operator-application*empty
+    (state <s> ^name wjug0 ^goto trace ^operator <o>)
+    (<o> ^name empty ^empty-jug.volume <volume>)
+-->
+    (write | EMPTY(| <volume> |)|)
+    (<s> ^goto trace -)
+    (<s> ^goto check)
+}
+
+sp { wjug0*monitor*operator-application*fill
+    (state <s> ^name wjug0 ^goto trace ^operator <o>)
+    (<o> ^name fill ^fill-jug.volume <volume>)
+-->
+    (write | FILL(| <volume> |)|)
+    (<s> ^goto trace -)
+    (<s> ^goto check)
+}
+
+sp { wjug0*monitor*operator-application*pour
+    (state <s> ^name wjug0 ^goto trace ^operator <o>)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+    (<i> ^volume <ivol> ^contents <icon>)
+    (<j> ^volume <jvol> ^contents <jcon>)
+-->
+    (write | POUR(| <ivol> |:| <icon> |,| <jvol> |:| <jcon> |)|)
+    (<s> ^goto trace -)
+    (<s> ^goto check)
+}
+
+# Final states
+
+sp { wjug0*detect*goal*achieved
+    (state <s> ^name wjug0 ^goto check ^goaljug <dj> ^jug <j>)
+    (<dj> ^volume <v> ^contents <c>)
+    (<j> ^volume <v> ^contents <c>)
+-->
+    (write (crlf) |The problem has been solved.|)
+    (halt)
+}
+
+sp { wjug0*detect*goal*notachieved
+    (state <s> ^name wjug0 ^goto check ^goaljug <dj> ^jug {<j1> <>  <j2>})
+    (<dj> ^volume <v> ^contents <c>)
+    -(<j1> ^volume <v> ^contents <c>)
+    -(<j2> ^volume <v> ^contents <c>)
+-->
+    (<s> ^goto check -)
+}
+
+# Search control (basic)
+
+# Keep track of last operator
+
+sp { wjug0*apply*operator*record*last-operator*pour
+    (state <s> ^name wjug0 ^operator <o>)
+    (<o> ^name pour ^fill-jug <fj> ^empty-jug <ej>)
+-->
+    (<s> ^last-operator <last-op>)
+    (<last-op> ^name pour ^fill-jug <fj> ^empty-jug <ej>)
+}
+
+sp {wjug0*apply*operator*remove*last-operator*pour
+    (state <s> ^name wjug0 ^operator <o> ^last-operator <last-op>)
+    (<o> ^name pour ^fill-jug <fj> ^empty-jug <ej>)
+   -(<last-op> ^name pour ^fill-jug <fj> ^empty-jug <ej>)
+-->
+    (<s> ^last-operator <last-op> -)
+}
+
+sp { wjug0*apply*operator*record*last-operator*fill
+    (state <s> ^name wjug0 ^operator <o>)
+    (<o> ^name fill ^fill-jug <fj> ^empty-jug <ej>)
+-->
+    (<s> ^last-operator <last-op>)
+    (<last-op> ^name fill ^fill-jug <fj> ^empty-jug <ej>)
+}
+
+sp {wjug0*apply*operator*remove*last-operator*fill
+    (state <s> ^name wjug0 ^operator <o> ^last-operator <last-op>)
+    (<o> ^name fill ^fill-jug <fj> ^empty-jug <ej>)
+   -(<last-op> ^name fill ^fill-jug <fj> ^empty-jug <ej>)
+-->
+    (<s> ^last-operator <last-op> -)
+}
+
+sp { wjug0*apply*operator*record*last-operator*empty
+    (state <s> ^name wjug0 ^operator <o>)
+    (<o> ^name empty ^fill-jug <fj> ^empty-jug <ej>)
+-->
+    (<s> ^last-operator <last-op>)
+    (<last-op> ^name empty ^fill-jug <fj> ^empty-jug <ej>)
+}
+
+sp {wjug0*apply*operator*remove*last-operator*empty
+    (state <s> ^name wjug0 ^operator <o> ^last-operator <last-op>)
+    (<o> ^name empty ^fill-jug <fj> ^empty-jug <ej>)
+   -(<last-op> ^name empty ^fill-jug <fj> ^empty-jug <ej>)
+-->
+    (<s> ^last-operator <last-op> -)
+}
+
+# Avoid inverse operations by comparing w. last operator
+
+sp {wjug0*select*operator*avoid*inverse*fill
+    (state <s> ^name wjug0 ^operator <o> + ^last-operator <lo>)
+    (<o> ^name fill ^fill-jug <i>)
+    (<lo> ^name empty ^empty-jug <i>)
+-->
+    (<s> ^operator <o> <)
+}
+
+
+sp {wjug0*select*operator*avoid*inverse*empty
+    (state <s> ^name wjug0 ^operator <o> + ^last-operator <lo>)
+    (<o> ^name empty ^empty-jug <i>)
+    (<lo> ^name fill ^fill-jug <i>)
+-->
+    (<s> ^operator <o> <)
+}
+
+
+sp {wjug0*select*avoid*inverse*pour
+    (state <s> ^name wjug0 ^operator <o> + ^last-operator <lo>)
+    (<o> ^name pour ^fill-jug <j>)
+    (<lo> ^name pour ^empty-jug <j>)
+-->
+    (<s> ^operator <o> <)
+}

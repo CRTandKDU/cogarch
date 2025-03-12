@@ -1,0 +1,132 @@
+# -*- mode:soar; -*-
+# Tuesday, March 4, 2025. In this version search control is integrated in the LHS of `propose' rules.
+
+# Initialize the problem representation
+sp { wjug1*propose*initialize
+    (state <s> ^type state -^name)
+-->
+    (<s> ^operator <o> +)
+    (<o> ^name initialize)
+}
+
+sp { wjug1*apply*initialize
+    (state <s> ^operator.name initialize)
+-->
+    (<s> ^name wjug1 ^jug <j1> ^jug <j2>)
+    (<j1> ^volume 5 ^contents 0)
+    (<j2> ^volume 3 ^contents 0)
+    (<s> ^goaljug <k>)
+    (<k> ^volume 3 ^contents 1)
+    (<s> ^lastop none)
+}
+
+# Operators for problem solving as search
+sp { wjug1*propose*fill
+    (state <s> ^name wjug1 ^jug <j> ^lastop <lop>)
+    (<j> -^empty 0)
+   -(<lop> ^name empty ^empty-jug <j>)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name fill ^fill-jug <j>)
+}
+
+sp { wjug1*apply*fill
+    (state <s> ^name wjug1 ^operator <o> ^jug <j> ^lastop <lop>)
+    (<o> ^name fill ^fill-jug <j>)
+    (<j> ^volume <volume> ^contents <contents>)
+-->
+    (<j> ^contents <volume>)
+    (<j> ^contents <contents> -)
+    (<s> ^lastop <lop> -)
+    (<s> ^lastop <newlop>)
+    (<newlop> ^name fill ^fill-jug <j>)
+}
+
+sp { wjug1*propose*empty
+    (state <s> ^name wjug1 ^jug <j> ^lastop <lop>)
+    (<j> ^contents > 0)
+   -(<lop> ^name fill ^fill-jug <j>)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name empty ^empty-jug <j>)
+}
+
+sp { wjug1*apply*empty
+    (state <s> ^name wjug1 ^operator <o> ^jug <j> ^lastop <lop>)
+    (<o> ^name empty ^empty-jug <j>)
+    (<j> ^volume <volume> ^contents <contents>)
+-->
+    (<j> ^contents 0)
+    (<j> ^contents <contents> -)
+    (<s> ^lastop <lop> -)
+    (<s> ^lastop <newlop>)
+    (<newlop> ^name empty ^empty-jug <j>)
+}
+
+
+sp { wjug1*propose*pour
+    (state <s> ^name wjug1 ^jug <i> ^jug { <j> <> <i> })
+    (<i> ^contents > 0)
+    (<j> ^empty > 0)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+}
+
+sp { wjug1*apply*pour*will-empty-empty-jug
+    (state <s> ^name wjug1 ^operator <o> ^lastop <lop>)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+    (<j> ^volume <jvol> ^contents <jcon> ^empty <jempty>)
+    (<i> ^volume <ivol> ^contents { <icon> <= <jempty> })
+-->
+    (<i> ^contents 0 ^contents <icon> -)
+    (<j> ^contents (+ <jcon> <icon>) ^contents <jcon> -)
+    (<s> ^lastop <lop> -)
+    (<s> ^lastop <newlop>)
+    (<newlop> ^name pour ^fill-jug <j> ^empty-jug <i>)
+}
+
+sp { wjug1*apply*pour*will-not-empty-empty-jug
+    (state <s> ^name wjug1 ^operator <o> ^lastop <lop>)
+    (<o> ^name pour ^empty-jug <i> ^fill-jug <j>)
+    (<j> ^volume <jvol> ^contents <jcon> ^empty <jempty>)
+    (<i> ^volume <ivol> ^contents { <icon> > <jempty> })
+-->
+    (<i> ^contents (- <icon> <jempty>) ^contents <icon> -)
+    (<j> ^contents <jvol> ^contents <jcon> -)
+    (<s> ^lastop <lop> -)
+    (<s> ^lastop <newlop>)
+    (<newlop> ^name pour ^fill-jug <j> ^empty-jug <i>)
+}
+
+# Elaboration rules
+sp { wjug1*elaborate*empty
+    (state <s> ^name wjug1 ^jug <j>)
+    (<j> ^volume <v> ^contents <c>)
+-->
+    (<j> ^empty (- <v> <c>))
+}
+
+# Monitor progress
+sp { wjug1*monitor*state
+    (state <s> ^name wjug1 ^jug <i> <j>)
+    (<i> ^volume 3 ^contents <icon>)
+    (<j> ^volume 5 ^contents <jcon>)
+-->
+    (write (crlf) | JUG3:| <icon> | JUG5:| <jcon> )
+}
+
+sp { wjug1*monitor*goal*reached
+    (state <s> ^name wjug1 ^goaljug <gj> ^jug <j>)
+    (<j> ^volume <v> ^contents <c>)
+    (<gj> ^volume <v> ^contents <c>)
+-->
+    (write (crlf) |Done!|)
+    (halt)
+}
+
+
+
+
+
+
