@@ -1,0 +1,14 @@
+   1:    0+10	0000  213412  		LD	HL,0x1234
+   2:   10+7	0003  3E07    		LD	A,0x7
+   3:   17+7	0005  77      		LD	(HL),A
+   4:   24+4	0006  76      		HALT
+   5:					
+
+
+
+Statistics:
+
+     3	passes
+     0	jr promotions
+     0	symbols
+     7	bytes

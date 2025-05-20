@@ -1,0 +1,57 @@
+/**
+ * sign.c -- Hypos and leaves in the or-and trees.
+ *
+ * Written on mardi, 20 mai 2025.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "agenda.h"
+
+sign_rec_ptr sign_pushnew( sign_rec_ptr top,
+			   const char *s,
+			   const int ngetters, const size_t size_getter,
+			   const int nsetters, const size_t size_setter
+			   ){
+  sign_rec_ptr sign;
+  unsigned short len;
+  //
+  sign			= (sign_rec_ptr) malloc( sizeof( struct sign_rec ) );;
+  sign->next		= top;
+  sign->val		= 0xff;
+  len			= (unsigned short)strlen( s );
+  sign->len_type	= (len < 9) ? len : 8;
+  char *to		= sign->str;
+  char *from		= (char *)s;
+  for( unsigned short i = 0; i < sign->len_type; *to++ = *from++, i++ ); *to = 0;
+  sign->len_type 	|= SIGN_MASK;
+  sign->ngetters	= ngetters;
+  sign->nsetters	= nsetters;
+  sign->getters		= ngetters ? (void *)0 : (void *)malloc( ngetters*size_getter );
+  sign->setters         = nsetters ? (void *)0 : (void *)malloc( nsetters*size_setter );
+  //
+  return sign;
+}
+
+void sign_del( sign_rec_ptr sign ){
+  if( sign->getters ) free( sign->getters );
+  if( sign->setters ) free( sign->setters );
+  free( sign );
+}
+
+void sign_print( sign_rec_ptr sign ){
+  short len = sign->len_type & SIGN_UNMASK;
+  printf( "SIGN:\t%s (%d, %d, %d)\tVal %d\n", sign->str,
+	  len, sign->len_type, sign->len_type & TYPE_MASK,
+	  sign->val );
+  printf( "\tGetters %d, Setters %d\n", sign->ngetters, sign->nsetters );
+}
+
+void sign_iter( sign_rec_ptr s0, sign_op func ){
+  sign_rec_ptr prev, s=s0;
+  while( s ){
+    prev = s;
+    s = s->next;
+    func( prev );
+  }
+}

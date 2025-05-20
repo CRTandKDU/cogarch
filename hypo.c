@@ -1,0 +1,32 @@
+/**
+ * hypo.c -- Hypotheses may also be signs
+ *
+ * Written on mardi, 20 mai 2025.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "agenda.h"
+
+hypo_rec_ptr hypo_pushnew( hypo_rec_ptr top,
+			   const char *s, const int ngetters ){
+  hypo_rec_ptr hypo = (hypo_rec_ptr)sign_pushnew( top, s,
+						  ngetters, sizeof( bwrd_rec_ptr ),
+						  0, sizeof(void *) );
+  hypo->len_type = (unsigned short)strlen(s) | HYPO_MASK;
+  return hypo;
+};
+
+void hypo_del( hypo_rec_ptr hypo ){
+  if( hypo->getters ) free( hypo->getters );
+  free( hypo );
+};
+
+void hypo_print( hypo_rec_ptr hypo ){
+  short len = hypo->len_type & HYPO_UNMASK;
+  printf( "HYPO:\t%s (%d, %d, %d)\tVal %d\n", hypo->str,
+	  len, hypo->len_type, hypo->len_type & TYPE_MASK,
+	  hypo->val );
+  printf( "\tGetters %d\n", hypo->ngetters );
+};

@@ -1,0 +1,22 @@
+	LD	IX,_HALT
+	LD	IY,SIGNS+0xb
+	XOR	A,A
+	LD	A,(IY)
+	SBC	A,0xff
+	JZ	_EXEC
+_HALT	HALT	
+_EXEC	INC	IY
+	JP	(IY)
+SIGNS	defw	_TASK		; next sign
+	defb	7		; length of sign
+	dc	'CRT_KDU'	; sign
+	defb	0		; pad to 8B
+	defb	0xff		; boolean value 0, 1, ff
+	JP	(IX)		; code for sign
+_TASK	defw	0x00		; next sign (last)
+	defb	4		; length of sign
+	dc	'TASK'		; sign
+	defb	0,0,0,0		; pad to 8B
+	defb	0xff		; boolean value 0, 1, ff
+	JP	(IX)		; code for sign
+	

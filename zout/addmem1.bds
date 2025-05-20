@@ -1,0 +1,70 @@
+binary-debuggable-source
+0000 0000 f addmem1.asm
+0000 0000 d dd211100
+0000 0000 u 04 01
+0000 0000 s 	LD	IX,_HALT
+0004 0004 d fd212100
+0004 0004 u 04 01
+0004 0004 s 	LD	IY,SIGNS+0xb
+0008 0008 d af
+0008 0008 u 01 01
+0008 0008 s 	XOR	A,A
+0009 0009 d fd7e00
+0009 0009 u 03 01
+0009 0009 s 	LD	A,(IY)
+000c 000c d deff
+000c 000c u 02 01
+000c 000c s 	SBC	A,0xff
+000e 000e d ca1200
+000e 000e u 03 01
+000e 000e s 	JZ	_EXEC
+0011 0011 d 76
+0011 0011 u 01 01
+0011 0011 s _HALT	HALT	
+0012 0012 d fd23
+0012 0012 u 02 01
+0012 0012 s _EXEC	INC	IY
+0014 0014 d fde9
+0014 0014 u 02 01
+0014 0014 s 	JP	(IY)
+0016 0016 d 2400
+0016 0016 u 02 02
+0016 0016 s SIGNS	defw	_TASK		; next sign
+0018 0018 d 07
+0018 0018 u 01 02
+0018 0018 s 	defb	7		; length of sign
+0019 0019 d 4352545f4b44d5
+0019 0019 u 07 02
+0019 0019 s 	dc	'CRT_KDU'	; sign
+0020 0020 d 00
+0020 0020 u 01 02
+0020 0020 s 	defb	0		; pad to 8B
+0021 0021 d ff
+0021 0021 u 01 02
+0021 0021 s 	defb	0xff		; boolean value 0, 1, ff
+0022 0022 d dde9
+0022 0022 u 02 01
+0022 0022 s 	JP	(IX)		; code for sign
+0024 0024 d 0000
+0024 0024 u 02 02
+0024 0024 s _TASK	defw	0x00		; next sign (last)
+0026 0026 d 04
+0026 0026 u 01 02
+0026 0026 s 	defb	4		; length of sign
+0027 0027 d 544153cb
+0027 0027 u 04 02
+0027 0027 s 	dc	'TASK'		; sign
+002b 002b d 00000000
+002b 002b u 04 02
+002b 002b s 	defb	0,0,0,0		; pad to 8B
+002f 002f d ff
+002f 002f u 01 02
+002f 002f s 	defb	0xff		; boolean value 0, 1, ff
+0030 0030 d dde9
+0030 0030 u 02 01
+0030 0030 s 	JP	(IX)		; code for sign
+0032 0032 s 	
+0016 a SIGNS
+0012 a _EXEC
+0024 a _TASK
+0011 a _HALT

@@ -1,0 +1,41 @@
+   1:    0+14	0000  DD211100		LD	IX,_HALT
+   2:   14+14	0004  FD212100		LD	IY,SIGNS+0xb
+   3:   28+4	0008  AF      		XOR	A,A
+   4:   32+19	0009  FD7E00  		LD	A,(IY)
+   5:   51+7	000C  DEFF    		SBC	A,0xff
+   6:   58+10	000E  CA1200  		JZ	_EXEC
+   7:   68+4	0011  76      	_HALT	HALT	
+   8:   72+10	0012  FD23    	_EXEC	INC	IY
+   9:   82+8	0014  FDE9    		JP	(IY)
+  10:     -	0016  2400    	SIGNS	defw	_TASK		; next sign
+  11:     -	0018  07      		defb	7		; length of sign
+  12:     -	0019  4352545F		dc	'CRT_KDU'	; sign
+	              4B44D5
+  13:     -	0020  00      		defb	0		; pad to 8B
+  14:     -	0021  FF      		defb	0xff		; boolean value 0, 1, ff
+  15:   90+8	0022  DDE9    		JP	(IX)		; code for sign
+  16:     -	0024  0000    	_TASK	defw	0x00		; next sign (last)
+  17:     -	0026  04      		defb	4		; length of sign
+  18:     -	0027  544153CB		dc	'TASK'		; sign
+  19:     -	002B  00000000		defb	0,0,0,0		; pad to 8B
+  20:     -	002F  FF      		defb	0xff		; boolean value 0, 1, ff
+  21:   98+8	0030  DDE9    		JP	(IX)		; code for sign
+  22:					
+
+
+
+Statistics:
+
+     4	passes
+     0	jr promotions
+     4	symbols
+    50	bytes
+
+
+
+Symbol Table:
+
+SIGNS           16        22
+_EXEC           12        18
+_HALT           11        17
+_TASK           24        36

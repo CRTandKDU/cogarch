@@ -1,0 +1,5 @@
+/**
+ * rule.c -- Rules associate a set of conditions to a hypothesis
+ *
+ * Written on mardi, 20 mai 2025.
+ */

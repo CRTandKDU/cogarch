@@ -1,0 +1,5 @@
+	LD	HL,0x1234
+	LD	A,0x7
+	LD	(HL),A
+	HALT
+	

@@ -1,0 +1,32 @@
+#ifndef AGENDA_H
+#define  AGENDA_H
+
+#define SIGN_MASK 0x07
+
+struct fwrd_rec {
+  unsigned short logical;
+  unsigned short val;
+  // Rule rec pointer
+  int cond;
+};
+typedef struct fwrd_rec *fwrd_rec_ptr;
+
+struct sign_rec;
+typedef struct sign_rec *sign_rec_ptr;
+struct sign_rec {
+  sign_rec_ptr next;
+  unsigned short val;
+  unsigned short len_type;
+  char str[9];
+  int *getters;
+  fwrd_rec_ptr *setters;
+};
+
+sign_rec_ptr sign_pushnew( sign_rec_ptr top,
+			   const char *s, const int ngetters, const int nsetters );
+void sign_del( sign_rec_ptr sign );
+void sign_print( sign_rec_ptr sign );
+
+
+#endif
+

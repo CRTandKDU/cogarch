@@ -1,0 +1,11 @@
+CC = gcc
+CFLAGS = -std=c99 -I.
+DEPS = agenda.h
+
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+agenda: agenda.o sign.o
+	$(CC) -o agenda agenda.o sign.o
+
+

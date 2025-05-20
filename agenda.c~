@@ -1,0 +1,21 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "agenda.h"
+
+// List of signs
+static sign_rec_ptr S_Signs = (sign_rec_ptr)0;
+
+int main( int argc, char *argv[] ){
+  sign_rec_ptr s, prev;
+  S_Signs = sign_pushnew( S_Signs, "CRT_KDU", 3, 4 );
+  S_Signs = sign_pushnew( S_Signs, "TASK", 2, 2 );
+  s = S_Signs;
+  while( s ){
+    sign_print( s );
+    prev = s;
+    s = s->next;
+    sign_del( prev );
+  }
+  return 0;
+}
