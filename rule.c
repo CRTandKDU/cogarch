@@ -31,7 +31,7 @@ rule_rec_ptr rule_pushnew( rule_rec_ptr top,
   /* /\* for( unsigned short i = 0; i < ngetters; i++ ) getters[i] = (cond_rec_ptr)0x00; *\/ */
   /* rule->getters = getters; */
   rule->len_type = (unsigned short)strlen( s ) | RULE_MASK;
-  rule->setters = (void *)h;
+  rule->setters = (empty_ptr *)h;
   return rule;
 };
 

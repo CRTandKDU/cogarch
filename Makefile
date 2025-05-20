@@ -1,5 +1,5 @@
-CC = gcc
-CFLAGS = -std=c99 -I.
+CC = g++
+CFLAGS =  -I.
 DEPS = agenda.h
 OBJ = agenda.o sign.o rule.o hypo.o
 
