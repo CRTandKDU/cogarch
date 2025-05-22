@@ -19,14 +19,17 @@ hypo_rec_ptr hypo_pushnew( hypo_rec_ptr top,
 };
 
 void hypo_del( hypo_rec_ptr hypo ){
-  if( hypo->getters ) free( hypo->getters );
-  free( hypo );
-};
+  sign_del( (sign_rec_ptr)hypo );
+}
 
 void hypo_print( hypo_rec_ptr hypo ){
   short len = hypo->len_type & HYPO_UNMASK;
   printf( "HYPO:\t%s (%d, %d, %d)\tVal %d\n", hypo->str,
 	  len, hypo->len_type, hypo->len_type & TYPE_MASK,
 	  hypo->val );
-  printf( "\tGetters %d\n", hypo->ngetters );
+  printf( "\tGetters: %d, Setters: %d\n", hypo->ngetters, hypo->nsetters );
+  for( unsigned short i=0; i < hypo->ngetters; i++ ){
+    bwrd_rec_ptr bwrd = (bwrd_rec_ptr) (hypo->getters)[i];
+    printf( "\t\tfrom %s\n", bwrd->rule->str );
+  }
 };

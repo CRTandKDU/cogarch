@@ -11,31 +11,39 @@
 
 rule_rec_ptr rule_pushnew( rule_rec_ptr top,
 			   const char *s, const int ngetters, hypo_rec_ptr h ){
+  bwrd_rec_ptr bwrd;
+  // Set up rule sign-instance
   rule_rec_ptr rule = (rule_rec_ptr)sign_pushnew( top, s,
 						  ngetters, sizeof(cond_rec_ptr),
 						  0, sizeof(void *) );
-  /* unsigned short len; */
-  /* rule			= (rule_rec_ptr) malloc( sizeof( struct rule_rec ) );; */
-  /* rule->next		= top; */
-  /* rule->val		= 0xff; */
-  /* len			= (unsigned short)strlen( s ); */
-  /* rule->len_type	= (len < 9) ? len : 8; */
-  /* char *to		= rule->str; */
-  /* char *from		= (char *)s; */
-  /* for( unsigned short i = 0; i < rule->len_type; *to++ = *from++, i++ ); *to = 0; */
-  /* rule->len_type 	|= RULE_MASK; */
-  /* // */
-  /* rule->setters = h; */
-  /* rule->ngetters = (int)ngetters; */
-  /* cond_rec_ptr *getters = (cond_rec_ptr *)malloc( 1+ngetters*sizeof(cond_rec_ptr) ); */
-  /* /\* for( unsigned short i = 0; i < ngetters; i++ ) getters[i] = (cond_rec_ptr)0x00; *\/ */
-  /* rule->getters = getters; */
   rule->len_type = (unsigned short)strlen( s ) | RULE_MASK;
+  // Set up hypothesis 
   rule->setters = (empty_ptr *)h;
+  // Point back from hypo to rules
+  sign_pushgetter( h, (empty_ptr)malloc( sizeof(struct bwrd_rec) ) );
+  bwrd = (bwrd_rec_ptr) (h->getters)[_LAST_RULE(h)];
+  bwrd->rule = rule;
   return rule;
-};
+}
+
+void rule_pushnewcond( rule_rec_ptr rule, unsigned short op, sign_rec_ptr sign ){
+  cond_rec_ptr cond;
+  fwrd_rec_ptr fwrd;
+  sign_pushgetter( rule, (empty_ptr)malloc( sizeof(struct cond_rec) ) );
+  cond = (cond_rec_ptr)  (rule->getters)[_LAST_COND(rule)];
+  cond->in = cond->out = op;
+  cond->val = (unsigned short)0xff;
+  cond->sign = sign;
+  // Point back from sign to cond
+  sign_pushsetter( sign, (empty_ptr)malloc( sizeof(struct fwrd_rec) ) );
+  fwrd = (fwrd_rec_ptr) (sign->setters)[_LAST_FWRD(sign)];
+  fwrd->rule = rule;
+  fwrd->idx_cond = _LAST_COND(rule);
+}
 
 void rule_del( rule_rec_ptr rule ){
+  if( rule->ngetters )
+    for( unsigned short i=0; i<rule->ngetters; i++ ){ free( (void *) (rule->getters)[i] ); }
   if( rule->getters ) free( rule->getters );
   free( rule );
 }
@@ -45,16 +53,23 @@ void rule_print( rule_rec_ptr rule ){
   printf( "RULE:\t%s (%d, %d, %d)\tVal %d\n", rule->str,
 	  len, rule->len_type, rule->len_type & TYPE_MASK,
 	  rule->val );
-  printf( "\tHYPO: %d\n", rule->nsetters );
+  printf( "\tGetters: %d, Setters: %d\n", rule->ngetters, rule->nsetters );
   if( rule->setters ){
     hypo_print( (hypo_rec_ptr)rule->setters );
   }
-  printf( "\tCOND: %d (%d)\n", rule->ngetters, sizeof((rule->getters)) );
+  printf( "COND: %d (%d)\n", rule->ngetters, sizeof((rule->getters)) );
   if( rule->getters ){
     for( unsigned short i = 0; i<rule->ngetters; i++ ){
-      printf( "\tCOND: %d == %s\n",
+      printf( "COND %d: %d == %s\tVal: %d\n", i,
 	      (_AS_COND_ARRAY(rule->getters)[i])->out,
-	      (_AS_COND_ARRAY(rule->getters)[i])->sign->str );
+	      (_AS_COND_ARRAY(rule->getters)[i])->sign->str,
+	      (_AS_COND_ARRAY(rule->getters)[i])->val);
+      sign_rec_ptr sign = (_AS_COND_ARRAY(rule->getters)[i])->sign;
+      for( unsigned short j = 0; j < sign->nsetters; j++ ){
+	printf( "\t\tin %s at %d\n",
+		((fwrd_rec_ptr)(sign->setters)[j])->rule->str,
+		((fwrd_rec_ptr)(sign->setters)[j])->idx_cond );
+      }
     }
   }
 }

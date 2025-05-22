@@ -8,6 +8,7 @@
 #include <string.h>
 #include "agenda.h"
 
+// Builders
 sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 			   const char *s,
 			   const int ngetters, const size_t size_getter,
@@ -45,11 +46,51 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 }
 
 void sign_del( sign_rec_ptr sign ){
+  if( sign->ngetters )
+    for( unsigned short i=0; i<sign->ngetters; i++ ){ free( (void *) (sign->getters)[i] ); }
+  if( sign->nsetters )
+    for( unsigned short i=0; i<sign->nsetters; i++ ){ free( (void *) (sign->setters)[i] ); }
   if( sign->getters ) free( sign->getters );
   if( sign->setters ) free( sign->setters );
   free( sign );
 }
 
+void sign_pushgetter( sign_rec_ptr sign, empty_ptr getr ){
+  if( 0 == sign->ngetters ){
+    sign->getters = (empty_ptr *)malloc( sizeof(empty_ptr) );
+  }
+  else{
+    sign->getters = (empty_ptr *)realloc( sign->getters, (1 + sign->ngetters)*sizeof(empty_ptr) );
+  }
+  (sign->getters)[ sign->ngetters ] = getr;
+  sign->ngetters += 1;
+}
+
+void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
+  if( 0 == sign->nsetters ){
+    sign->setters = (empty_ptr *)malloc( sizeof(empty_ptr) );
+  }
+  else{
+    sign->setters = (empty_ptr *)realloc( sign->setters, (1 + sign->nsetters)*sizeof(empty_ptr) );
+  }
+  (sign->setters)[ sign->nsetters ] = setr;
+  sign->nsetters += 1;
+}
+
+// Engines
+unsigned short sign_get_default( sign_rec_ptr sign ){
+  char buf[3] = { 0 };
+  printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
+  fgets( buf, 3, stdin );
+  return (unsigned short)strtoul( buf, NULL, 0 );
+}
+
+void sign_set_default( sign_rec_ptr sign, unsigned short val ){
+  sign->val = val;
+  engine_forward_sign( sign );
+}
+
+// Managers
 void sign_print( sign_rec_ptr sign ){
   short len = sign->len_type & SIGN_UNMASK;
   printf( "SIGN:\t%s (%d, %d, %d)\tVal %d\n", sign->str,
