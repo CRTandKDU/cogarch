@@ -8,6 +8,10 @@
 #include <string.h>
 #include "agenda.h"
 
+
+extern effect S_on_get;
+extern effect S_on_set;
+
 // Builders
 sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 			   const char *s,
@@ -77,9 +81,10 @@ void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
   sign->nsetters += 1;
 }
 
-// Engines
+// I/O
 unsigned short sign_get_default( sign_rec_ptr sign ){
   char buf[3] = { 0 };
+  if( S_on_get ) S_on_get( sign );
   printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
   fgets( buf, 3, stdin );
   return (unsigned short)strtoul( buf, NULL, 0 );
@@ -87,14 +92,16 @@ unsigned short sign_get_default( sign_rec_ptr sign ){
 
 void sign_set_default( sign_rec_ptr sign, unsigned short val ){
   sign->val = val;
-  engine_forward_sign( sign );
+  if( S_on_set ) S_on_set( sign );
 }
 
 // Managers
 void sign_print( sign_rec_ptr sign ){
+  char *esc = S_val_color( sign->val );
   short len = sign->len_type & SIGN_UNMASK;
-  printf( "SIGN:\t%s (%d, %d, %d)\tVal %d\n", sign->str,
+  printf( "%sSIGN:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, sign->str,
 	  len, sign->len_type, sign->len_type & TYPE_MASK,
+	  _VALSTR(sign->val),
 	  sign->val );
   printf( "\tGetters %d (%d), Setters %d (%d)\n",
 	  sign->ngetters, sizeof( sign->getters ),

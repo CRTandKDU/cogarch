@@ -49,9 +49,11 @@ void rule_del( rule_rec_ptr rule ){
 }
 
 void rule_print( rule_rec_ptr rule ){
+  char *esc = S_val_color( rule->val );
   short len = rule->len_type & RULE_UNMASK;
-  printf( "RULE:\t%s (%d, %d, %d)\tVal %d\n", rule->str,
+  printf( "%sRULE:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, rule->str,
 	  len, rule->len_type, rule->len_type & TYPE_MASK,
+	  _VALSTR(rule->val),
 	  rule->val );
   printf( "\tGetters: %d, Setters: %d\n", rule->ngetters, rule->nsetters );
   if( rule->setters ){

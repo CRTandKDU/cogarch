@@ -23,9 +23,13 @@ void hypo_del( hypo_rec_ptr hypo ){
 }
 
 void hypo_print( hypo_rec_ptr hypo ){
+  char *esc = S_val_color( hypo->val );
   short len = hypo->len_type & HYPO_UNMASK;
-  printf( "HYPO:\t%s (%d, %d, %d)\tVal %d\n", hypo->str,
+
+  //
+  printf( "%sHYPO:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, hypo->str,
 	  len, hypo->len_type, hypo->len_type & TYPE_MASK,
+	  _VALSTR(hypo->val),
 	  hypo->val );
   printf( "\tGetters: %d, Setters: %d\n", hypo->ngetters, hypo->nsetters );
   for( unsigned short i=0; i < hypo->ngetters; i++ ){

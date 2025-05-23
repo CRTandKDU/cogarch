@@ -11,6 +11,7 @@
 static sign_rec_ptr S_Signs = (sign_rec_ptr)0;
 static rule_rec_ptr S_Rules = (rule_rec_ptr)0;
 static hypo_rec_ptr S_Hypos = (hypo_rec_ptr)0;
+engine_state_rec_ptr S_State;
 
 #define _DEL_SIGNS ( sign_iter(S_Signs,&sign_del) )
 #define _DEL_HYPOS ( sign_iter(S_Hypos,&hypo_del) )
@@ -18,7 +19,16 @@ static hypo_rec_ptr S_Hypos = (hypo_rec_ptr)0;
 
 
 int main( int argc, char *argv[] ){
-  sign_rec_ptr s_c1, s_c2;
+  // New state
+  S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );
+  S_State->current_sign = (sign_rec_ptr)0;
+  S_State->agenda	= (cell_rec_ptr)0;
+  engine_register_effects( &engine_default_on_get,
+			   &engine_default_on_set,
+			   &engine_default_on_gate);
+
+  // KB
+  sign_rec_ptr s_c1, s_c2, s_c3;
   S_Signs = sign_pushnew( S_Signs, "CRT_KDU",
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
@@ -33,6 +43,7 @@ int main( int argc, char *argv[] ){
   S_Signs = sign_pushnew( S_Signs, "TANK_P2",
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
+  s_c3 = S_Signs;
   S_Signs = sign_pushnew( S_Signs, "A_LONG_SIGN",
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
@@ -44,15 +55,27 @@ int main( int argc, char *argv[] ){
   rule_pushnewcond( S_Rules, (unsigned short)1, s_c1 );
   rule_pushnewcond( S_Rules, (unsigned short)1, s_c2 );
 
-  sign_set_default( s_c2, sign_get_default( s_c2 ) );
+  S_Rules = rule_pushnew( S_Rules, "RULE_2", 0, S_Hypos );
+  // Point to two conditions LHS
+  rule_pushnewcond( S_Rules, (unsigned short)1, s_c3 );
+
+  /* engine_backward_hypo( S_Hypos ); */
+  /* engine_pushnew_hypo( S_State, S_Hypos ); */
+  engine_pushnew_signdata( S_State, s_c1, _TRUE );
+  engine_print_state( S_State );
+  engine_knowcess( S_State );
 
   sign_iter( S_Signs, &sign_print );
-  rule_print( S_Rules );
-  
+  printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
+  /* rule_print( S_Rules ); */
+  sign_iter( S_Rules, &rule_print );
   
   //
   _DEL_RULES;
+  
   _DEL_SIGNS;
   _DEL_HYPOS;
+  engine_free_state( S_State );
+  
   return 0;
 }
