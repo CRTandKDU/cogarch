@@ -11,3 +11,6 @@ agenda: $(OBJ)
 
 listview: listview.cpp sign.o rule.o hypo.o
 	$(CC) -o $@ $^ $(CFLAGS) -O3 -lfinal
+
+simple_guile: simple_guile.c
+	gcc -o simple_guile simple_guile.c `pkg-config --cflags --libs guile-3.0`

@@ -28,7 +28,8 @@ int main( int argc, char *argv[] ){
 			   &engine_default_on_gate);
 
   // KB
-  sign_rec_ptr s_c1, s_c2, s_c3;
+  sign_rec_ptr s_c1, s_c2, s_c3, s_cp1;
+  hypo_rec_ptr h_1;
   S_Signs = sign_pushnew( S_Signs, "CRT_KDU",
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
@@ -40,6 +41,7 @@ int main( int argc, char *argv[] ){
   S_Signs = sign_pushnew( S_Signs, "TANK_P1",
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
+  s_cp1 = S_Signs;
   S_Signs = sign_pushnew( S_Signs, "TANK_P2",
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
@@ -48,7 +50,7 @@ int main( int argc, char *argv[] ){
 			  0, sizeof(void *),
 			  0, sizeof(fwrd_rec_ptr) );
   //
-  S_Hypos = hypo_pushnew( S_Hypos, "ALARM_P1", 0 );
+  h_1 = S_Hypos = hypo_pushnew( S_Hypos, "ALARM_P1", 0 );
   //
   S_Rules = rule_pushnew( S_Rules, "RULE_1", 0, S_Hypos );
   // Point to two conditions LHS
@@ -58,6 +60,14 @@ int main( int argc, char *argv[] ){
   S_Rules = rule_pushnew( S_Rules, "RULE_2", 0, S_Hypos );
   // Point to two conditions LHS
   rule_pushnewcond( S_Rules, (unsigned short)1, s_c3 );
+
+  S_Hypos = hypo_pushnew( S_Hypos, "ALERT", 0 );
+  rule_pushnewcond( S_Rules, (unsigned short)1, S_Hypos );
+  S_Rules = rule_pushnew( S_Rules, "RULE_3", 0, S_Hypos );
+  // Point to two conditions LHS
+  rule_pushnewcond( S_Rules, (unsigned short)1, S_Signs );
+  rule_pushnewcond( S_Rules, (unsigned short)1, s_cp1 );
+  
 
   /* engine_backward_hypo( S_Hypos ); */
   /* engine_pushnew_hypo( S_State, S_Hypos ); */

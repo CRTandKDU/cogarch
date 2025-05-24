@@ -158,12 +158,12 @@ void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_pt
 void            engine_knowcess( engine_state_rec_ptr state );
 
 // Global
-typedef void (*effect) (sign_rec_ptr);
+typedef void (*effect) (sign_rec_ptr, unsigned short);
 
 void engine_register_effects( effect f_get, effect f_set, effect f_gate );
-void engine_default_on_get( sign_rec_ptr sign );
-void engine_default_on_set( sign_rec_ptr sign );
-void engine_default_on_gate( sign_rec_ptr sign );
+void engine_default_on_get( sign_rec_ptr sign, unsigned short val );
+void engine_default_on_set( sign_rec_ptr sign, unsigned short val);
+void engine_default_on_gate( sign_rec_ptr sign,unsigned short val );
 
 #endif
 

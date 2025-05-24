@@ -84,7 +84,7 @@ void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
 // I/O
 unsigned short sign_get_default( sign_rec_ptr sign ){
   char buf[3] = { 0 };
-  if( S_on_get ) S_on_get( sign );
+  if( S_on_get ) S_on_get( sign, _UNKNOWN );
   printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
   fgets( buf, 3, stdin );
   return (unsigned short)strtoul( buf, NULL, 0 );
@@ -92,7 +92,7 @@ unsigned short sign_get_default( sign_rec_ptr sign ){
 
 void sign_set_default( sign_rec_ptr sign, unsigned short val ){
   sign->val = val;
-  if( S_on_set ) S_on_set( sign );
+  if( S_on_set ) S_on_set( sign, val );
 }
 
 // Managers

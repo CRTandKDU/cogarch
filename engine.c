@@ -12,14 +12,14 @@
 extern engine_state_rec_ptr S_State;
 effect S_on_get		= (effect)0;  // Triggered on get in `sign_default_get`
 effect S_on_set		= (effect)0;  // Triggered on set in `sign_default_set`
-effect S_on_gate	= (effect)0;  // Triggered on true cond in `engine_forward_cond`
+effect S_on_gate	= (effect)0;  // Triggered on setting cond in `engine_forward_sign`
 
 
-void engine_default_on_get( sign_rec_ptr sign ){
+void engine_default_on_get( sign_rec_ptr sign, unsigned short val ){
   // Do nothing
 }
 
-void engine_default_on_set( sign_rec_ptr sign ){
+void engine_default_on_set( sign_rec_ptr sign, unsigned short val ){
   // Forward signs and hypos
   switch( sign->len_type & TYPE_MASK ){
   case SIGN_MASK:
@@ -29,9 +29,9 @@ void engine_default_on_set( sign_rec_ptr sign ){
   }
 }
 
-void engine_default_on_gate( hypo_rec_ptr hypo ){
+void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
   // Postpone hypo when one of its rule might be true
-  if( _UNKNOWN == hypo->val ){
+  if( _TRUE == val && _UNKNOWN == hypo->val ){
     cell_rec_ptr new_cell, cell = S_State->agenda;
     if( cell ){
       while( cell->next ) cell = cell->next;
@@ -77,6 +77,7 @@ void engine_print_state( engine_state_rec_ptr state ){
   printf( "----\t----\t----\t----\n" );
 }
 
+//
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h ){
   // Suggest
   cell_rec_ptr cell = (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
@@ -173,7 +174,6 @@ void engine_forward_cond( rule_rec_ptr rule, cond_rec_ptr cond ){
     sign_set_default( rule, _FALSE );
   }
   if( _TRUE == val ){
-    if( S_on_gate ) S_on_gate( (hypo_rec_ptr) rule->setters );
     unsigned short rval = engine_sc_and( rule );
   }
   engine_forward_rule( rule );
@@ -187,6 +187,8 @@ void engine_forward_sign( sign_rec_ptr sign ){
       rule_rec_ptr rule = fwrd->rule;
       cond_rec_ptr cond = (cond_rec_ptr) (rule->getters)[ fwrd->idx_cond ];
       cond->val = (cond->out == val) ? _TRUE : _FALSE;
+      // Gating on known condition
+      if( S_on_gate ) S_on_gate( (hypo_rec_ptr) rule->setters, cond->val );
       engine_forward_cond( rule, cond ); 
     }
   }
@@ -219,6 +221,11 @@ void engine_backward_rule( rule_rec_ptr rule ){
 void engine_backward_cond( cond_rec_ptr cond ){
   // Sync modal question
   if( _UNKNOWN == cond->sign->val ){
-    sign_set_default( cond->sign, sign_get_default( cond->sign ) );
+    if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ){
+      engine_backward_hypo( (hypo_rec_ptr) cond->sign );
+    }
+    else{
+      sign_set_default( cond->sign, sign_get_default( cond->sign ) );
+    }
   }
 }
