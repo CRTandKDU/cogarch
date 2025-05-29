@@ -23,6 +23,7 @@ void engine_default_on_set( sign_rec_ptr sign, unsigned short val ){
   // Forward signs and hypos
   switch( sign->len_type & TYPE_MASK ){
   case SIGN_MASK:
+  case COMPOUND_MASK:
   case HYPO_MASK:
     engine_forward_sign( sign );
     break;
@@ -100,9 +101,16 @@ void engine_knowcess( engine_state_rec_ptr state ){
   // Execute `suggest` and `volunteer` commands until quiescent state
   while( state->agenda ){
     cell_rec_ptr cell = state->agenda;
-    // Test for `suggest hypo`
+    // Test for `suggest hypo` or compound
     if( _UNKNOWN == cell->val ){
-      engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo );
+      switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
+      case COMPOUND_MASK:
+	engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo );
+	break;
+      case HYPO_MASK:
+	engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo );
+	break;
+      }
     }
     else{
       sign_set_default( (sign_rec_ptr) cell->sign_or_hypo, cell->val );
@@ -206,6 +214,15 @@ void engine_backward_hypo( hypo_rec_ptr hypo ){
   }
 }
 
+void engine_backward_compound( compound_rec_ptr compound ){
+  if( COMPOUND_MASK != (compound->len_type & TYPE_MASK) ) return;
+  if( _UNKNOWN != compound->val ) return;
+  if( 0 == compound->ngetters ){
+    // Field getters is a pointer to the getter function
+    ((sign_getter_t)(compound->getters))( (sign_rec_ptr)compound );
+  }
+}
+
 void engine_backward_rule( rule_rec_ptr rule ){
   if( _UNKNOWN != rule->val ) return;
   // Sequential AND
@@ -219,13 +236,18 @@ void engine_backward_rule( rule_rec_ptr rule ){
 }
 
 void engine_backward_cond( cond_rec_ptr cond ){
-  // Sync modal question
   if( _UNKNOWN == cond->sign->val ){
+    // Hypothesis: backward on rules
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ){
       engine_backward_hypo( (hypo_rec_ptr) cond->sign );
     }
+    // Sign or Compound: ask or execute DSL program
     else{
-      sign_set_default( cond->sign, sign_get_default( cond->sign ) );
+      if( 0 == cond->sign->ngetters ){
+	// Field getters is a pointer to the getter function
+	((sign_getter_t)(cond->sign->getters))( cond->sign );
+      }
     }
   }
 }
+

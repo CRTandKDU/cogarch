@@ -7,20 +7,20 @@ typedef struct empty *empty_ptr;
 struct sign_rec;
 typedef struct sign_rec *sign_rec_ptr;
 typedef void (*sign_op) (sign_rec_ptr);
-
-/* struct rule_rec; */
-/* typedef struct rule_rec *rule_rec_ptr; */
-/* struct hypo_rec; */
-/* typedef struct hypo_rec *hypo_rec_ptr; */
 typedef sign_rec_ptr rule_rec_ptr;
 typedef sign_rec_ptr hypo_rec_ptr;
 
-#define SIGN_MASK   (unsigned short)0x00
-#define SIGN_UNMASK (unsigned short)0x0F
-#define RULE_MASK   (unsigned short)0x40
-#define RULE_UNMASK (unsigned short)0x0F
-#define HYPO_MASK   (unsigned short)0x80
-#define HYPO_UNMASK (unsigned short)0x0F
+struct compound_rec;
+typedef struct compound_rec *compound_rec_ptr;
+
+#define SIGN_MASK	(unsigned short)0x00
+#define SIGN_UNMASK	(unsigned short)0x0F
+#define COMPOUND_MASK   (unsigned short)0x20
+#define COMPOUND_UNMASK (unsigned short)0x0F
+#define RULE_MASK	(unsigned short)0x40
+#define RULE_UNMASK	(unsigned short)0x0F
+#define HYPO_MASK	(unsigned short)0x80
+#define HYPO_UNMASK	(unsigned short)0x0F
 
 #define TYPE_MASK	 (unsigned short)0xC0
 
@@ -53,16 +53,26 @@ struct fwrd_rec {
 };
 typedef struct fwrd_rec *fwrd_rec_ptr;
 
+#define _SIGN_INTERNALS    sign_rec_ptr   next;      \
+  unsigned short val;       \
+  unsigned short len_type;  \
+  char           str[9];    \
+  int            ngetters;  \
+  empty_ptr      *getters;  \
+  int            nsetters;  \
+  empty_ptr      *setters  \
+  
+
 struct sign_rec {
-  sign_rec_ptr   next;
-  unsigned short val;
-  unsigned short len_type;
-  char           str[9];
-  int            ngetters;
-  empty_ptr      *getters;
-  int            nsetters;
-  empty_ptr      *setters;
+  _SIGN_INTERNALS;
 };
+
+struct compound_rec {
+  _SIGN_INTERNALS;
+  char * dsl_expression;
+};
+
+typedef void (*sign_getter_t) (sign_rec_ptr sign);
 
 sign_rec_ptr sign_pushnew	( sign_rec_ptr top,
 				  const char *s,
@@ -74,8 +84,14 @@ void sign_pushgetter		( sign_rec_ptr sign, empty_ptr getr );
 void sign_pushsetter		( sign_rec_ptr sign, empty_ptr setr );
 unsigned short sign_get_default	( sign_rec_ptr sign );
 void sign_set_default           ( sign_rec_ptr sign, unsigned short val );
+void getter_sign( sign_rec_ptr sign );
 void sign_print			( sign_rec_ptr sign );
 void sign_iter			( sign_rec_ptr s0, sign_op );
+sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top );
+
+compound_rec_ptr compound_pushnew( sign_rec_ptr top,
+				   const char *s, const int ngetters );
+
 //
 struct cond_rec {
   unsigned short in;
@@ -85,7 +101,6 @@ struct cond_rec {
 };
 typedef struct cond_rec *cond_rec_ptr;
 #define _AS_COND_ARRAY(ptr) ((cond_rec_ptr *)(ptr))
-
 
 #define _LAST_RULE(ptr)     ((ptr)->ngetters-1)
 #define _LAST_COND(ptr)     ((ptr)->ngetters-1)
@@ -149,6 +164,7 @@ void		engine_forward_rule( rule_rec_ptr rule );
 void		engine_forward_cond( rule_rec_ptr rule, cond_rec_ptr cond );
 void		engine_forward_sign( sign_rec_ptr sign );
 void		engine_backward_hypo( hypo_rec_ptr hypo );
+void		engine_backward_compound( compound_rec_ptr compound );
 void		engine_backward_rule( rule_rec_ptr rule );
 void		engine_backward_cond( cond_rec_ptr cond );
 void            engine_free_state( engine_state_rec_ptr state );
@@ -164,6 +180,14 @@ void engine_register_effects( effect f_get, effect f_set, effect f_gate );
 void engine_default_on_get( sign_rec_ptr sign, unsigned short val );
 void engine_default_on_set( sign_rec_ptr sign, unsigned short val);
 void engine_default_on_gate( sign_rec_ptr sign,unsigned short val );
+
+#ifdef ENGINE_DSL
+int  engine_dsl_init();
+void engine_dsl_free();
+int  engine_dsl_eval( const char * expr );
+#endif
+
+sign_rec_ptr agenda_get_allsigns();
 
 #endif
 

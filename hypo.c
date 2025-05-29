@@ -15,6 +15,7 @@ hypo_rec_ptr hypo_pushnew( hypo_rec_ptr top,
 						  ngetters, sizeof( bwrd_rec_ptr ),
 						  0, sizeof(void *) );
   hypo->len_type = (unsigned short)strlen(s) | HYPO_MASK;
+  hypo->getters  = (empty_ptr *)0;
   return hypo;
 };
 

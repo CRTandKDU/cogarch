@@ -40,7 +40,8 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
       exit( 1 );
     }
   }
-  else sign->getters = (empty_ptr *)0;
+  // Default getter for a sign
+  else sign->getters = (empty_ptr *) &getter_sign;
   
   sign->setters         = nsetters ? (empty_ptr *)0 : (empty_ptr *)malloc( nsetters*size_setter );
   
@@ -50,12 +51,13 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 }
 
 void sign_del( sign_rec_ptr sign ){
+  /* printf( "Deleting %s\n", sign->str ); */
   if( sign->ngetters )
     for( unsigned short i=0; i<sign->ngetters; i++ ){ free( (void *) (sign->getters)[i] ); }
   if( sign->nsetters )
     for( unsigned short i=0; i<sign->nsetters; i++ ){ free( (void *) (sign->setters)[i] ); }
-  if( sign->getters ) free( sign->getters );
-  if( sign->setters ) free( sign->setters );
+  if( sign->ngetters && sign->getters ) free( sign->getters );
+  if( sign->nsetters && sign->setters ) free( sign->setters );
   free( sign );
 }
 
@@ -83,16 +85,21 @@ void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
 
 // I/O
 unsigned short sign_get_default( sign_rec_ptr sign ){
-  char buf[3] = { 0 };
+  char buf[32] = { 0 };
   if( S_on_get ) S_on_get( sign, _UNKNOWN );
   printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
-  fgets( buf, 3, stdin );
+  fgets( buf, 30, stdin );
   return (unsigned short)strtoul( buf, NULL, 0 );
 }
 
 void sign_set_default( sign_rec_ptr sign, unsigned short val ){
   sign->val = val;
   if( S_on_set ) S_on_set( sign, val );
+}
+
+// Default sync sign-getter
+void getter_sign( sign_rec_ptr sign ){
+        sign_set_default( sign, sign_get_default( sign ) );
 }
 
 // Managers
@@ -116,3 +123,16 @@ void sign_iter( sign_rec_ptr s0, sign_op func ){
     func( prev );
   }
 }
+
+sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top ){
+  sign_rec_ptr s = top, res = (sign_rec_ptr)NULL;
+  while( s ){
+    if( 0 == strcmp( s->str, str ) ){
+      res = s;
+      break;
+    }
+    s = s->next;
+  }
+  return res;
+}
+

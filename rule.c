@@ -17,6 +17,7 @@ rule_rec_ptr rule_pushnew( rule_rec_ptr top,
 						  ngetters, sizeof(cond_rec_ptr),
 						  0, sizeof(void *) );
   rule->len_type = (unsigned short)strlen( s ) | RULE_MASK;
+  rule->getters  = (empty_ptr *)0;
   // Set up hypothesis 
   rule->setters = (empty_ptr *)h;
   // Point back from hypo to rules
@@ -59,10 +60,11 @@ void rule_print( rule_rec_ptr rule ){
   if( rule->setters ){
     hypo_print( (hypo_rec_ptr)rule->setters );
   }
-  printf( "COND: %d (%d)\n", rule->ngetters, sizeof((rule->getters)) );
+  esc = S_val_color( _UNKNOWN );
+  printf( "%s\tCOND: %d (%d)\n", esc, rule->ngetters, sizeof((rule->getters)) );
   if( rule->getters ){
     for( unsigned short i = 0; i<rule->ngetters; i++ ){
-      printf( "COND %d: %d == %s\tVal: %d\n", i,
+      printf( "\t\tCOND %d: %d == %s\tVal: %d\n", i,
 	      (_AS_COND_ARRAY(rule->getters)[i])->out,
 	      (_AS_COND_ARRAY(rule->getters)[i])->sign->str,
 	      (_AS_COND_ARRAY(rule->getters)[i])->val);
@@ -74,4 +76,5 @@ void rule_print( rule_rec_ptr rule ){
       }
     }
   }
+  printf( "%s\n", esc );
 }
