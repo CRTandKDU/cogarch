@@ -642,9 +642,17 @@ static int cb_nxpget(vm_extension_t * const v) {
   /* else */
   /*   val = (cell_t)5; */
   sign_rec_ptr sign = sign_find( str, agenda_get_allsigns() );
-  if( sign ) val = (cell_t) sign_get_default( sign );
-  else val = (cell_t)0;
-  sign_set_default( sign, (unsigned short)val );
+  if( sign ){
+    if( _UNKNOWN == sign->val ){
+      val = sign_get_default( sign );
+      sign_set_default( sign, (unsigned short)val );
+    }
+    else val = sign->val;
+  }
+  else{
+    // Report undefined DSL-shared variable
+    val = (cell_t)0;
+  }
   
   // Push to FORTH stack
   res = embed_push( v->h, val );
@@ -656,7 +664,8 @@ static int cb_nxpset(vm_extension_t * const v) {
 }
 
 int nxp_init( vm_extension_t * const v ){
-  char templ_sign_decl[] = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop nxp@ ;\n";
+  // Define a FORTH word to get-memoize the value of a sign to be passed to C primitive `nxp@`
+  char templ_sign_decl[] = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop ;\n";
   char prgm[80];
   int  r = 0;
   sprintf( prgm, templ_sign_decl, "TEMP1", "TEMP1" );
@@ -691,6 +700,8 @@ int  engine_dsl_eval( const char * expr ){
   printf( "<FORTH> Evaluating %s\n", expr );
   int r = embed_eval( S_v->h, expr );
   r = embed_pop( S_v->h, &val );
-  return (int)val;
+  // TRUE is -1 in FORTH
+  r = 65535 == (int) val ? _TRUE : _FALSE;
+  return r;
 }
 #endif // ENGINE_DSL_HOWERJFORTH

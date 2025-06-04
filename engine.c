@@ -31,11 +31,18 @@ void engine_default_on_set( sign_rec_ptr sign, unsigned short val ){
 }
 
 void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
-  // Postpone hypo when one of its rule might be true
+  // Postpone hypo when one of its rule might be true or
+  // compound if one of its DSL-shared var is known.
   if( _TRUE == val && _UNKNOWN == hypo->val ){
     cell_rec_ptr new_cell, cell = S_State->agenda;
     if( cell ){
-      while( cell->next ) cell = cell->next;
+      // Is hypo already on top of stack?
+      if( cell->sign_or_hypo == hypo ) return;
+      while( cell->next ){
+	// Is hypo already stacked?
+	if( cell->sign_or_hypo == hypo ) return;
+	cell = cell->next;
+      }
       new_cell			= (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
       new_cell->sign_or_hypo	= hypo;
       new_cell->val		= _UNKNOWN;
@@ -46,6 +53,7 @@ void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
       engine_pushnew_hypo( S_State, hypo );
     }
   }
+  engine_print_state( S_State );
 }
 
 void engine_register_effects( effect f_get, effect f_set, effect f_gate ){
@@ -81,11 +89,11 @@ void engine_print_state( engine_state_rec_ptr state ){
 //
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h ){
   // Suggest
-  cell_rec_ptr cell = (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
-  cell->next = state->agenda;
-  state->agenda = cell;
-  cell->sign_or_hypo = h;
-  cell->val = _UNKNOWN;
+  cell_rec_ptr cell	= (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
+  cell->next		= state->agenda;
+  state->agenda		= cell;
+  cell->sign_or_hypo	= h;
+  cell->val		= _UNKNOWN;
 }
 
 void engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, unsigned short val ){
@@ -102,6 +110,10 @@ void engine_knowcess( engine_state_rec_ptr state ){
   while( state->agenda ){
     cell_rec_ptr cell = state->agenda;
     // Test for `suggest hypo` or compound
+    printf( ">Knowcess %s (%s, %d) from top of stack.\n",
+	    cell->sign_or_hypo->str,
+	    (COMPOUND_MASK == (cell->sign_or_hypo->len_type & TYPE_MASK)) ? "COMPOUND" : "HYPO",
+	    (int) (cell->val) );
     if( _UNKNOWN == cell->val ){
       switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
       case COMPOUND_MASK:
@@ -192,12 +204,20 @@ void engine_forward_sign( sign_rec_ptr sign ){
   if( sign->nsetters ){
     for( unsigned short i = 0; i<sign->nsetters; i++ ){
       fwrd_rec_ptr fwrd = (fwrd_rec_ptr) (sign->setters)[i];
-      rule_rec_ptr rule = fwrd->rule;
-      cond_rec_ptr cond = (cond_rec_ptr) (rule->getters)[ fwrd->idx_cond ];
-      cond->val = (cond->out == val) ? _TRUE : _FALSE;
-      // Gating on known condition
-      if( S_on_gate ) S_on_gate( (hypo_rec_ptr) rule->setters, cond->val );
-      engine_forward_cond( rule, cond ); 
+      if( 0 <= fwrd->idx_cond ){
+	rule_rec_ptr rule = fwrd->rule;
+	cond_rec_ptr cond = (cond_rec_ptr) (rule->getters)[ fwrd->idx_cond ];
+	cond->val = (cond->out == val) ? _TRUE : _FALSE;
+	// Gating on known condition
+	if( S_on_gate ) S_on_gate( (hypo_rec_ptr) rule->setters, cond->val );
+	engine_forward_cond( rule, cond );
+      }
+      else{
+	// This is a DSL-shared sign
+	printf( "> Postpone eval compound sign %s (from %s)\n",
+		((compound_rec_ptr) (fwrd->rule))->str, sign->str );
+	if( S_on_gate ) S_on_gate( (hypo_rec_ptr) (fwrd->rule), _TRUE );
+      }
     }
   }
 }

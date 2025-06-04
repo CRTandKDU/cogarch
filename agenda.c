@@ -17,7 +17,8 @@ engine_state_rec_ptr S_State;
 #define _DEL_HYPOS ( sign_iter(S_Hypos,&hypo_del) )
 #define _DEL_RULES ( sign_iter(S_Rules,&rule_del) )
 
-char expr[] = "TEMP1 10 >\n";
+char expr[]  = "TEMP1 nxp@ 10 >\n";
+char expr2[] = "TEMP1 nxp@ TEMP2 nxp@ >\n";
 
 sign_rec_ptr agenda_get_allsigns(){
   return S_Signs;
@@ -29,13 +30,19 @@ void getter_compound( compound_rec_ptr compound ){
   int r;
   printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
   r = engine_dsl_eval( (char *) (compound->dsl_expression) );
-  if( 65535 == r ) r = _TRUE; // -1 is true in FORTH
+  /* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH */
   printf("<FORTH> Evaluated to %d\n", r );
   sign_set_default( (sign_rec_ptr)compound, r );
 #endif  
 }
 
 int main( int argc, char *argv[] ){
+  printf( "SIGN MASK %d, %d\n", SIGN_MASK, (8 | SIGN_MASK) & TYPE_MASK );
+  printf( "COMPOUND MASK %d, %d\n", COMPOUND_MASK, (8 | COMPOUND_MASK) & TYPE_MASK );
+  printf( "HYPO MASK %d, %d\n", HYPO_MASK, (8 | HYPO_MASK) & TYPE_MASK );
+  printf( "RULE MASK %d, %d\n", RULE_MASK, (8 | RULE_MASK) & TYPE_MASK );
+
+
   // New state
   S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );
   S_State->current_sign = (sign_rec_ptr)0;
@@ -47,7 +54,7 @@ int main( int argc, char *argv[] ){
   // KB
   sign_rec_ptr s_c1, s_c2, s_c3, s_cp1;
   sign_rec_ptr s_temp1, s_temp2;
-  compound_rec_ptr s_compound;
+  compound_rec_ptr s_compound, s_compound2;
   hypo_rec_ptr h_1;
   S_Signs = sign_pushnew( S_Signs, "CRT_KDU",
 			  0, sizeof(void *),
@@ -79,8 +86,14 @@ int main( int argc, char *argv[] ){
   S_Signs = (sign_rec_ptr) compound_pushnew( S_Signs, "COMPOUND", 0 );
   s_compound = (compound_rec_ptr) S_Signs;
   s_compound->dsl_expression = expr;
+  compound_DSLvar_pushnew( s_compound, s_temp1 );
   
-  //
+  S_Signs = (sign_rec_ptr) compound_pushnew( S_Signs, "CPOUND2", 0 );
+  s_compound2 = (compound_rec_ptr) S_Signs;
+  s_compound2->dsl_expression = expr2;
+  compound_DSLvar_pushnew( s_compound2, s_temp1 );
+  compound_DSLvar_pushnew( s_compound2, s_temp2 );
+
   
   //
   h_1 = S_Hypos = hypo_pushnew( S_Hypos, "ALARM_P1", 0 );
@@ -99,15 +112,18 @@ int main( int argc, char *argv[] ){
   rule_pushnewcond( S_Rules, (unsigned short)1, S_Hypos );
   S_Rules = rule_pushnew( S_Rules, "RULE_3", 0, S_Hypos );
   // Point to two conditions LHS
-  rule_pushnewcond( S_Rules, (unsigned short)1, S_Signs );
+  rule_pushnewcond( S_Rules, (unsigned short)1, (sign_rec_ptr)s_compound );
   rule_pushnewcond( S_Rules, (unsigned short)1, s_cp1 );
 
+  S_Hypos = hypo_pushnew( S_Hypos, "ALERT2", 0 );
+  S_Rules = rule_pushnew( S_Rules, "RULE_4", 0, S_Hypos );
+  // Point to two conditions LHS
+  rule_pushnewcond( S_Rules, (unsigned short)1, (sign_rec_ptr)s_compound2 );
+  
   // Set up DSL
-
 #ifdef ENGINE_DSL
   engine_dsl_init();
 #endif
-
 
   /* engine_backward_hypo( S_Hypos ); */
   /* engine_pushnew_hypo( S_State, S_Hypos ); */
@@ -115,6 +131,7 @@ int main( int argc, char *argv[] ){
   engine_print_state( S_State );
   engine_knowcess( S_State );
 
+  engine_print_state( S_State );
   sign_iter( S_Signs, &sign_print );
   printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
   /* rule_print( S_Rules ); */

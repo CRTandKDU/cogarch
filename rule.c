@@ -18,7 +18,7 @@ rule_rec_ptr rule_pushnew( rule_rec_ptr top,
 						  0, sizeof(void *) );
   rule->len_type = (unsigned short)strlen( s ) | RULE_MASK;
   rule->getters  = (empty_ptr *)0;
-  // Set up hypothesis 
+  // Set up hypothesis in `setters` field, keeping `nsetters` to 0
   rule->setters = (empty_ptr *)h;
   // Point back from hypo to rules
   sign_pushgetter( h, (empty_ptr)malloc( sizeof(struct bwrd_rec) ) );
@@ -36,10 +36,14 @@ void rule_pushnewcond( rule_rec_ptr rule, unsigned short op, sign_rec_ptr sign )
   cond->val = (unsigned short)0xff;
   cond->sign = sign;
   // Point back from sign to cond
+  printf( "> Nsetters: %d. Pushing fwrd_rec: %s -> %s\t", sign->nsetters,
+	  sign->str,
+	  ((hypo_rec_ptr)(rule->setters))->str );
   sign_pushsetter( sign, (empty_ptr)malloc( sizeof(struct fwrd_rec) ) );
   fwrd = (fwrd_rec_ptr) (sign->setters)[_LAST_FWRD(sign)];
   fwrd->rule = rule;
   fwrd->idx_cond = _LAST_COND(rule);
+  printf( "Nsetters: %d\n", sign->nsetters );
 }
 
 void rule_del( rule_rec_ptr rule ){

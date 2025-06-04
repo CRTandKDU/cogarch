@@ -22,7 +22,7 @@ typedef struct compound_rec *compound_rec_ptr;
 #define HYPO_MASK	(unsigned short)0x80
 #define HYPO_UNMASK	(unsigned short)0x0F
 
-#define TYPE_MASK	 (unsigned short)0xC0
+#define TYPE_MASK	 (unsigned short)0xE0
 
 #define _TRUE		 ((unsigned short)1)
 #define _FALSE		 ((unsigned short)0)
@@ -46,6 +46,15 @@ static char *S_val_color( unsigned short val ){
 }
 
 //
+/* ** Links from signs to either rules or compound signs */
+/* The ~fwrd_rec~ structure captures two types of forward links from signs: */
+/*   - From Boolean signs (including compound signs) to conditions of the rules' LHS. */
+/*     Here ~rule~ points to the rule structure and ~idx_count~ indexes the target condition */
+/*     starting at 0 (>= 0). */
+/*   - From DSL-shared signs to compound signs they appear in. */
+/*     Here ~rule~ points to the compound structure and ~idx_count~ is -1 (< 0). */
+
+  
 struct fwrd_rec {
   // Rule rec pointer
   rule_rec_ptr rule;
@@ -91,6 +100,8 @@ sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top );
 
 compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 				   const char *s, const int ngetters );
+void compound_DSLvar_pushnew( compound_rec_ptr compound, sign_rec_ptr sign );
+
 
 //
 struct cond_rec {
@@ -144,6 +155,16 @@ void hypo_del( hypo_rec_ptr hypo );
 void hypo_print( hypo_rec_ptr hypo );
 
 //
+/* ** The engine state */
+/* The engine state is stored in a structure keeping track of the 'current sign', when a question is pending, */
+/* and of the 'agenda', implemented as a stack of cells. The agenda is similar to a call stack holding two */
+/* different types of tasks:   */
+/*   - Backward calls: evaluate an hypothesis ('SUGGEST') or a compound sign; ~cell->val~ set to ~_UNKNOWN~. */
+/*   - Forward  calls: set a value for sign ('VOLUNTEER'); ~cell->val~ set to said value. */
+
+/* On 'backward chaining' cells are pushed to the top of the agenda. (TODO) */
+/* On 'gating', cells are added to the bottom of the agenda. (See also: [[https://arxiv.org/abs/cs/0211035]].) */
+
 struct cell_rec;
 typedef struct cell_rec *cell_rec_ptr;
 struct cell_rec {

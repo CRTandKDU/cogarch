@@ -51,7 +51,7 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 }
 
 void sign_del( sign_rec_ptr sign ){
-  /* printf( "Deleting %s\n", sign->str ); */
+  printf( "Deleting %s\n", sign->str );
   if( sign->ngetters )
     for( unsigned short i=0; i<sign->ngetters; i++ ){ free( (void *) (sign->getters)[i] ); }
   if( sign->nsetters )
