@@ -29,6 +29,8 @@ typedef struct compound_rec *compound_rec_ptr;
 #define _UNKNOWN	 ((unsigned short)0xFF)
 #define _VALSTR(val)	 (_UNKNOWN == (val) ? "UNKNOWN" : ((_TRUE==(val))?"TRUE":"FALSE"))
 
+#define _CHOP 16
+
 static char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
 static char *S_val_color( unsigned short val ){
   char *esc;
@@ -65,7 +67,7 @@ typedef struct fwrd_rec *fwrd_rec_ptr;
 #define _SIGN_INTERNALS    sign_rec_ptr   next;      \
   unsigned short val;       \
   unsigned short len_type;  \
-  char           str[9];    \
+  char           str[_CHOP+1];    \
   int            ngetters;  \
   empty_ptr      *getters;  \
   int            nsetters;  \
@@ -209,6 +211,8 @@ int  engine_dsl_eval( const char * expr );
 #endif
 
 sign_rec_ptr agenda_get_allsigns();
+
+int loadkb_file( const char *fn );
 
 #endif
 

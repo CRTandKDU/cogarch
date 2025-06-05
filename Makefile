@@ -7,7 +7,7 @@ DSL_LFLAGS      = ../embed-master/util.o -L../embed-master -lembed -lm
 # DSL_LFLAGS      = 
 LFLAGS		=  -L../libforth -L../embed-master
 DEPS		= agenda.h Makefile
-OBJ		= agenda.o sign.o rule.o hypo.o compound.o engine.o engine_dsl.o
+OBJ		= agenda.o sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
 
 agenda: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(DSL_CFLAGS) $(DSL_LFLAGS)

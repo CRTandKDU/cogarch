@@ -37,11 +37,9 @@ void getter_compound( compound_rec_ptr compound ){
 }
 
 int main( int argc, char *argv[] ){
-  printf( "SIGN MASK %d, %d\n", SIGN_MASK, (8 | SIGN_MASK) & TYPE_MASK );
-  printf( "COMPOUND MASK %d, %d\n", COMPOUND_MASK, (8 | COMPOUND_MASK) & TYPE_MASK );
-  printf( "HYPO MASK %d, %d\n", HYPO_MASK, (8 | HYPO_MASK) & TYPE_MASK );
-  printf( "RULE MASK %d, %d\n", RULE_MASK, (8 | RULE_MASK) & TYPE_MASK );
-
+  int res = loadkb_file( "satfault.org" );
+  printf( "Result %d\n", res );
+  exit( 0 );
 
   // New state
   S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );

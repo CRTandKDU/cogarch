@@ -25,7 +25,7 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
   sign->next		= top;
   sign->val		= 0xff;
   len			= (unsigned short)strlen( s );
-  sign->len_type	= (len < 9) ? len : 8;
+  sign->len_type	= (len <= _CHOP) ? len : _CHOP;
   char *to		= sign->str;
   char *from		= (char *)s;
   for( unsigned short i = 0; i < sign->len_type; *to++ = *from++, i++ ); *to = 0;
