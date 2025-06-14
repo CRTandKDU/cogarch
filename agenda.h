@@ -29,7 +29,7 @@ typedef struct compound_rec *compound_rec_ptr;
 #define _UNKNOWN	 ((unsigned short)0xFF)
 #define _VALSTR(val)	 (_UNKNOWN == (val) ? "UNKNOWN" : ((_TRUE==(val))?"TRUE":"FALSE"))
 
-#define _CHOP 16
+#define _CHOP 32
 
 static char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
 static char *S_val_color( unsigned short val ){
@@ -95,14 +95,17 @@ void sign_pushgetter		( sign_rec_ptr sign, empty_ptr getr );
 void sign_pushsetter		( sign_rec_ptr sign, empty_ptr setr );
 unsigned short sign_get_default	( sign_rec_ptr sign );
 void sign_set_default           ( sign_rec_ptr sign, unsigned short val );
-void getter_sign( sign_rec_ptr sign );
+void getter_sign                ( sign_rec_ptr sign );
 void sign_print			( sign_rec_ptr sign );
 void sign_iter			( sign_rec_ptr s0, sign_op );
 sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top );
+hypo_rec_ptr sign_tohypo        ( hypo_rec_ptr hypo, sign_rec_ptr top_sign, hypo_rec_ptr top_hypo );
 
 compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 				   const char *s, const int ngetters );
 void compound_DSLvar_pushnew( compound_rec_ptr compound, sign_rec_ptr sign );
+void compound_DSL_set( compound_rec_ptr compound, const char * expr );
+void compound_del( compound_rec_ptr compound );
 
 
 //
@@ -208,11 +211,16 @@ void engine_default_on_gate( sign_rec_ptr sign,unsigned short val );
 int  engine_dsl_init();
 void engine_dsl_free();
 int  engine_dsl_eval( const char * expr );
+int  engine_dsl_DSLvar_declare( const char *dsl_var );
 #endif
 
 sign_rec_ptr agenda_get_allsigns();
 
 int loadkb_file( const char *fn );
+void loadkb_reset();
+sign_rec_ptr loadkb_get_allsigns();
+hypo_rec_ptr loadkb_get_allhypos();
+rule_rec_ptr loadkb_get_allrules();
 
 #endif
 

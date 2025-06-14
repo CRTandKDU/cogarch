@@ -19,7 +19,7 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
   compound->next		= top;
   compound->val			= 0xff;
   len				= (unsigned short)strlen( s );
-  compound->len_type		= (len < 9) ? len : 8;
+  compound->len_type		= (len <= _CHOP) ? len : _CHOP;
   char *to			= compound->str;
   char *from			= (char *)s;
   for( unsigned short i		= 0; i < compound->len_type; *to++ = *from++, i++ ); *to = 0;
@@ -28,8 +28,18 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
   compound->nsetters		= 0;
   compound->getters		= (empty_ptr *) &getter_compound;
   compound->setters		= (empty_ptr *)NULL;
-  
+  compound->dsl_expression      = (char *)NULL;
   return compound;
+}
+
+void compound_DSL_set( compound_rec_ptr compound, const char * expr ){
+  compound_del( compound );
+  compound->dsl_expression = (char *) malloc( strlen( expr ) );
+  strcpy( compound->dsl_expression, expr );
+}
+
+void compound_del( compound_rec_ptr compound ){
+  if( compound->dsl_expression ) free( compound->dsl_expression );
 }
 
 void compound_DSLvar_pushnew( compound_rec_ptr compound, sign_rec_ptr sign ){

@@ -11,6 +11,7 @@ THEN TANKS_OUT_PRESSURE_LOW
 Some more text
 
 #+BEGIN_RULE data_capture_2
+pressure_out_P4 nxp@ 20 <
 THEN TANKS_OUT_PRESSURE_LOW
 #+END_RULE
 

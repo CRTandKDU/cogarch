@@ -223,6 +223,7 @@ void engine_forward_sign( sign_rec_ptr sign ){
 }
 
 void engine_backward_hypo( hypo_rec_ptr hypo ){
+  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, hypo->str);
   if( _UNKNOWN != hypo->val ) return;
   // Sequential OR
   bwrd_rec_ptr bwrd;
@@ -235,6 +236,7 @@ void engine_backward_hypo( hypo_rec_ptr hypo ){
 }
 
 void engine_backward_compound( compound_rec_ptr compound ){
+  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, compound->str);
   if( COMPOUND_MASK != (compound->len_type & TYPE_MASK) ) return;
   if( _UNKNOWN != compound->val ) return;
   if( 0 == compound->ngetters ){
@@ -244,6 +246,7 @@ void engine_backward_compound( compound_rec_ptr compound ){
 }
 
 void engine_backward_rule( rule_rec_ptr rule ){
+  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, rule->str);
   if( _UNKNOWN != rule->val ) return;
   // Sequential AND
   cond_rec_ptr cond;
@@ -256,7 +259,9 @@ void engine_backward_rule( rule_rec_ptr rule ){
 }
 
 void engine_backward_cond( cond_rec_ptr cond ){
+  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, cond->sign->str);
   if( _UNKNOWN == cond->sign->val ){
+    // TODO: Push to stack if hypo or compound (async handling)
     // Hypothesis: backward on rules
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ){
       engine_backward_hypo( (hypo_rec_ptr) cond->sign );

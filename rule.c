@@ -20,10 +20,12 @@ rule_rec_ptr rule_pushnew( rule_rec_ptr top,
   rule->getters  = (empty_ptr *)0;
   // Set up hypothesis in `setters` field, keeping `nsetters` to 0
   rule->setters = (empty_ptr *)h;
-  // Point back from hypo to rules
-  sign_pushgetter( h, (empty_ptr)malloc( sizeof(struct bwrd_rec) ) );
-  bwrd = (bwrd_rec_ptr) (h->getters)[_LAST_RULE(h)];
-  bwrd->rule = rule;
+  if( h ){
+    // Point back from hypo to rules
+    sign_pushgetter( h, (empty_ptr)malloc( sizeof(struct bwrd_rec) ) );
+    bwrd = (bwrd_rec_ptr) (h->getters)[_LAST_RULE(h)];
+    bwrd->rule = rule;
+  }
   return rule;
 }
 
@@ -38,7 +40,7 @@ void rule_pushnewcond( rule_rec_ptr rule, unsigned short op, sign_rec_ptr sign )
   // Point back from sign to cond
   printf( "> Nsetters: %d. Pushing fwrd_rec: %s -> %s\t", sign->nsetters,
 	  sign->str,
-	  ((hypo_rec_ptr)(rule->setters))->str );
+	  rule->str );
   sign_pushsetter( sign, (empty_ptr)malloc( sizeof(struct fwrd_rec) ) );
   fwrd = (fwrd_rec_ptr) (sign->setters)[_LAST_FWRD(sign)];
   fwrd->rule = rule;

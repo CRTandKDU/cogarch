@@ -641,7 +641,7 @@ static int cb_nxpget(vm_extension_t * const v) {
   /*   val = (cell_t)20; */
   /* else */
   /*   val = (cell_t)5; */
-  sign_rec_ptr sign = sign_find( str, agenda_get_allsigns() );
+  sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
   if( sign ){
     if( _UNKNOWN == sign->val ){
       val = sign_get_default( sign );
@@ -663,17 +663,16 @@ static int cb_nxpset(vm_extension_t * const v) {
   return 0;
 }
 
-int nxp_init( vm_extension_t * const v ){
+int engine_dsl_DSLvar_declare( const char *dsl_var ){
   // Define a FORTH word to get-memoize the value of a sign to be passed to C primitive `nxp@`
-  char templ_sign_decl[] = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop ;\n";
+  static const char templ_sign_decl[] = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop ;\n";
   char prgm[80];
   int  r = 0;
-  sprintf( prgm, templ_sign_decl, "TEMP1", "TEMP1" );
-  r = embed_eval( v->h, prgm );
-  sprintf( prgm, templ_sign_decl, "TEMP2", "TEMP2" );
-  r = embed_eval( v->h, prgm );
+  sprintf( prgm, templ_sign_decl, dsl_var, dsl_var );
+  r = embed_eval( S_v->h, prgm );
+  printf ("__FUNCTION__ = %s res = %d\n", __FUNCTION__, r);
   return r;
-}
+ }
 
 int  engine_dsl_init(){
   BUILD_BUG_ON(sizeof(double_cell_t) != sizeof(sdc_t));
@@ -685,10 +684,10 @@ int  engine_dsl_init(){
   cell_t val;
   char   str[80], *s;
   int    res;
-  int    r = nxp_init( v );
+  /* int    r = nxp_init( v ); */
   printf( "Engine DSL: howerjforth\n\n" );
   S_v = v;
-  return r;
+  return 0;
 }
 
 void engine_dsl_free(){
@@ -701,7 +700,7 @@ int  engine_dsl_eval( const char * expr ){
   int r = embed_eval( S_v->h, expr );
   r = embed_pop( S_v->h, &val );
   // TRUE is -1 in FORTH
-  r = 65535 == (int) val ? _TRUE : _FALSE;
+  r = (65535 == (int) val) ? _TRUE : _FALSE;
   return r;
 }
 #endif // ENGINE_DSL_HOWERJFORTH

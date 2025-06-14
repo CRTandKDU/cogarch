@@ -26,7 +26,7 @@ sign_rec_ptr agenda_get_allsigns(){
 
 // Default compound sign-getter
 void getter_compound( compound_rec_ptr compound ){
-#ifdef ENGINE_DSL
+#ifdef ENGINE_DSL_HOWERJFORTH
   int r;
   printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
   r = engine_dsl_eval( (char *) (compound->dsl_expression) );
@@ -37,10 +37,6 @@ void getter_compound( compound_rec_ptr compound ){
 }
 
 int main( int argc, char *argv[] ){
-  int res = loadkb_file( "satfault.org" );
-  printf( "Result %d\n", res );
-  exit( 0 );
-
   // New state
   S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );
   S_State->current_sign = (sign_rec_ptr)0;
@@ -48,6 +44,40 @@ int main( int argc, char *argv[] ){
   engine_register_effects( &engine_default_on_get,
 			   &engine_default_on_set,
 			   &engine_default_on_gate);
+
+  // Set up DSL
+#ifdef ENGINE_DSL
+  engine_dsl_init();
+#endif
+
+  int res = loadkb_file( "satfault.org" );
+  printf( "Result %d\n", res );
+
+ 
+  // Preamble
+  hypo_rec_ptr hypo = (hypo_rec_ptr) sign_find( "THERMAL_TRANSIENT_CONDITION",
+						(sign_rec_ptr) loadkb_get_allhypos() );
+  if( hypo )
+    engine_pushnew_hypo( S_State, hypo );
+  engine_print_state( S_State );
+  engine_knowcess( S_State );
+  engine_print_state( S_State );
+
+  sign_iter( loadkb_get_allsigns(), &sign_print );
+  printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
+  sign_iter( loadkb_get_allhypos(), &hypo_print );
+  printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
+  sign_iter( loadkb_get_allrules(), &rule_print );
+  printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
+
+  
+  //
+#ifdef ENGINE_DSL
+  engine_dsl_free();
+#endif
+  loadkb_reset();
+  engine_free_state( S_State );
+  exit( res );
 
   // KB
   sign_rec_ptr s_c1, s_c2, s_c3, s_cp1;
@@ -83,12 +113,12 @@ int main( int argc, char *argv[] ){
   s_temp2 = S_Signs;
   S_Signs = (sign_rec_ptr) compound_pushnew( S_Signs, "COMPOUND", 0 );
   s_compound = (compound_rec_ptr) S_Signs;
-  s_compound->dsl_expression = expr;
+  compound_DSL_set( s_compound, expr );
   compound_DSLvar_pushnew( s_compound, s_temp1 );
   
   S_Signs = (sign_rec_ptr) compound_pushnew( S_Signs, "CPOUND2", 0 );
   s_compound2 = (compound_rec_ptr) S_Signs;
-  s_compound2->dsl_expression = expr2;
+  compound_DSL_set( s_compound2, expr2 );
   compound_DSLvar_pushnew( s_compound2, s_temp1 );
   compound_DSLvar_pushnew( s_compound2, s_temp2 );
 

@@ -20,6 +20,7 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 			   ){
   sign_rec_ptr sign;
   unsigned short len;
+
   //
   sign			= (sign_rec_ptr) malloc( sizeof( struct sign_rec ) );;
   sign->next		= top;
@@ -52,6 +53,8 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 
 void sign_del( sign_rec_ptr sign ){
   printf( "Deleting %s\n", sign->str );
+  if( COMPOUND_MASK == (sign->len_type & TYPE_MASK) )
+    compound_del( (compound_rec_ptr) sign );
   if( sign->ngetters )
     for( unsigned short i=0; i<sign->ngetters; i++ ){ free( (void *) (sign->getters)[i] ); }
   if( sign->nsetters )
@@ -99,7 +102,8 @@ void sign_set_default( sign_rec_ptr sign, unsigned short val ){
 
 // Default sync sign-getter
 void getter_sign( sign_rec_ptr sign ){
-        sign_set_default( sign, sign_get_default( sign ) );
+  printf ("__FUNCTION__ = %s\n", __FUNCTION__);
+  sign_set_default( sign, sign_get_default( sign ) );
 }
 
 // Managers
@@ -124,7 +128,7 @@ void sign_iter( sign_rec_ptr s0, sign_op func ){
   }
 }
 
-sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top ){
+sign_rec_ptr sign_find ( const char *str, sign_rec_ptr top ){
   sign_rec_ptr s = top, res = (sign_rec_ptr)NULL;
   while( s ){
     if( 0 == strcmp( s->str, str ) ){
@@ -134,5 +138,15 @@ sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top ){
     s = s->next;
   }
   return res;
+}
+
+hypo_rec_ptr sign_tohypo( hypo_rec_ptr hypo, sign_rec_ptr top_sign, hypo_rec_ptr top_hypo ){
+  sign_rec_ptr s = top_sign;
+  printf( "Changing sign %s to hypo\n", hypo->str );
+  hypo->len_type = (unsigned short)strlen(hypo->str) | HYPO_MASK;
+  while( hypo != s->next ) s = s->next;
+  s->next = hypo->next;
+  hypo->next = top_hypo;
+  return hypo;
 }
 
