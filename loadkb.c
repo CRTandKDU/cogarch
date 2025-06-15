@@ -23,13 +23,13 @@ int rule_count = 0;
 int comp_count = 0;
 
 #define _DSL_LINE 80
-#define _FW(line,pch) pch = strtok( (line), delims );			\
-  str_toupper( (pch) );							\
-  printf( "[S:%d] FW %s (%d)\n", sno, (pch), strlen((pch)) );		\
+#define _FW(line,pch) pch = strtok( (line), delims );			                \
+  str_toupper( (pch) );							                \
+  if(TRACE_ON) printf( "[S:%d] FW %s (%d)\n", sno, (pch), strlen((pch)) );		\
 
-#define _TRANSITION(x) 	  printf( "Changing sno from %d to ", sno );    \
-  sno		= (x);                                                  \
-  printf( "%d\n", sno );                                                \
+#define _TRANSITION(x) 	  if(TRACE_ON) printf( "Changing sno from %d to ", sno );    \
+  sno		= (x);                                                               \
+  if(TRACE_ON) printf( "%d\n", sno );                                                \
 
 
 void str_toupper( char *word ){
@@ -66,7 +66,7 @@ sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_p
     if( 0 == strcmp( pnw, "nxp@" ) || 0 == strcmp( pnw, "nxp!" ) ){
       sign_rec_ptr lsign;
       int r;
-      printf( "Found DSL-shared variable: %s\n", pw );
+      if(TRACE_ON) printf( "Found DSL-shared variable: %s\n", pw );
       lsign = sign_find( pw, top );
       if( NULL == lsign )
 	top = lsign = sign_pushnew( top, pw, 0, sizeof(void *), 0, sizeof(fwrd_rec_ptr) );
@@ -83,6 +83,12 @@ sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_p
 sign_rec_ptr loadkb_get_allsigns(){ return KB_Signs; }
 hypo_rec_ptr loadkb_get_allhypos(){ return KB_Hypos; }
 rule_rec_ptr loadkb_get_allrules(){ return KB_Rules; }
+int          loadkb_howmany( sign_rec_ptr top ){
+  int count = 0;
+  sign_rec_ptr s = top;
+  while( s ){ count++; s = s->next; }
+  return count;
+}
 
 
 void loadkb_reset(){
@@ -122,8 +128,8 @@ int loadkb_file( const char *fn ){
   lno		= 1;
   sno		= 0;
   while ((read = getline(&line, &len, fp)) != -1) {
-    printf("\nLine %d of length %zu:\n", lno, read);
-    printf("%s", line);
+    if(TRACE_ON) printf("\nLine %d of length %zu:\n", lno, read);
+    if(TRACE_ON) printf("%s", line);
     //
     schange	= _TRUE;
     while( schange ){
@@ -135,16 +141,16 @@ int loadkb_file( const char *fn ){
 	lrule = (rule_rec_ptr) NULL;
 	if( 0 == strcmp( _BEG_RULE, pch ) ){
 	  pch		= strtok (NULL, delims);
-	  printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
+	  if(TRACE_ON) printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
 	  if( NULL != pch && *pch != 0x0A ){
-	    printf( "NW %s\n", pch );
+	    if(TRACE_ON) printf( "NW %s\n", pch );
 	    KB_Rules = lrule = rule_pushnew( KB_Rules, pch, 0, (hypo_rec_ptr)NULL );
 	  }
 	  else{
 	    char tmp[32];
 	    int  tmpn = sprintf( tmp, "RULE_%d", rule_count++ );
 	    KB_Rules = lrule = rule_pushnew( KB_Rules, tmp, 0, (hypo_rec_ptr)NULL );
-	    printf( "NW anonymous rule: %s\n", tmp );
+	    if(TRACE_ON) printf( "NW anonymous rule: %s\n", tmp );
 	  }
 	  condno = 0;
 	  _TRANSITION(1);
@@ -157,17 +163,17 @@ int loadkb_file( const char *fn ){
 	//
 	if( 0 == strcmp( _THEN, pch ) ){
 	  if( 0 == condno ){
-	    printf( "NW missing conditions in rule %s\n", lrule->str );
+	    if(TRACE_ON) printf( "NW missing conditions in rule %s\n", lrule->str );
 	    sno = 255;
 	    schange = _TRUE;
 	    break;
 	  }
 	  pch		= strtok (NULL, delims);
-	  printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
+	  if(TRACE_ON) printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
 	  if( NULL != pch && *pch != 0x0A ){
 	    bwrd_rec_ptr bwrd;
 	    
-	    printf( "NW HYPO %s\n", pch );
+	    if(TRACE_ON) printf( "NW HYPO %s\n", pch );
 	    lhypo = (hypo_rec_ptr) sign_find( pch, (sign_rec_ptr) KB_Hypos );
 	    if( NULL == lhypo ){
 	      lhypo = (hypo_rec_ptr) sign_find( pch, KB_Signs );
@@ -182,26 +188,27 @@ int loadkb_file( const char *fn ){
 	    bwrd->rule = lrule;
 	  }
 	  else{
-	    printf( "NW missing hypo\n" );
+	    if(TRACE_ON) printf( "NW missing hypo\n" );
 	    sno = 255;
 	    schange = _TRUE;
 	    break;
 	  }
-	  printf( "Rule has %d conds\n", condno );
+	  if(TRACE_ON) printf( "Rule has %d conds\n", condno );
 	  _TRANSITION(2);
 	  break;
 	}
-	//
+	// This is a condition line
 	condno += 1;
 	cond_t = 0;
 	if( 0 == strcmp( _BOOLYES, pch ) ) cond_t = 1;
 	if( 0 == strcmp( _BOOLNO, pch ) )  cond_t = -1;
 	if( 0 == cond_t ){
+	  // This is a DSL-expression
 	  char tmp[32];
 	  int  tmpn = sprintf( tmp, "COMPOUND_%d", comp_count++ );
 	  
 	  // DSL expression
-	  printf( "Line %d DSL: %s\n", lno, dsl_expr );
+	  if(TRACE_ON) printf( "Line %d DSL: %s\n", lno, dsl_expr );
 	  lcompound = compound_pushnew( KB_Signs, tmp, 0 );
 	  KB_Signs = (sign_rec_ptr) lcompound;
 	  compound_DSL_set( lcompound, dsl_expr );
@@ -214,9 +221,9 @@ int loadkb_file( const char *fn ){
 	else{
 	  // Boolean condition NW is sign or hypo
 	  pch		= strtok (NULL, delims);
-	  printf( "\t[State: %d] FW %s (%d)\n", sno, pch, strlen(pch) );
+	  if(TRACE_ON) printf( "\t[State: %d] FW %s (%d)\n", sno, pch, strlen(pch) );
 	  if( NULL != pch && *pch != 0x0A ){
-	    printf( "NW HYPO or SIGN %s\n", pch );
+	    if(TRACE_ON) printf( "NW HYPO or SIGN %s\n", pch );
 	    lsign = sign_find( pch, KB_Signs );
 	    if( NULL == lsign ) lsign = sign_find( pch, (sign_rec_ptr)KB_Hypos );
 	    if( NULL == lsign ){
@@ -225,16 +232,16 @@ int loadkb_file( const char *fn ){
 					       0, sizeof(fwrd_rec_ptr) );
 	    }
 	    rule_pushnewcond( lrule, (1 == cond_t) ? (unsigned short)1 : (unsigned short) 0, lsign );
-	    printf( "Get/Create %s in rule %s\n", lsign->str, lrule->str );
+	    if(TRACE_ON) printf( "Get/Create %s in rule %s\n", lsign->str, lrule->str );
 	  }
 	  else{
-	    printf( "NW missing hypo or sign\n" );
+	    if(TRACE_ON) printf( "NW missing hypo or sign\n" );
 	    sno = 255;
 	    schange = _TRUE;
 	    break;
 	  }
 	}
-	printf( "State 1: new state %d, schange %d\n", sno, schange );
+	if(TRACE_ON) printf( "State 1: new state %d, schange %d\n", sno, schange );
 	break;
 
       case 2: // Waiting for end of rule
@@ -245,7 +252,7 @@ int loadkb_file( const char *fn ){
 	break;
 
       case 255: // Error in parsing
-	printf( "Parsing error at line %d\n", lno );
+	if(TRACE_ON) printf( "Parsing error at line %d\n", lno );
 	retcode = 255;
 	goto end_exit;
 	break;
@@ -261,10 +268,12 @@ int loadkb_file( const char *fn ){
     free(line);  
 
   sign_iter( KB_Signs, &sign_print );
-  printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
+  if(TRACE_ON) printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
   sign_iter( KB_Hypos, &hypo_print );
-  printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
+  if(TRACE_ON) printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
   sign_iter( KB_Rules, &rule_print );
+
+  if( 0 == rule_count ) retcode = 255;
 
   return retcode;
 }

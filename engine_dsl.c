@@ -33,8 +33,8 @@ typedef int32_t sdc_t;   /**< signed double cell type */
 
 typedef int (*embed_callback_extended_t)(vm_extension_t *v);
 typedef struct {
-  embed_callback_extended_t cb; /**< Callback for function */
   const char *name;             /**< Forth function */
+  embed_callback_extended_t cb; /**< Callback for function */
   bool use;                     /**< Use this callback? */
 } callbacks_t;
 
@@ -583,7 +583,7 @@ static int callbacks_add(embed_t * const h, const bool optimize,  callbacks_t *c
 }
 
 static vm_extension_t *vm_extension_new(void) {
-  vm_extension_t *v = embed_alloc(sizeof(*v));
+  vm_extension_t *v = (vm_extension_t *) embed_alloc(sizeof(*v));
   if (!v)
     return NULL;
   v->h = embed_new();
@@ -635,7 +635,7 @@ static int cb_nxpget(vm_extension_t * const v) {
     *s++ = val;
   }
   *s = 0;
-  printf( "<FORTH EXT> %s\n", str );
+  if(TRACE_ON) printf( "<FORTH EXT> %s\n", str );
   /* // Get or infer value */
   /* if( 0 == strcmp( str, "TEMP1" ) ) */
   /*   val = (cell_t)20; */
@@ -663,16 +663,29 @@ static int cb_nxpset(vm_extension_t * const v) {
   return 0;
 }
 
+void engine_dsl_getter_compound( compound_rec_ptr compound ){
+#ifdef ENGINE_DSL_HOWERJFORTH
+  int r;
+  if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
+  r = engine_dsl_eval( (char *) (compound->dsl_expression) );
+  /* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH */
+  if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r );
+  sign_set_default( (sign_rec_ptr)compound, r );
+#endif  
+}
+
 int engine_dsl_DSLvar_declare( const char *dsl_var ){
   // Define a FORTH word to get-memoize the value of a sign to be passed to C primitive `nxp@`
   static const char templ_sign_decl[] = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop ;\n";
-  char prgm[80];
   int  r = 0;
-  sprintf( prgm, templ_sign_decl, dsl_var, dsl_var );
-  r = embed_eval( S_v->h, prgm );
-  printf ("__FUNCTION__ = %s res = %d\n", __FUNCTION__, r);
+  if( NULL == sign_find( dsl_var, loadkb_get_allsigns() ) ){
+    char prgm[80];
+    sprintf( prgm, templ_sign_decl, dsl_var, dsl_var );
+    r = embed_eval( S_v->h, prgm );
+    if(TRACE_ON) printf ("__FUNCTION__ = %s res = %d\n", __FUNCTION__, r);
+  }
   return r;
- }
+}
 
 int  engine_dsl_init(){
   BUILD_BUG_ON(sizeof(double_cell_t) != sizeof(sdc_t));
@@ -685,7 +698,7 @@ int  engine_dsl_init(){
   char   str[80], *s;
   int    res;
   /* int    r = nxp_init( v ); */
-  printf( "Engine DSL: howerjforth\n\n" );
+  if(TRACE_ON) printf( "Engine DSL: howerjforth\n\n" );
   S_v = v;
   return 0;
 }
@@ -696,7 +709,7 @@ void engine_dsl_free(){
 
 int  engine_dsl_eval( const char * expr ){
   cell_t val;
-  printf( "<FORTH> Evaluating %s\n", expr );
+  if(TRACE_ON) printf( "<FORTH> Evaluating %s\n", expr );
   int r = embed_eval( S_v->h, expr );
   r = embed_pop( S_v->h, &val );
   // TRUE is -1 in FORTH

@@ -52,7 +52,7 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 }
 
 void sign_del( sign_rec_ptr sign ){
-  printf( "Deleting %s\n", sign->str );
+  if(TRACE_ON) printf( "Deleting %s\n", sign->str );
   if( COMPOUND_MASK == (sign->len_type & TYPE_MASK) )
     compound_del( (compound_rec_ptr) sign );
   if( sign->ngetters )
@@ -90,7 +90,7 @@ void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
 unsigned short sign_get_default( sign_rec_ptr sign ){
   char buf[32] = { 0 };
   if( S_on_get ) S_on_get( sign, _UNKNOWN );
-  printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
+  if(TRACE_ON) printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
   fgets( buf, 30, stdin );
   return (unsigned short)strtoul( buf, NULL, 0 );
 }
@@ -102,7 +102,7 @@ void sign_set_default( sign_rec_ptr sign, unsigned short val ){
 
 // Default sync sign-getter
 void getter_sign( sign_rec_ptr sign ){
-  printf ("__FUNCTION__ = %s\n", __FUNCTION__);
+  if(TRACE_ON) printf ("__FUNCTION__ = %s\n", __FUNCTION__);
   sign_set_default( sign, sign_get_default( sign ) );
 }
 
@@ -110,11 +110,11 @@ void getter_sign( sign_rec_ptr sign ){
 void sign_print( sign_rec_ptr sign ){
   char *esc = S_val_color( sign->val );
   short len = sign->len_type & SIGN_UNMASK;
-  printf( "%sSIGN:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, sign->str,
+  if(TRACE_ON) printf( "%sSIGN:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, sign->str,
 	  len, sign->len_type, sign->len_type & TYPE_MASK,
 	  _VALSTR(sign->val),
 	  sign->val );
-  printf( "\tGetters %d (%d), Setters %d (%d)\n",
+  if(TRACE_ON) printf( "\tGetters %d (%d), Setters %d (%d)\n",
 	  sign->ngetters, sizeof( sign->getters ),
 	  sign->nsetters, sizeof( sign->setters ) );
 }
@@ -142,7 +142,7 @@ sign_rec_ptr sign_find ( const char *str, sign_rec_ptr top ){
 
 hypo_rec_ptr sign_tohypo( hypo_rec_ptr hypo, sign_rec_ptr top_sign, hypo_rec_ptr top_hypo ){
   sign_rec_ptr s = top_sign;
-  printf( "Changing sign %s to hypo\n", hypo->str );
+  if(TRACE_ON) printf( "Changing sign %s to hypo\n", hypo->str );
   hypo->len_type = (unsigned short)strlen(hypo->str) | HYPO_MASK;
   while( hypo != s->next ) s = s->next;
   s->next = hypo->next;

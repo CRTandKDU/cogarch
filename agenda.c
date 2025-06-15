@@ -24,6 +24,24 @@ sign_rec_ptr agenda_get_allsigns(){
   return S_Signs;
 }
 
+const char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
+
+char *S_val_color( unsigned short val ){
+  char *esc;
+  switch( val ){
+  case _TRUE:
+    esc = (char *) S_Color[0];
+    break;
+  case _FALSE:
+    esc = (char *) S_Color[1];
+    break;
+  default:
+    esc = (char *) S_Color[2];
+  }
+  return esc;
+}
+
+
 // Default compound sign-getter
 void getter_compound( compound_rec_ptr compound ){
 #ifdef ENGINE_DSL_HOWERJFORTH

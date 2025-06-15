@@ -1,6 +1,8 @@
 #ifndef AGENDA_H
 #define  AGENDA_H
 
+#define TRACE_ON 0
+
 struct empty {};
 typedef struct empty *empty_ptr;
 
@@ -31,21 +33,7 @@ typedef struct compound_rec *compound_rec_ptr;
 
 #define _CHOP 32
 
-static char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
-static char *S_val_color( unsigned short val ){
-  char *esc;
-  switch( val ){
-  case _TRUE:
-    esc = S_Color[0];
-    break;
-  case _FALSE:
-    esc = S_Color[1];
-    break;
-  default:
-    esc = S_Color[2];
-  }
-  return esc;
-}
+char *S_val_color( unsigned short val );
 
 //
 /* ** Links from signs to either rules or compound signs */
@@ -212,6 +200,7 @@ int  engine_dsl_init();
 void engine_dsl_free();
 int  engine_dsl_eval( const char * expr );
 int  engine_dsl_DSLvar_declare( const char *dsl_var );
+void engine_dsl_getter_compound( compound_rec_ptr compound );
 #endif
 
 sign_rec_ptr agenda_get_allsigns();
@@ -221,6 +210,7 @@ void loadkb_reset();
 sign_rec_ptr loadkb_get_allsigns();
 hypo_rec_ptr loadkb_get_allhypos();
 rule_rec_ptr loadkb_get_allrules();
+int          loadkb_howmany( sign_rec_ptr top );
 
 #endif
 

@@ -74,16 +74,16 @@ void            engine_free_state( engine_state_rec_ptr state ){
 
 void engine_print_state( engine_state_rec_ptr state ){
   cell_rec_ptr prev, cell = state->agenda;
-  printf( "STATE> Current sign: %s\n", (state->current_sign ? state->current_sign->str : "NONE") );
+  if(TRACE_ON) printf( "STATE> Current sign: %s\n", (state->current_sign ? state->current_sign->str : "NONE") );
   while( cell ){
     prev = cell;
     cell = prev->next;
-    printf( "STATE>\t%s\t%s\t%s\n",
+    if(TRACE_ON) printf( "STATE>\t%s\t%s\t%s\n",
 	    _UNKNOWN == prev->val ? "SUGGEST" : "VOLUNTEER",
 	    prev->sign_or_hypo->str,
 	    _UNKNOWN == prev->val ? "" : ( _TRUE == prev->val ? "TRUE" : "FALSE" ));
   }
-  printf( "----\t----\t----\t----\n" );
+  if(TRACE_ON) printf( "----\t----\t----\t----\n" );
 }
 
 //
@@ -110,7 +110,7 @@ void engine_knowcess( engine_state_rec_ptr state ){
   while( state->agenda ){
     cell_rec_ptr cell = state->agenda;
     // Test for `suggest hypo` or compound
-    printf( ">Knowcess %s (%s, %d) from top of stack.\n",
+    if(TRACE_ON) printf( ">Knowcess %s (%s, %d) from top of stack.\n",
 	    cell->sign_or_hypo->str,
 	    (COMPOUND_MASK == (cell->sign_or_hypo->len_type & TYPE_MASK)) ? "COMPOUND" : "HYPO",
 	    (int) (cell->val) );
@@ -214,7 +214,7 @@ void engine_forward_sign( sign_rec_ptr sign ){
       }
       else{
 	// This is a DSL-shared sign
-	printf( "> Postpone eval compound sign %s (from %s)\n",
+	if(TRACE_ON) printf( "> Postpone eval compound sign %s (from %s)\n",
 		((compound_rec_ptr) (fwrd->rule))->str, sign->str );
 	if( S_on_gate ) S_on_gate( (hypo_rec_ptr) (fwrd->rule), _TRUE );
       }
@@ -223,7 +223,7 @@ void engine_forward_sign( sign_rec_ptr sign ){
 }
 
 void engine_backward_hypo( hypo_rec_ptr hypo ){
-  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, hypo->str);
+  if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, hypo->str);
   if( _UNKNOWN != hypo->val ) return;
   // Sequential OR
   bwrd_rec_ptr bwrd;
@@ -236,7 +236,7 @@ void engine_backward_hypo( hypo_rec_ptr hypo ){
 }
 
 void engine_backward_compound( compound_rec_ptr compound ){
-  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, compound->str);
+  if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, compound->str);
   if( COMPOUND_MASK != (compound->len_type & TYPE_MASK) ) return;
   if( _UNKNOWN != compound->val ) return;
   if( 0 == compound->ngetters ){
@@ -246,7 +246,7 @@ void engine_backward_compound( compound_rec_ptr compound ){
 }
 
 void engine_backward_rule( rule_rec_ptr rule ){
-  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, rule->str);
+  if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, rule->str);
   if( _UNKNOWN != rule->val ) return;
   // Sequential AND
   cond_rec_ptr cond;
@@ -259,7 +259,7 @@ void engine_backward_rule( rule_rec_ptr rule ){
 }
 
 void engine_backward_cond( cond_rec_ptr cond ){
-  printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, cond->sign->str);
+  if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, cond->sign->str);
   if( _UNKNOWN == cond->sign->val ){
     // TODO: Push to stack if hypo or compound (async handling)
     // Hypothesis: backward on rules

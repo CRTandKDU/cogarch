@@ -38,14 +38,14 @@ void rule_pushnewcond( rule_rec_ptr rule, unsigned short op, sign_rec_ptr sign )
   cond->val = (unsigned short)0xff;
   cond->sign = sign;
   // Point back from sign to cond
-  printf( "> Nsetters: %d. Pushing fwrd_rec: %s -> %s\t", sign->nsetters,
+  if(TRACE_ON) printf( "> Nsetters: %d. Pushing fwrd_rec: %s -> %s\t", sign->nsetters,
 	  sign->str,
 	  rule->str );
   sign_pushsetter( sign, (empty_ptr)malloc( sizeof(struct fwrd_rec) ) );
   fwrd = (fwrd_rec_ptr) (sign->setters)[_LAST_FWRD(sign)];
   fwrd->rule = rule;
   fwrd->idx_cond = _LAST_COND(rule);
-  printf( "Nsetters: %d\n", sign->nsetters );
+  if(TRACE_ON) printf( "Nsetters: %d\n", sign->nsetters );
 }
 
 void rule_del( rule_rec_ptr rule ){
@@ -58,29 +58,29 @@ void rule_del( rule_rec_ptr rule ){
 void rule_print( rule_rec_ptr rule ){
   char *esc = S_val_color( rule->val );
   short len = rule->len_type & RULE_UNMASK;
-  printf( "%sRULE:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, rule->str,
+  if(TRACE_ON) printf( "%sRULE:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, rule->str,
 	  len, rule->len_type, rule->len_type & TYPE_MASK,
 	  _VALSTR(rule->val),
 	  rule->val );
-  printf( "\tGetters: %d, Setters: %d\n", rule->ngetters, rule->nsetters );
+  if(TRACE_ON) printf( "\tGetters: %d, Setters: %d\n", rule->ngetters, rule->nsetters );
   if( rule->setters ){
     hypo_print( (hypo_rec_ptr)rule->setters );
   }
   esc = S_val_color( _UNKNOWN );
-  printf( "%s\tCOND: %d (%d)\n", esc, rule->ngetters, sizeof((rule->getters)) );
+  if(TRACE_ON) printf( "%s\tCOND: %d (%d)\n", esc, rule->ngetters, sizeof((rule->getters)) );
   if( rule->getters ){
     for( unsigned short i = 0; i<rule->ngetters; i++ ){
-      printf( "\t\tCOND %d: %d == %s\tVal: %d\n", i,
+      if(TRACE_ON) printf( "\t\tCOND %d: %d == %s\tVal: %d\n", i,
 	      (_AS_COND_ARRAY(rule->getters)[i])->out,
 	      (_AS_COND_ARRAY(rule->getters)[i])->sign->str,
 	      (_AS_COND_ARRAY(rule->getters)[i])->val);
       sign_rec_ptr sign = (_AS_COND_ARRAY(rule->getters)[i])->sign;
       for( unsigned short j = 0; j < sign->nsetters; j++ ){
-	printf( "\t\tin %s at %d\n",
+	if(TRACE_ON) printf( "\t\tin %s at %d\n",
 		((fwrd_rec_ptr)(sign->setters)[j])->rule->str,
 		((fwrd_rec_ptr)(sign->setters)[j])->idx_cond );
       }
     }
   }
-  printf( "%s\n", esc );
+  if(TRACE_ON) printf( "%s\n", esc );
 }

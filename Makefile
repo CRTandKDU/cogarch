@@ -1,4 +1,4 @@
-CC		= gcc
+CC		= g++
 CFLAGS		=  -I. -I../libforth -I../embed-master
 EXTRA_CFLAGS	= -O2 -Wall -Wextra -std=c99
 DSL_CFLAGS	= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
@@ -12,8 +12,8 @@ OBJ		= agenda.o sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
 agenda: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(DSL_CFLAGS) $(DSL_LFLAGS)
 
-listview: listview.cpp sign.o rule.o hypo.o
-	$(CC) -o $@ $^ $(CFLAGS) -O3 -lfinal
+listview: listview.cpp sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
+	$(CC) -o $@ $^ $(CFLAGS) -O3 $(DSL_CFLAGS) $(DSL_LFLAGS) -lfinal
 
 simple_guile: simple_guile.c
 	gcc -o simple_guile simple_guile.c `pkg-config --cflags --libs guile-3.0`

@@ -8,8 +8,6 @@
 #include <string.h>
 #include "agenda.h"
 
-extern  sign_getter_t getter_compound;
-
 compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 				   const char *s, const int ngetters ){
   compound_rec_ptr compound;
@@ -26,7 +24,7 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
   compound->len_type 	        |= COMPOUND_MASK;
   compound->ngetters		= ngetters;
   compound->nsetters		= 0;
-  compound->getters		= (empty_ptr *) &getter_compound;
+  compound->getters		= (empty_ptr *) &engine_dsl_getter_compound;
   compound->setters		= (empty_ptr *)NULL;
   compound->dsl_expression      = (char *)NULL;
   return compound;
@@ -45,11 +43,11 @@ void compound_del( compound_rec_ptr compound ){
 void compound_DSLvar_pushnew( compound_rec_ptr compound, sign_rec_ptr sign ){
     fwrd_rec_ptr fwrd;
     // Point back from sign to cond
-    printf( "> Nsetters: %d. Pushing fwrd_rec: %s -> %s\t", sign->nsetters,
+    if(TRACE_ON) printf( "> Nsetters: %d. Pushing fwrd_rec: %s -> %s\t", sign->nsetters,
 	    sign->str, compound->str );
     sign_pushsetter( sign, (empty_ptr)malloc( sizeof(struct fwrd_rec) ) );
     fwrd = (fwrd_rec_ptr) (sign->setters)[_LAST_FWRD(sign)];
     fwrd->rule = (rule_rec_ptr) compound; // Force type
     fwrd->idx_cond = -1;
-    printf( "Nsetters: %d\n", sign->nsetters );
+    if(TRACE_ON) printf( "Nsetters: %d\n", sign->nsetters );
 }

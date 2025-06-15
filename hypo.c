@@ -28,13 +28,13 @@ void hypo_print( hypo_rec_ptr hypo ){
   short len = hypo->len_type & HYPO_UNMASK;
 
   //
-  printf( "%sHYPO:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, hypo->str,
+  if(TRACE_ON) printf( "%sHYPO:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, hypo->str,
 	  len, hypo->len_type, hypo->len_type & TYPE_MASK,
 	  _VALSTR(hypo->val),
 	  hypo->val );
-  printf( "\tGetters: %d, Setters: %d\n", hypo->ngetters, hypo->nsetters );
+  if(TRACE_ON) printf( "\tGetters: %d, Setters: %d\n", hypo->ngetters, hypo->nsetters );
   for( unsigned short i=0; i < hypo->ngetters; i++ ){
     bwrd_rec_ptr bwrd = (bwrd_rec_ptr) (hypo->getters)[i];
-    printf( "\t\tfrom %s\n", bwrd->rule->str );
+    if(TRACE_ON) printf( "\t\tfrom %s\n", bwrd->rule->str );
   }
 };
