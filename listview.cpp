@@ -1,3 +1,8 @@
+/**
+ * Listview.cpp -- Encyclopedia sortable list view
+ *
+ * Written on Monday, June 16, 2025
+ */
 #include <array>
 #include <iostream>
 #include <fstream>
@@ -8,28 +13,7 @@
 #include <final/final.h>
 
 #include "agenda.h"
-
-//----------------------------------------------------------------------
-// Minimal setup and ancillaries for engine
-//----------------------------------------------------------------------
-engine_state_rec_ptr S_State;
-
-const char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
-
-char *S_val_color( unsigned short val ){
-  char *esc;
-  switch( val ){
-  case _TRUE:
-    esc = (char *) S_Color[0];
-    break;
-  case _FALSE:
-    esc = (char *) S_Color[1];
-    break;
-  default:
-    esc = (char *) S_Color[2];
-  }
-  return esc;
-}
+#include "listview.hpp"
 
 //----------------------------------------------------------------------
 // GUI
@@ -37,43 +21,17 @@ char *S_val_color( unsigned short val ){
 using finalcut::FPoint;
 using finalcut::FSize;
 
-
 //----------------------------------------------------------------------
 // class Listview
 //----------------------------------------------------------------------
 
-class Listview final : public finalcut::FDialog
-{
-public:
-  // Constructor
-  explicit Listview (finalcut::FWidget* = nullptr, sign_rec_ptr top = nullptr, const char *title = "");
-  sign_rec_ptr top;
-  const char *title;
 
-private:
-  // Method
-  void populate();
-  void initLayout() override;
-
-  // Event handlers
-  void onClose (finalcut::FCloseEvent*) override;
-
-  // Callback method
-  void cb_showInMessagebox();
-  void cb_showHideColumns();
-
-  // Data members
-  finalcut::FListView listview{this};
-  finalcut::FButton   columns{this};
-  finalcut::FButton   quit{this};
-
-};
 
 //----------------------------------------------------------------------
-Listview::Listview (finalcut::FWidget* parent, sign_rec_ptr top, const char *title)
+Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char *title)
   : finalcut::FDialog{parent}
 {
-  this->top	= top;
+  this->ency_t	= ency_t;
   this->title	= title;
   
   // Add columns to the view
@@ -99,16 +57,16 @@ Listview::Listview (finalcut::FWidget* parent, sign_rec_ptr top, const char *tit
 
   // Set push button text
   columns.setText (L"&Columns");
-  quit.setText (L"&Quit");
+  // quit.setText (L"&Quit");
 
   // Add some function callbacks
-  quit.addCallback
-    (
-     "clicked",
-     finalcut::getFApplication(),
-     &finalcut::FApplication::cb_exitApp,
-     this
-     );
+  // quit.addCallback
+  //   (
+  //    "clicked",
+  //    finalcut::getFApplication(),
+  //    &finalcut::FApplication::cb_exitApp,
+  //    this
+  //    );
 
   columns.addCallback
     (
@@ -130,7 +88,8 @@ Listview::Listview (finalcut::FWidget* parent, sign_rec_ptr top, const char *tit
 void Listview::populate()
 {
   std::vector<std::array<std::string, 2>> encyc = {};
-  sign_rec_ptr s	= this->top;
+  sign_rec_ptr s	= (this->ency_t == 0) ? loadkb_get_allsigns()
+    : (this->ency_t == 1) ? loadkb_get_allhypos() : nullptr ;
   int len		= loadkb_howmany( s );
   if(TRACE_ON) fprintf( stderr, "LoadKB %d signs\n", len );
   for( unsigned short i=0; i<len; i++ ){
@@ -146,8 +105,16 @@ void Listview::populate()
       const finalcut::FStringList line (place.cbegin(), place.cend());
       listview.insert (line);
     }
-  if(TRACE_ON) fprintf( stderr, "Populated %d signs\n", len );
+  if(TRACE_ON)  fprintf( stderr, "Populated %d signs\n", len );
 
+}
+
+//----------------------------------------------------------------------
+void Listview::repopulate()
+{
+  listview.clear();
+  populate();
+  redraw();
 }
 
 //----------------------------------------------------------------------
@@ -158,7 +125,7 @@ void Listview::initLayout()
   // Set columns button geometry
   columns.setGeometry(FPoint{2, 16}, FSize{11, 1});
   // Set quit button geometry
-  quit.setGeometry(FPoint{24, 16}, FSize{10, 1});
+  // quit.setGeometry(FPoint{24, 16}, FSize{10, 1});
   FDialog::initLayout();
 }
 
@@ -222,61 +189,3 @@ void Listview::cb_showHideColumns()
     }
 }
 
-//----------------------------------------------------------------------
-//                               main part
-//----------------------------------------------------------------------
-
-
-auto main (int argc, char* argv[]) -> int
-{
-  // Create demo knowledge base
-  // New state
-  S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );
-  S_State->current_sign = (sign_rec_ptr)0;
-  S_State->agenda	= (cell_rec_ptr)0;
-  engine_register_effects( &engine_default_on_get,
-			   &engine_default_on_set,
-			   &engine_default_on_gate);
-
-  // Set up DSL
-#ifdef ENGINE_DSL
-  engine_dsl_init();
-#endif
-
-  // Create the application object
-  finalcut::FApplication app(argc, argv);
-
-  // Load knowledge base from the File Picker
-  finalcut::FString         directory{L"."};
-  finalcut::FString         filter("*.org");
-  finalcut::FString         filename = 
-    finalcut::FFileDialog::fileOpenChooser(&app, directory, filter);
-
-  if ( filename.isEmpty() )
-    return 1;
-
-  int res = loadkb_file( filename.c_str() );
-  if(TRACE_ON) fprintf( stderr, "Result %d\n", res );
-  if( res ) return res;
-  
-  // Create main dialog object
-  Listview d_sign(&app, loadkb_get_allsigns(), "Sign");
-  d_sign.setText (L"Encyclopedia: Signs");
-  finalcut::FPoint position{25, 5};
-  finalcut::FSize size{37, 20};
-  d_sign.setGeometry ( position, size );
-  d_sign.setShadow();
-
-  Listview d_hypo(&d_sign, loadkb_get_allhypos(), "Hypo");
-  d_hypo.setText (L"Encyclopedia: Hypos");
-  d_hypo.setGeometry ( position, size );
-  d_hypo.setShadow();
-
-  // Set dialog d as main widget
-  finalcut::FWidget::setMainWidget( &d_sign );
-
-  // Show and start the application
-  d_sign.show();
-
-  return app.exec();
-}

@@ -90,7 +90,7 @@ void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
 unsigned short sign_get_default( sign_rec_ptr sign ){
   char buf[32] = { 0 };
   if( S_on_get ) S_on_get( sign, _UNKNOWN );
-  if(TRACE_ON) printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
+  printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
   fgets( buf, 30, stdin );
   return (unsigned short)strtoul( buf, NULL, 0 );
 }
