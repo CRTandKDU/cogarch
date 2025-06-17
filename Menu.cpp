@@ -20,6 +20,7 @@ using FKey = finalcut::FKey;
 using finalcut::FPoint;
 using finalcut::FSize;
 
+extern engine_state_rec_ptr repl_getState();
 
 //----------------------------------------------------------------------
 Menu::Menu (finalcut::FWidget* parent)
@@ -125,6 +126,8 @@ void Menu::configureExpertMenuItems()
   expert_menu.Volunteer.setStatusbarMessage ("Volunteer sign's value");
   expert_menu.Volunteer.addAccelerator (FKey::Ctrl_v);
   expert_menu.Line5.setSeparator();
+  expert_menu.Agenda.setStatusbarMessage ("Show/Hide Agenda");
+  expert_menu.Agenda.addAccelerator (FKey::Ctrl_a);
   expert_menu.Knowcess.setStatusbarMessage ("Run session");
   expert_menu.Knowcess.addAccelerator (FKey::Ctrl_k);
 }
@@ -133,17 +136,17 @@ void Menu::configureExpertMenuItems()
 void Menu::configureEncyclopediaMenuItems()
 {
   // "Encyclopedia" menu items
-  encyclopedia_menu.Signs.setStatusbarMessage ("List of signs");
-  encyclopedia_menu.Signs.addAccelerator (FKey::Ctrl_i);
-  encyclopedia_menu.Hypotheses.setStatusbarMessage ("List of hypotheses");
-  encyclopedia_menu.Hypotheses.addAccelerator (FKey::Ctrl_h);
+  encyclopedia_menu.Signs.setStatusbarMessage ("Show/Hide List of Signs");
+  encyclopedia_menu.Signs.addAccelerator (FKey::Ctrl_d);
+  encyclopedia_menu.Hypotheses.setStatusbarMessage ("Show/Hide List of Hypotheses");
+  encyclopedia_menu.Hypotheses.addAccelerator (FKey::Ctrl_y);
 }
 
 //----------------------------------------------------------------------
 void Menu::cb_loadkb()
 {
-  ency_sign->repopulate();
-  ency_hypo->repopulate();
+  EncyWindow[ENCY_SIGN].ency->repopulate();
+  EncyWindow[ENCY_HYPO].ency->repopulate();
   Trace.redraw();
 }
 
@@ -162,7 +165,47 @@ void Menu::defaultCallback (const finalcut::FMenuList* mb)
         this, &Menu::cb_open,
         item
       );
-      break;
+      continue;
+    }
+    _IF_MENUITEM(_MI_SUGGEST){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_suggest,
+	item
+      );
+      continue;
+    }
+    _IF_MENUITEM(_MI_AGENDA){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_ency,
+	item
+      );
+      continue;
+    }
+    _IF_MENUITEM(_MI_SIGNS){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_ency,
+	item
+      );
+      continue;
+    }
+    _IF_MENUITEM(_MI_HYPOS){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_ency,
+	item
+      );
+      continue;
     }
 
     if ( item
@@ -246,6 +289,44 @@ void Menu::cb_open (const finalcut::FMenuItem* menuitem)
 }
 
 //----------------------------------------------------------------------
+void Menu::cb_ency (const finalcut::FMenuItem* menuitem)
+{
+  short idx = -1;
+  auto text = menuitem->getText();
+  if( text == _MI_SIGNS )	idx = ENCY_SIGN;
+  if( text == _MI_HYPOS )	idx = ENCY_HYPO;
+  if( text == _MI_AGENDA )      idx = ENCY_AGND;
+  if( -1 == idx ) return;
+
+  if( EncyWindow[idx].ency_visible ){
+    EncyWindow[idx].ency->hide();
+  }
+  else{
+    EncyWindow[idx].ency->show();
+    EncyWindow[idx].ency->redraw();
+  }
+  EncyWindow[idx].ency_visible = 1 - EncyWindow[idx].ency_visible;
+}
+
+//----------------------------------------------------------------------
+void Menu::cb_suggest (const finalcut::FMenuItem* menuitem){
+  finalcut::FListViewItem *hypo = EncyWindow[ENCY_HYPO].ency->getCurrentItem();
+  auto text = hypo->getText( 1 );
+
+  hypo_rec_ptr h = (hypo_rec_ptr)sign_find( text.c_str(), loadkb_get_allhypos() );
+  if( hypo ){
+    engine_pushnew_hypo( repl_getState(), h );
+    finalcut::FMessageBox::info ( this
+				  , "Info"
+				  , "Suggest \"" + std::string(h->str) + "\"" );
+    char buf[64];
+    sprintf( buf, "Suggested %s.", h->str );
+    log( buf );
+  }
+  
+}
+
+//----------------------------------------------------------------------
 void Menu::log( const char *msg ){
   std::vector<std::array<std::string, 1>> lines = {};
   std::array<std::string, 1> arr;
@@ -256,6 +337,7 @@ void Menu::log( const char *msg ){
       const finalcut::FStringList line (place.cbegin(), place.cend());
       Trace.insert (line);
     }
+
 }
 
 

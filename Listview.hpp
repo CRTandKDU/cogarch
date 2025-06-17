@@ -18,6 +18,7 @@ public:
 
   // Methods
   void repopulate();
+  finalcut::FListViewItem* getCurrentItem();
 
 private:
   // Method

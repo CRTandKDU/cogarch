@@ -13,7 +13,10 @@ extern engine_state_rec_ptr S_State;
 effect S_on_get		= (effect)0;  // Triggered on get in `sign_default_get`
 effect S_on_set		= (effect)0;  // Triggered on set in `sign_default_set`
 effect S_on_gate	= (effect)0;  // Triggered on setting cond in `engine_forward_sign`
+effect S_on_push	= (effect)0;  // Triggered on pushing hypo/compound on agenda
+effect S_on_pop	        = (effect)0;  // Triggered on popping agenda
 
+//----------------------------------------------------------------------
 
 void engine_default_on_get( sign_rec_ptr sign, unsigned short val ){
   // Do nothing
@@ -48,6 +51,7 @@ void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
       new_cell->val		= _UNKNOWN;
       new_cell->next		= cell->next;
       cell->next		= new_cell;
+      if( S_on_push ) S_on_push( hypo, _UNKNOWN );
     }
     else{
       engine_pushnew_hypo( S_State, hypo );
@@ -56,12 +60,26 @@ void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
   engine_print_state( S_State );
 }
 
-void engine_register_effects( effect f_get, effect f_set, effect f_gate ){
+void engine_default_on_agenda_push( sign_rec_ptr, unsigned short val ){
+}
+
+void engine_default_on_agenda_pop( sign_rec_ptr, unsigned short val ){
+}
+
+
+void engine_register_effects( effect f_get,
+			      effect f_set,
+			      effect f_gate,
+			      effect f_push,
+			      effect f_pop ){
   S_on_get	= f_get;
   S_on_set	= f_set;
   S_on_gate	= f_gate;
+  S_on_push     = f_push;
+  S_on_pop      = f_pop;
 }
 
+//----------------------------------------------------------------------
 void            engine_free_state( engine_state_rec_ptr state ){
   cell_rec_ptr prev, cell = state->agenda;
   while( cell ){
@@ -94,6 +112,7 @@ void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h 
   state->agenda		= cell;
   cell->sign_or_hypo	= h;
   cell->val		= _UNKNOWN;
+  if( S_on_push ) S_on_push( h, _UNKNOWN );
 }
 
 void engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, unsigned short val ){
@@ -103,6 +122,13 @@ void engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, uns
   state->agenda = cell;
   cell->sign_or_hypo = sign;
   cell->val = val;
+  if( S_on_push ) S_on_push( sign, val );
+}
+
+void engine_pop( engine_state_rec_ptr state ){
+  cell_rec_ptr cell = state->agenda;
+  state->agenda = cell->next;
+  if( S_on_pop ) S_on_pop( cell->sign_or_hypo, cell->val );
 }
 
 void engine_knowcess( engine_state_rec_ptr state ){
@@ -132,6 +158,7 @@ void engine_knowcess( engine_state_rec_ptr state ){
   }
 }
 
+//----------------------------------------------------------------------
 unsigned short engine_sc_or( hypo_rec_ptr hypo ){
   switch( hypo->val ){
   case _TRUE:

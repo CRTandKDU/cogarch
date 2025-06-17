@@ -1,10 +1,15 @@
 #ifndef MENU_HPP
 #define MENU_HPP
 #include "agenda.h"
-#include "listview.hpp"
+#include "Listview.hpp"
 
-#define _MI_OPEN "&Open..."
-#define _MI_QUIT "&Quit"
+
+#define _MI_OPEN	"&Open..."
+#define _MI_QUIT	"&Quit"
+#define _MI_SIGNS	"Signs"
+#define _MI_HYPOS	"Hypotheses"
+#define _MI_AGENDA	"&Agenda"
+#define _MI_SUGGEST	"&Suggest"
 //----------------------------------------------------------------------
 // class Menu
 //----------------------------------------------------------------------
@@ -16,8 +21,15 @@ public:
   explicit Menu (finalcut::FWidget* = nullptr);
 
   // Members
-  Listview *ency_sign;
-  Listview *ency_hypo;
+  struct EncyListview {
+    Listview *ency;
+    unsigned short ency_visible;
+  } EncyWindow[3] = {
+    { nullptr, 0 },
+    { nullptr, 0 },
+    { nullptr, 0 }
+  };
+  
 
 private:
   struct FileMenu
@@ -65,9 +77,10 @@ private:
     { }
 
     finalcut::FMenu  Expert{};
-    finalcut::FMenuItem  Suggest{"&Suggest", &Expert};
+    finalcut::FMenuItem  Suggest{_MI_SUGGEST, &Expert};
     finalcut::FMenuItem  Volunteer{"&Volunteer", &Expert};
     finalcut::FMenuItem  Line5{&Expert};      
+    finalcut::FMenuItem  Agenda{_MI_AGENDA, &Expert};
     finalcut::FMenuItem  Knowcess{"&Knowcess", &Expert};
   };
 
@@ -78,8 +91,8 @@ private:
     { }
 
     finalcut::FMenu  Encyclopedia{};
-    finalcut::FMenuItem  Signs{"S&igns", &Encyclopedia};
-    finalcut::FMenuItem  Hypotheses{"&Hypotheses", &Encyclopedia};
+    finalcut::FMenuItem  Signs{_MI_SIGNS, &Encyclopedia};
+    finalcut::FMenuItem  Hypotheses{_MI_HYPOS, &Encyclopedia};
   };
 
 
@@ -101,6 +114,8 @@ private:
   // Callback methods
   void cb_message (const finalcut::FMenuItem*);
   void cb_open    (const finalcut::FMenuItem*);
+  void cb_ency    (const finalcut::FMenuItem* menuitem);
+  void cb_suggest (const finalcut::FMenuItem* menuitem);
 
   void cb_loadkb  ();
 

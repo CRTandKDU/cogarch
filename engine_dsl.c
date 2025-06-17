@@ -663,16 +663,16 @@ static int cb_nxpset(vm_extension_t * const v) {
   return 0;
 }
 
-void engine_dsl_getter_compound( compound_rec_ptr compound ){
-#ifdef ENGINE_DSL_HOWERJFORTH
-  int r;
-  if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
-  r = engine_dsl_eval( (char *) (compound->dsl_expression) );
-  /* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH */
-  if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r );
-  sign_set_default( (sign_rec_ptr)compound, r );
-#endif  
-}
+/* void engine_dsl_getter_compound( compound_rec_ptr compound ){ */
+/* #ifdef ENGINE_DSL_HOWERJFORTH */
+/*   int r; */
+/*   if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression ); */
+/*   r = engine_dsl_eval( (char *) (compound->dsl_expression) ); */
+/*   /\* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH *\/ */
+/*   if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r ); */
+/*   sign_set_default( (sign_rec_ptr)compound, r ); */
+/* #endif   */
+/* } */
 
 int engine_dsl_DSLvar_declare( const char *dsl_var ){
   // Define a FORTH word to get-memoize the value of a sign to be passed to C primitive `nxp@`

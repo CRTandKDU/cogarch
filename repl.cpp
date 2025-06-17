@@ -14,13 +14,48 @@
 #include <final/final.h>
 
 #include "agenda.h"
-#include "listview.hpp"
+#include "Listview.hpp"
 #include "Menu.hpp"
 
 //----------------------------------------------------------------------
 // Minimal setup and ancillaries for engine
 //----------------------------------------------------------------------
 engine_state_rec_ptr S_State;
+
+engine_state_rec_ptr repl_getState(){
+  return S_State;
+}
+
+Menu *S_main_dlg = nullptr;
+
+//----------------------------------------------------------------------
+// Getter callbacks from the engine
+//----------------------------------------------------------------------
+void getter_sign( sign_rec_ptr sign ){
+  if(TRACE_ON) printf ("__FUNCTION__ = %s\n", __FUNCTION__);
+  sign_set_default( sign, sign_get_default( sign ) );
+}
+
+void engine_dsl_getter_compound( compound_rec_ptr compound ){
+#ifdef ENGINE_DSL_HOWERJFORTH
+  int r;
+  if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
+  r = engine_dsl_eval( (char *) (compound->dsl_expression) );
+  /* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH */
+  if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r );
+  sign_set_default( (sign_rec_ptr)compound, r );
+#endif  
+}
+
+void cb_on_agenda_push( sign_rec_ptr sign, unsigned short val ){
+  S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+  engine_default_on_agenda_push( sign, val );
+}
+
+void cb_on_agenda_pop( sign_rec_ptr sign, unsigned short val ){
+  S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+  engine_default_on_agenda_pop( sign, val );
+}
 
 const char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
 
@@ -52,7 +87,10 @@ auto main (int argc, char* argv[]) -> int
   S_State->agenda	= (cell_rec_ptr)0;
   engine_register_effects( &engine_default_on_get,
 			   &engine_default_on_set,
-			   &engine_default_on_gate);
+			   &engine_default_on_gate,
+			   &cb_on_agenda_push,
+			   &cb_on_agenda_pop
+			   );
 
   // Set up DSL
 #ifdef ENGINE_DSL
@@ -67,20 +105,30 @@ auto main (int argc, char* argv[]) -> int
   main_dlg.setText ("Session");
   main_dlg.setSize ({40, 14});
   main_dlg.setShadow();
+  S_main_dlg = &main_dlg;
 
   // Create main dialog object
-  main_dlg.ency_sign = new Listview(&main_dlg, 0, "Sign");
-  main_dlg.ency_sign->setText (L"Encyclopedia: Signs");
+  main_dlg.EncyWindow[ENCY_SIGN].ency = new Listview(&main_dlg, ENCY_SIGN, "Sign");
+  main_dlg.EncyWindow[ENCY_SIGN].ency->setText (L"Encyclopedia: Signs");
   finalcut::FPoint position{25, 5};
   finalcut::FSize size{37, 20};
-  main_dlg.ency_sign->setGeometry ( position, size );
-  main_dlg.ency_sign->setShadow();
+  main_dlg.EncyWindow[ENCY_SIGN].ency->setGeometry ( position, size );
+  main_dlg.EncyWindow[ENCY_SIGN].ency->setShadow();
+  main_dlg.EncyWindow[ENCY_SIGN].ency->hide();
 
-  main_dlg.ency_hypo = new Listview(&main_dlg, 1, "Hypo");
-  main_dlg.ency_hypo->setText (L"Encyclopedia: Hypos");
+  main_dlg.EncyWindow[ENCY_HYPO].ency = new Listview(&main_dlg, ENCY_HYPO, "Hypo");
+  main_dlg.EncyWindow[ENCY_HYPO].ency->setText (L"Encyclopedia: Hypos");
   finalcut::FPoint position_h{27, 7};
-  main_dlg.ency_hypo->setGeometry ( position_h, size );
-  main_dlg.ency_hypo->setShadow();
+  main_dlg.EncyWindow[ENCY_HYPO].ency->setGeometry ( position_h, size );
+  main_dlg.EncyWindow[ENCY_HYPO].ency->setShadow();
+  main_dlg.EncyWindow[ENCY_HYPO].ency->hide();
+
+  main_dlg.EncyWindow[ENCY_AGND].ency = new Listview(&main_dlg, ENCY_AGND, "Goal");
+  main_dlg.EncyWindow[ENCY_AGND].ency->setText (L"Agenda");
+  finalcut::FPoint position_a{29, 9};
+  main_dlg.EncyWindow[ENCY_AGND].ency->setGeometry ( position_a, size );
+  main_dlg.EncyWindow[ENCY_AGND].ency->setShadow();
+  main_dlg.EncyWindow[ENCY_AGND].ency->hide();
 
   // Set dialog d as main widget
   finalcut::FWidget::setMainWidget( &main_dlg );

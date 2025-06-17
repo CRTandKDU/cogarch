@@ -185,15 +185,18 @@ void            engine_free_state( engine_state_rec_ptr state );
 void            engine_print_state( engine_state_rec_ptr state );
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h );
 void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, unsigned short val );
+void            engine_pop( engine_state_rec_ptr state );
 void            engine_knowcess( engine_state_rec_ptr state );
 
 // Global
 typedef void (*effect) (sign_rec_ptr, unsigned short);
 
-void engine_register_effects( effect f_get, effect f_set, effect f_gate );
+void engine_register_effects( effect f_get, effect f_set, effect f_gate, effect f_push, effect f_pop );
 void engine_default_on_get( sign_rec_ptr sign, unsigned short val );
 void engine_default_on_set( sign_rec_ptr sign, unsigned short val);
 void engine_default_on_gate( sign_rec_ptr sign,unsigned short val );
+void engine_default_on_agenda_push( sign_rec_ptr, unsigned short val );
+void engine_default_on_agenda_pop( sign_rec_ptr, unsigned short val );
 
 #ifdef ENGINE_DSL
 int  engine_dsl_init();
@@ -211,6 +214,10 @@ sign_rec_ptr loadkb_get_allsigns();
 hypo_rec_ptr loadkb_get_allhypos();
 rule_rec_ptr loadkb_get_allrules();
 int          loadkb_howmany( sign_rec_ptr top );
+
+#define ENCY_SIGN 0
+#define ENCY_HYPO 1
+#define ENCY_AGND 2
 
 #endif
 

@@ -101,10 +101,11 @@ void sign_set_default( sign_rec_ptr sign, unsigned short val ){
 }
 
 // Default sync sign-getter
-void getter_sign( sign_rec_ptr sign ){
-  if(TRACE_ON) printf ("__FUNCTION__ = %s\n", __FUNCTION__);
-  sign_set_default( sign, sign_get_default( sign ) );
-}
+/* void getter_sign( sign_rec_ptr sign ){ */
+/*   if(TRACE_ON) printf ("__FUNCTION__ = %s\n", __FUNCTION__); */
+/*   sign_set_default( sign, sign_get_default( sign ) ); */
+/* } */
+
 
 // Managers
 void sign_print( sign_rec_ptr sign ){

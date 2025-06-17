@@ -13,7 +13,9 @@
 #include <final/final.h>
 
 #include "agenda.h"
-#include "listview.hpp"
+#include "Listview.hpp"
+
+extern engine_state_rec_ptr repl_getState();
 
 //----------------------------------------------------------------------
 // GUI
@@ -36,7 +38,7 @@ Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char
   
   // Add columns to the view
   listview.addColumn (title);
-  listview.addColumn ("Value");
+  listview.addColumn (ENCY_AGND == ency_t ? "Cause" : "Value");
 
   // Set right alignment for the third, fourth, and fifth column
   listview.setColumnAlignment (2, finalcut::Align::Right);
@@ -49,8 +51,8 @@ Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char
   // Sorting follows later automatically on insert().
   // Otherwise you could start the sorting directly with sort()
 
-  // Allways show the sort indicator (▼/▲)
-  listview.hideSortIndicator(false);
+  // Allways show the sort indicator 
+  listview.hideSortIndicator(ency_t == ENCY_AGND ? true : false);
 
   // Populate FListView with a list of items
   populate();
@@ -87,26 +89,47 @@ Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char
 //----------------------------------------------------------------------
 void Listview::populate()
 {
-  std::vector<std::array<std::string, 2>> encyc = {};
-  sign_rec_ptr s	= (this->ency_t == 0) ? loadkb_get_allsigns()
-    : (this->ency_t == 1) ? loadkb_get_allhypos() : nullptr ;
-  int len		= loadkb_howmany( s );
-  if(TRACE_ON) fprintf( stderr, "LoadKB %d signs\n", len );
-  for( unsigned short i=0; i<len; i++ ){
-    std::array<std::string, 2> arr;
-    arr.at(0) = s->str;
-    arr.at(1) = 255 == s->val ? std::string("unknown") : ( 1 == s->val ? "true" : "false" );
-    encyc.push_back( arr );
-    s = s->next;
-  }
-
-  for (const auto& place : encyc)
+  switch( ency_t ){
+  case ENCY_SIGN:
+  case ENCY_HYPO:
     {
+    std::vector<std::array<std::string, 2>> encyc = {};
+    sign_rec_ptr s	= (this->ency_t == 0) ? loadkb_get_allsigns()
+      : (this->ency_t == 1) ? loadkb_get_allhypos() : nullptr ;
+    int len		= loadkb_howmany( s );
+    if(TRACE_ON) fprintf( stderr, "LoadKB %d signs\n", len );
+    for( unsigned short i=0; i<len; i++ ){
+      std::array<std::string, 2> arr;
+      arr.at(0) = s->str;
+      arr.at(1) = 255 == s->val ? std::string("unknown") : ( 1 == s->val ? "true" : "false" );
+      encyc.push_back( arr );
+      s = s->next;
+    }
+
+    for (const auto& place : encyc)
+      {
+	const finalcut::FStringList line (place.cbegin(), place.cend());
+	listview.insert (line);
+      }
+    if(TRACE_ON)  fprintf( stderr, "Populated %d signs\n", len );
+    }
+    break;
+    //
+  case ENCY_AGND:
+    std::vector<std::array<std::string, 2>> encyc = {};
+    cell_rec_ptr cell = repl_getState()->agenda;
+    for( cell_rec_ptr c = cell; c; c = c->next ){
+      std::array<std::string, 2> arr;
+      arr.at(0) = c->sign_or_hypo->str;
+      arr.at(1) = std::string("Goal");
+      encyc.push_back( arr );
+    }
+    for (const auto& place : encyc){
       const finalcut::FStringList line (place.cbegin(), place.cend());
       listview.insert (line);
     }
-  if(TRACE_ON)  fprintf( stderr, "Populated %d signs\n", len );
-
+    break;
+  }
 }
 
 //----------------------------------------------------------------------
@@ -115,6 +138,11 @@ void Listview::repopulate()
   listview.clear();
   populate();
   redraw();
+}
+
+//----------------------------------------------------------------------
+finalcut::FListViewItem* Listview::getCurrentItem(){
+  return listview.getCurrentItem();
 }
 
 //----------------------------------------------------------------------
