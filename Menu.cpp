@@ -21,6 +21,7 @@ using finalcut::FPoint;
 using finalcut::FSize;
 
 extern engine_state_rec_ptr repl_getState();
+extern Menu *repl_getMainDlg();
 
 //----------------------------------------------------------------------
 Menu::Menu (finalcut::FWidget* parent)
@@ -125,6 +126,8 @@ void Menu::configureExpertMenuItems()
   expert_menu.Suggest.addAccelerator (FKey::Ctrl_s);
   expert_menu.Volunteer.setStatusbarMessage ("Volunteer sign's value");
   expert_menu.Volunteer.addAccelerator (FKey::Ctrl_v);
+  expert_menu.Volunteer.setStatusbarMessage ("Clears all values to UNKNOWN");
+  expert_menu.Volunteer.addAccelerator (FKey::Ctrl_r);
   expert_menu.Line5.setSeparator();
   expert_menu.Agenda.setStatusbarMessage ("Show/Hide Agenda");
   expert_menu.Agenda.addAccelerator (FKey::Ctrl_a);
@@ -164,6 +167,16 @@ void Menu::defaultCallback (const finalcut::FMenuList* mb)
         "clicked",
         this, &Menu::cb_open,
         item
+      );
+      continue;
+    }
+    _IF_MENUITEM(_MI_KNOWCESS){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_knowcess,
+	item
       );
       continue;
     }
@@ -304,6 +317,7 @@ void Menu::cb_ency (const finalcut::FMenuItem* menuitem)
   else{
     EncyWindow[idx].ency->show();
     EncyWindow[idx].ency->redraw();
+    EncyWindow[idx].ency->activateDialog();
   }
   EncyWindow[idx].ency_visible = 1 - EncyWindow[idx].ency_visible;
 }
@@ -314,16 +328,29 @@ void Menu::cb_suggest (const finalcut::FMenuItem* menuitem){
   auto text = hypo->getText( 1 );
 
   hypo_rec_ptr h = (hypo_rec_ptr)sign_find( text.c_str(), loadkb_get_allhypos() );
-  if( hypo ){
-    engine_pushnew_hypo( repl_getState(), h );
-    finalcut::FMessageBox::info ( this
-				  , "Info"
-				  , "Suggest \"" + std::string(h->str) + "\"" );
-    char buf[64];
-    sprintf( buf, "Suggested %s.", h->str );
-    log( buf );
+  if( h ){
+    const auto& ret =				\
+      finalcut::FMessageBox::info ( this, "Confirm suggestion"
+			  , "Do you really want\n"
+                          "to suggest\n" + text
+			  , finalcut::FMessageBox::ButtonType::Yes
+			  , finalcut::FMessageBox::ButtonType::No );
+    if ( ret == finalcut::FMessageBox::ButtonType::Yes ){
+      engine_pushnew_hypo( repl_getState(), h );
+      char buf[64];
+      sprintf( buf, "Suggested %s.", h->str );
+      log( buf );
+    }
   }
   
+}
+
+//----------------------------------------------------------------------
+void Menu::cb_knowcess (const finalcut::FMenuItem* menuitem){
+  engine_resume_knowcess( repl_getState() );
+  repl_getMainDlg()->EncyWindow[ENCY_SIGN].ency->repopulate();
+  repl_getMainDlg()->EncyWindow[ENCY_HYPO].ency->repopulate();
+  repl_getMainDlg()->EncyWindow[ENCY_AGND].ency->repopulate();
 }
 
 //----------------------------------------------------------------------

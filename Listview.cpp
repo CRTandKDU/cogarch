@@ -24,12 +24,6 @@ using finalcut::FPoint;
 using finalcut::FSize;
 
 //----------------------------------------------------------------------
-// class Listview
-//----------------------------------------------------------------------
-
-
-
-//----------------------------------------------------------------------
 Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char *title)
   : finalcut::FDialog{parent}
 {
@@ -86,6 +80,21 @@ Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char
 
 }
 
+finalcut::FString val_repr( const sign_rec_ptr s, unsigned short ency_t ){
+  if( _UNKNOWN == s->val ) return finalcut::FString( "UNKNOWN" );
+  switch( ency_t ){
+  case ENCY_HYPO:
+    return( 0 == s->val ? finalcut::FString( "FALSE" ) : finalcut::FString( "TRUE" ) );
+    break;
+  case ENCY_SIGN:
+    if( COMPOUND_MASK == (s->len_type & TYPE_MASK) )
+          return( 0 == s->val ? finalcut::FString( "FALSE" ) : finalcut::FString( "TRUE" ) );
+    return( std::move( finalcut::FString() << s->val ) );
+    break;
+  }
+  return finalcut::FString( "error" );
+}
+
 //----------------------------------------------------------------------
 void Listview::populate()
 {
@@ -93,15 +102,15 @@ void Listview::populate()
   case ENCY_SIGN:
   case ENCY_HYPO:
     {
-    std::vector<std::array<std::string, 2>> encyc = {};
+    std::vector<std::array<finalcut::FString, 2>> encyc = {};
     sign_rec_ptr s	= (this->ency_t == 0) ? loadkb_get_allsigns()
       : (this->ency_t == 1) ? loadkb_get_allhypos() : nullptr ;
     int len		= loadkb_howmany( s );
     if(TRACE_ON) fprintf( stderr, "LoadKB %d signs\n", len );
     for( unsigned short i=0; i<len; i++ ){
-      std::array<std::string, 2> arr;
+      std::array<finalcut::FString, 2> arr;
       arr.at(0) = s->str;
-      arr.at(1) = 255 == s->val ? std::string("unknown") : ( 1 == s->val ? "true" : "false" );
+      arr.at(1) = val_repr( s, ency_t );
       encyc.push_back( arr );
       s = s->next;
     }

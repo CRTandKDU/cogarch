@@ -644,8 +644,9 @@ static int cb_nxpget(vm_extension_t * const v) {
   sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
   if( sign ){
     if( _UNKNOWN == sign->val ){
-      val = sign_get_default( sign );
-      sign_set_default( sign, (unsigned short)val );
+      ((sign_getter_t) sign->getters) ( sign );
+      /* val = sign_get_default( sign ); */
+      /* sign_set_default( sign, (unsigned short)val ); */
     }
     else val = sign->val;
   }

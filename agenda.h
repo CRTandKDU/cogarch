@@ -187,16 +187,17 @@ void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h 
 void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, unsigned short val );
 void            engine_pop( engine_state_rec_ptr state );
 void            engine_knowcess( engine_state_rec_ptr state );
+void            engine_resume_knowcess( engine_state_rec_ptr state );
 
 // Global
-typedef void (*effect) (sign_rec_ptr, unsigned short);
+typedef void (*effect) (sign_rec_ptr, short);
 
 void engine_register_effects( effect f_get, effect f_set, effect f_gate, effect f_push, effect f_pop );
-void engine_default_on_get( sign_rec_ptr sign, unsigned short val );
-void engine_default_on_set( sign_rec_ptr sign, unsigned short val);
-void engine_default_on_gate( sign_rec_ptr sign,unsigned short val );
-void engine_default_on_agenda_push( sign_rec_ptr, unsigned short val );
-void engine_default_on_agenda_pop( sign_rec_ptr, unsigned short val );
+void engine_default_on_get( sign_rec_ptr sign,  short val );
+void engine_default_on_set( sign_rec_ptr sign,  short val);
+void engine_default_on_gate( sign_rec_ptr sign, short val );
+void engine_default_on_agenda_push( sign_rec_ptr, short val );
+void engine_default_on_agenda_pop( sign_rec_ptr,  short val );
 
 #ifdef ENGINE_DSL
 int  engine_dsl_init();

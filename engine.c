@@ -18,11 +18,11 @@ effect S_on_pop	        = (effect)0;  // Triggered on popping agenda
 
 //----------------------------------------------------------------------
 
-void engine_default_on_get( sign_rec_ptr sign, unsigned short val ){
+void engine_default_on_get( sign_rec_ptr sign,  short val ){
   // Do nothing
 }
 
-void engine_default_on_set( sign_rec_ptr sign, unsigned short val ){
+void engine_default_on_set( sign_rec_ptr sign,  short val ){
   // Forward signs and hypos
   switch( sign->len_type & TYPE_MASK ){
   case SIGN_MASK:
@@ -33,7 +33,7 @@ void engine_default_on_set( sign_rec_ptr sign, unsigned short val ){
   }
 }
 
-void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
+void engine_default_on_gate( hypo_rec_ptr hypo,  short val ){
   // Postpone hypo when one of its rule might be true or
   // compound if one of its DSL-shared var is known.
   if( _TRUE == val && _UNKNOWN == hypo->val ){
@@ -60,10 +60,10 @@ void engine_default_on_gate( hypo_rec_ptr hypo, unsigned short val ){
   engine_print_state( S_State );
 }
 
-void engine_default_on_agenda_push( sign_rec_ptr, unsigned short val ){
+void engine_default_on_agenda_push( sign_rec_ptr,  short val ){
 }
 
-void engine_default_on_agenda_pop( sign_rec_ptr, unsigned short val ){
+void engine_default_on_agenda_pop( sign_rec_ptr,  short val ){
 }
 
 
@@ -155,6 +155,27 @@ void engine_knowcess( engine_state_rec_ptr state ){
     }
     // Now pop from agenda
     state->agenda = cell->next;
+  }
+}
+
+void engine_resume_knowcess( engine_state_rec_ptr state ){
+ next:
+  if( state->agenda ){
+    cell_rec_ptr cell = state->agenda;
+    if( _UNKNOWN == cell->val ){
+      switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
+      case COMPOUND_MASK:
+	engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo );
+	break;
+      case HYPO_MASK:
+	engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo );
+	break;
+      }
+    }
+    else{
+      engine_pop( state );
+      goto next;
+    }
   }
 }
 
@@ -289,6 +310,10 @@ void engine_backward_cond( cond_rec_ptr cond ){
   if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, cond->sign->str);
   if( _UNKNOWN == cond->sign->val ){
     // TODO: Push to stack if hypo or compound (async handling)
+    if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ||
+	COMPOUND_MASK == (cond->sign->len_type & TYPE_MASK) ){
+      engine_pushnew_hypo( S_State, (hypo_rec_ptr) cond->sign );
+    }
     // Hypothesis: backward on rules
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ){
       engine_backward_hypo( (hypo_rec_ptr) cond->sign );

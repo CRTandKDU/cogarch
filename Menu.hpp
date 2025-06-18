@@ -2,7 +2,7 @@
 #define MENU_HPP
 #include "agenda.h"
 #include "Listview.hpp"
-
+#include "Question.hpp"
 
 #define _MI_OPEN	"&Open..."
 #define _MI_QUIT	"&Quit"
@@ -10,6 +10,8 @@
 #define _MI_HYPOS	"Hypotheses"
 #define _MI_AGENDA	"&Agenda"
 #define _MI_SUGGEST	"&Suggest"
+#define _MI_KNOWCESS    "&Knowcess"
+
 //----------------------------------------------------------------------
 // class Menu
 //----------------------------------------------------------------------
@@ -29,7 +31,9 @@ public:
     { nullptr, 0 },
     { nullptr, 0 }
   };
-  
+  QuestionWidget *q = nullptr;
+
+  void log( const char *msg );  
 
 private:
   struct FileMenu
@@ -79,9 +83,10 @@ private:
     finalcut::FMenu  Expert{};
     finalcut::FMenuItem  Suggest{_MI_SUGGEST, &Expert};
     finalcut::FMenuItem  Volunteer{"&Volunteer", &Expert};
+    finalcut::FMenuItem  Reset{"&Reset", &Expert};
     finalcut::FMenuItem  Line5{&Expert};      
     finalcut::FMenuItem  Agenda{_MI_AGENDA, &Expert};
-    finalcut::FMenuItem  Knowcess{"&Knowcess", &Expert};
+    finalcut::FMenuItem  Knowcess{_MI_KNOWCESS, &Expert};
   };
 
   struct EncyclopediaMenu
@@ -106,16 +111,17 @@ private:
   void adjustSize() override;
 
   // Ancillaries
-  void log( const char *msg );
+
 
   // Event handler
   void onClose (finalcut::FCloseEvent*) override;
 
   // Callback methods
-  void cb_message (const finalcut::FMenuItem*);
-  void cb_open    (const finalcut::FMenuItem*);
-  void cb_ency    (const finalcut::FMenuItem* menuitem);
-  void cb_suggest (const finalcut::FMenuItem* menuitem);
+  void cb_message  (const finalcut::FMenuItem*);
+  void cb_open     (const finalcut::FMenuItem*);
+  void cb_ency     (const finalcut::FMenuItem* menuitem);
+  void cb_suggest  (const finalcut::FMenuItem* menuitem);
+  void cb_knowcess (const finalcut::FMenuItem* menuitem);
 
   void cb_loadkb  ();
 

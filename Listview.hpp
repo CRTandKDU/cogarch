@@ -2,10 +2,10 @@
 #define LISTVIEW_HPP
 #include "agenda.h"
 
+
 //----------------------------------------------------------------------
 // class Listview
 //----------------------------------------------------------------------
-
 class Listview final : public finalcut::FDialog
 {
 public:
