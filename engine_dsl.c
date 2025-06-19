@@ -8,7 +8,7 @@
 /* #define ENGINE_DSL */
 #include <stddef.h>
 #include "agenda.h"
-
+  
 #ifdef ENGINE_DSL_HOWERJFORTH
 #include "embed.h"
 #include "util.h"
@@ -44,6 +44,8 @@ struct vm_extension_t {
   size_t callbacks_length; /**< length of 'callbacks' field */
   embed_opt_t o;           /**< embed virtual machine options */
   cell_t error;            /**< current error condition */
+
+  int *suspend;
 };
 
 #define CALLBACK_XMACRO				\
@@ -95,7 +97,7 @@ struct vm_extension_t {
   X("fmin",     cb_fmin,       true)		\
   X("fmax",     cb_fmax,       true)		\
   \
-  X("nxp@",     cb_nxpget,     true)            \
+  X("nxp@",     cb_nxpget_async,     true)            \
   X("nxp!",     cb_nxpset,     true)            \
 
 #define X(NAME, FUNCTION, USE) static int FUNCTION ( vm_extension_t * const v );
@@ -644,9 +646,9 @@ static int cb_nxpget(vm_extension_t * const v) {
   sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
   if( sign ){
     if( _UNKNOWN == sign->val ){
-      ((sign_getter_t) sign->getters) ( sign );
-      /* val = sign_get_default( sign ); */
-      /* sign_set_default( sign, (unsigned short)val ); */
+      /* ((sign_getter_t) sign->getters) ( sign ); */
+      val = sign_get_default( sign );
+      sign_set_default( sign, (unsigned short)val );
     }
     else val = sign->val;
   }
@@ -658,6 +660,42 @@ static int cb_nxpget(vm_extension_t * const v) {
   // Push to FORTH stack
   res = embed_push( v->h, val );
   return 0;
+}
+
+static int cb_nxpget_async(vm_extension_t * const v) {
+  cell_t val;
+  int    res, r;
+  char   str[80], *s;
+  // Marshall string from FORTH
+  r   = embed_pop( v->h, &val );
+  s   = str;
+  r   = (int)val;
+  for( short i=0; i<r ; i++ ){
+    res = embed_pop( v->h, &val );
+    *s++ = val;
+  }
+  *s = 0;
+  //
+  sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
+  if( sign ){
+    if( _UNKNOWN == sign->val ){
+      ((sign_getter_t) sign->getters) ( sign, v->suspend );
+      res = embed_push( v->h, (cell_t)_UNKNOWN );
+      return eclr(v);
+    }
+    else{
+      val = (cell_t) sign->val;
+      // Push to FORTH stack
+      res = embed_push( v->h, val );
+      return eclr(v);
+    }
+  }
+  else{
+    // Report undefined DSL-shared variable
+    val = (cell_t)0;
+    embed_error( "No sign\r" );
+  }
+  return eclr(v);
 }
 
 static int cb_nxpset(vm_extension_t * const v) {
@@ -717,4 +755,42 @@ int  engine_dsl_eval( const char * expr ){
   r = (65535 == (int) val) ? _TRUE : _FALSE;
   return r;
 }
+
+extern void  repl_log( const char *s );
+
+int  engine_dsl_eval_async( const char * expr, int *err, int *suspend ){
+  cell_t val;
+  int    ret = _UNKNOWN;
+  //
+  char   buf[128];
+  sprintf( buf, "<FORTH> Evaluating %s (Suspend %d)", expr, *suspend );
+  repl_log( buf );
+
+  S_v->suspend = suspend;
+
+  int r = embed_eval( S_v->h, expr );
+  sprintf( buf, "<FORTH> Eval =  %d (Suspend %d)", r, *suspend );
+  repl_log( buf );
+  
+  r = embed_pop( S_v->h, &val );
+
+  *err = r;
+  sprintf( buf, "<FORTH> Err = %d (Suspend %d)", r, *suspend );
+  repl_log( buf );
+
+    // TRUE is -1 in FORTH
+  switch( (int)val ){
+  case 65535:
+    ret = _TRUE;
+    break;
+  case 0:
+    ret = _FALSE;
+    break;
+  default:
+    ret = (int)val;
+    break;
+  }
+  return ret;
+}
+
 #endif // ENGINE_DSL_HOWERJFORTH

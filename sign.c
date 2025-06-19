@@ -96,6 +96,8 @@ unsigned short sign_get_default( sign_rec_ptr sign ){
 }
 
 void sign_set_default( sign_rec_ptr sign, unsigned short val ){
+  if( _UNKNOWN == val ) return;
+  
   sign->val = val;
   if( S_on_set ) S_on_set( sign, val );
 }

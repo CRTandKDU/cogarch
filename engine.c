@@ -9,6 +9,8 @@
 #include <string.h>
 #include "agenda.h"
 
+extern void  repl_log( const char *s );
+
 extern engine_state_rec_ptr S_State;
 effect S_on_get		= (effect)0;  // Triggered on get in `sign_default_get`
 effect S_on_set		= (effect)0;  // Triggered on set in `sign_default_set`
@@ -17,7 +19,6 @@ effect S_on_push	= (effect)0;  // Triggered on pushing hypo/compound on agenda
 effect S_on_pop	        = (effect)0;  // Triggered on popping agenda
 
 //----------------------------------------------------------------------
-
 void engine_default_on_get( sign_rec_ptr sign,  short val ){
   // Do nothing
 }
@@ -51,13 +52,18 @@ void engine_default_on_gate( hypo_rec_ptr hypo,  short val ){
       new_cell->val		= _UNKNOWN;
       new_cell->next		= cell->next;
       cell->next		= new_cell;
-      if( S_on_push ) S_on_push( hypo, _UNKNOWN );
+
+      char buf[64];
+      sprintf( buf, "Tail %s (%d)", hypo->str, new_cell->val );
+      repl_log( buf );
+
+      /* if( S_on_push ) S_on_push( hypo, _UNKNOWN ); */
     }
     else{
       engine_pushnew_hypo( S_State, hypo );
     }
   }
-  engine_print_state( S_State );
+  // engine_print_state( S_State );
 }
 
 void engine_default_on_agenda_push( sign_rec_ptr,  short val ){
@@ -104,7 +110,7 @@ void engine_print_state( engine_state_rec_ptr state ){
   if(TRACE_ON) printf( "----\t----\t----\t----\n" );
 }
 
-//
+//----------------------------------------------------------------------
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h ){
   // Suggest
   cell_rec_ptr cell	= (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
@@ -132,6 +138,7 @@ void engine_pop( engine_state_rec_ptr state ){
 }
 
 void engine_knowcess( engine_state_rec_ptr state ){
+  int suspend = _FALSE;
   // Execute `suggest` and `volunteer` commands until quiescent state
   while( state->agenda ){
     cell_rec_ptr cell = state->agenda;
@@ -143,10 +150,10 @@ void engine_knowcess( engine_state_rec_ptr state ){
     if( _UNKNOWN == cell->val ){
       switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
       case COMPOUND_MASK:
-	engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo );
+	engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo, &suspend );
 	break;
       case HYPO_MASK:
-	engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo );
+	engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo, &suspend );
 	break;
       }
     }
@@ -154,29 +161,55 @@ void engine_knowcess( engine_state_rec_ptr state ){
       sign_set_default( (sign_rec_ptr) cell->sign_or_hypo, cell->val );
     }
     // Now pop from agenda
-    state->agenda = cell->next;
+    /* state->agenda = cell->next; */
+    engine_pop( state );
   }
 }
 
+/* ** A somewhat async version of knowcess. */
+/* The Agenda is a stack of operations (SUGGEST <hypo>, EVAL <compound>, VOLUNTEER <sign, value>). */
+/* Note that a single operation may appear at several locations on the Agenda as it may be pushed or */
+/* postponed several times. */
+//
+/* The ~resume_knowcess~ processes the Agenda until either a question is being asked and pending--indicated */
+/* by the `suspend` control flag being ~_TRUE~--or the Agenda is empty. */
+				     
 void engine_resume_knowcess( engine_state_rec_ptr state ){
+  int suspend;
  next:
+  suspend = _FALSE;
   if( state->agenda ){
     cell_rec_ptr cell = state->agenda;
     if( _UNKNOWN == cell->val ){
-      switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
-      case COMPOUND_MASK:
-	engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo );
-	break;
-      case HYPO_MASK:
-	engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo );
-	break;
+      // Either a SUGGEST or COMPOUND eval operation
+      if( _UNKNOWN == cell->sign_or_hypo->val ){
+	switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
+	case COMPOUND_MASK:
+	  engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo, &suspend );
+	  if( _FALSE == suspend )
+	    goto next;
+	  break;
+
+	case HYPO_MASK:
+	  engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo, &suspend );
+	  if( _FALSE == suspend )
+	    goto next;
+	  break;
+	}
       }
+      else{
+	engine_pop( state );
+	goto next;
+      }	
     }
     else{
+      // A VOLUNTEER operation
+      sign_set_default( (sign_rec_ptr) cell->sign_or_hypo, cell->val );
       engine_pop( state );
       goto next;
     }
   }
+  /* repl_log( "Done!" ); */
 }
 
 //----------------------------------------------------------------------
@@ -270,59 +303,65 @@ void engine_forward_sign( sign_rec_ptr sign ){
   }
 }
 
-void engine_backward_hypo( hypo_rec_ptr hypo ){
+//
+void engine_backward_hypo( hypo_rec_ptr hypo, int *suspend ){
   if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, hypo->str);
   if( _UNKNOWN != hypo->val ) return;
   // Sequential OR
   bwrd_rec_ptr bwrd;
   for( unsigned short i=0; i<hypo->ngetters; i++ ){
     bwrd = (bwrd_rec_ptr) (hypo->getters)[i];
-    engine_backward_rule( bwrd->rule );
+    engine_backward_rule( bwrd->rule, suspend );
+    // In async mode a pending question at a leaf suspends bwrd-chaining
+    if( *suspend )
+      break;
     // Check for side-effects of short-circuiting forward chaining
     if( _UNKNOWN != hypo->val ) break;
   }
 }
 
-void engine_backward_compound( compound_rec_ptr compound ){
+void engine_backward_compound( compound_rec_ptr compound, int *suspend ){
   if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, compound->str);
   if( COMPOUND_MASK != (compound->len_type & TYPE_MASK) ) return;
   if( _UNKNOWN != compound->val ) return;
   if( 0 == compound->ngetters ){
     // Field getters is a pointer to the getter function
-    ((sign_getter_t)(compound->getters))( (sign_rec_ptr)compound );
+    ((sign_getter_t)(compound->getters))( (sign_rec_ptr)compound, suspend );
   }
 }
 
-void engine_backward_rule( rule_rec_ptr rule ){
+void engine_backward_rule( rule_rec_ptr rule, int *suspend ){
   if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, rule->str);
   if( _UNKNOWN != rule->val ) return;
   // Sequential AND
   cond_rec_ptr cond;
   for( unsigned short i=0; i<rule->ngetters; i++ ){
     cond = (cond_rec_ptr) (rule->getters)[i];
-    engine_backward_cond( cond );
+    engine_backward_cond( cond, suspend );
+    if( *suspend )
+      break;
     // Check for side-effects of short-circuiting forward chaining
     if( _UNKNOWN != rule->val ) break;
   }
 }
 
-void engine_backward_cond( cond_rec_ptr cond ){
+void engine_backward_cond( cond_rec_ptr cond, int* suspend ){
   if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, cond->sign->str);
+  if( _UNKNOWN != cond->val ) return;
   if( _UNKNOWN == cond->sign->val ){
-    // TODO: Push to stack if hypo or compound (async handling)
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ||
 	COMPOUND_MASK == (cond->sign->len_type & TYPE_MASK) ){
       engine_pushnew_hypo( S_State, (hypo_rec_ptr) cond->sign );
     }
     // Hypothesis: backward on rules
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ){
-      engine_backward_hypo( (hypo_rec_ptr) cond->sign );
+      engine_backward_hypo( (hypo_rec_ptr) cond->sign, suspend );
     }
     // Sign or Compound: ask or execute DSL program
     else{
       if( 0 == cond->sign->ngetters ){
 	// Field getters is a pointer to the getter function
-	((sign_getter_t)(cond->sign->getters))( cond->sign );
+	((sign_getter_t)(cond->sign->getters))( cond->sign, suspend );
       }
     }
   }

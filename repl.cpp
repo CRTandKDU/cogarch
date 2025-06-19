@@ -31,6 +31,7 @@ engine_state_rec_ptr repl_getState(){ return S_State; }
 
 Menu *S_main_dlg = nullptr;
 Menu* repl_getMainDlg(){ return S_main_dlg; }
+void  repl_log( const char *s ){ S_main_dlg->log( s ); }
 
 std::string local_val_repr( const sign_rec_ptr s, int val ){
   if( _UNKNOWN == val ) return std::string( "UNKNOWN" );
@@ -50,37 +51,62 @@ std::string local_val_repr( const sign_rec_ptr s, int val ){
 //----------------------------------------------------------------------
 // Getter callbacks from the engine
 //----------------------------------------------------------------------
-void getter_sign( sign_rec_ptr sign ){
+void getter_sign( sign_rec_ptr sign, int *suspend ){
   if(TRACE_ON) printf ("__FUNCTION__ = %s\n", __FUNCTION__);
   _UPDATE_ENCYS;
+  if( S_main_dlg->q ) delete S_main_dlg->q;
   
+  S_main_dlg->q = new QuestionWidget( S_main_dlg );
   S_main_dlg->q->current_sign = finalcut::FString( sign->str );
   S_main_dlg->q->input.setText( FString("Type answer here") );
-  S_main_dlg->q->redraw();
   S_main_dlg->q->show();
   S_main_dlg->q->activateDialog();
+  *suspend = _TRUE;
   // sign_set_default( sign, sign_get_default( sign ) );
 }
 
-void engine_dsl_getter_compound( compound_rec_ptr compound ){
+void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #ifdef ENGINE_DSL_HOWERJFORTH
-  int r;
+  int err;
   if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
-  S_main_dlg->q->setModal( true );
-  r = engine_dsl_eval( (char *) (compound->dsl_expression) );
-  /* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH */
+  int r = engine_dsl_eval_async( (char *) (compound->dsl_expression), &err, suspend );
   if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r );
-  S_main_dlg->q->setModal(false);
-  sign_set_default( (sign_rec_ptr)compound, r );
+  char buf[128];
+  sprintf( buf, "FORTH Res %d Err %d\n", r, err );
+  repl_log( buf );
+  switch( err ){
+  case 0:
+    if( _FALSE == *suspend )
+      sign_set_default( (sign_rec_ptr)compound, r );
+    break;
+  }
+  
 #endif  
 }
 
+void cb_on_gate( sign_rec_ptr sign, short val ){
+  char buf[64];
+  sprintf( buf, "Gating %s (%d) - %d", sign->str, sign->val, val );
+  repl_log( buf );
+  //
+  engine_default_on_gate( sign, val );
+  S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+}
+
 void cb_on_agenda_push( sign_rec_ptr sign, short val ){
+  char buf[64];
+  sprintf( buf, "Push %s (%d)", sign->str, val );
+  repl_log( buf );
+  //
   S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
   engine_default_on_agenda_push( sign, val );
 }
 
 void cb_on_agenda_pop( sign_rec_ptr sign,  short val ){
+  char buf[64];
+  sprintf( buf, "Pop %s", sign->str );
+  repl_log( buf );
+
   S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
   engine_default_on_agenda_pop( sign, val );
 }
@@ -90,6 +116,7 @@ void cb_on_set( sign_rec_ptr sign, short val ){
   sprintf( buf, "Set %s = %s.", sign->str, local_val_repr(sign, (int)val ).c_str() );
   S_main_dlg->log( buf );
   S_main_dlg->redraw();
+  _UPDATE_ENCYS;   
   // Important! This is where sign's values are forwarded.
   engine_default_on_set( sign, val );
 }
@@ -124,7 +151,7 @@ auto main (int argc, char* argv[]) -> int
   S_State->agenda	= (cell_rec_ptr)0;
   engine_register_effects( &engine_default_on_get,
 			   &cb_on_set,
-			   &engine_default_on_gate,
+			   &cb_on_gate,
 			   &cb_on_agenda_push,
 			   &cb_on_agenda_pop
 			   );
@@ -167,9 +194,6 @@ auto main (int argc, char* argv[]) -> int
   main_dlg.EncyWindow[ENCY_AGND].ency->setShadow();
   main_dlg.EncyWindow[ENCY_AGND].ency->hide();
 
-  main_dlg.q = new QuestionWidget( &main_dlg );
-  main_dlg.q->current_sign = finalcut::FString( "" );
-  main_dlg.q->hide();
 
   // Set dialog d as main widget
   finalcut::FWidget::setMainWidget( &main_dlg );

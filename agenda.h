@@ -71,7 +71,7 @@ struct compound_rec {
   char * dsl_expression;
 };
 
-typedef void (*sign_getter_t) (sign_rec_ptr sign);
+typedef void (*sign_getter_t) (sign_rec_ptr sign, int *suspend);
 
 sign_rec_ptr sign_pushnew	( sign_rec_ptr top,
 				  const char *s,
@@ -83,7 +83,7 @@ void sign_pushgetter		( sign_rec_ptr sign, empty_ptr getr );
 void sign_pushsetter		( sign_rec_ptr sign, empty_ptr setr );
 unsigned short sign_get_default	( sign_rec_ptr sign );
 void sign_set_default           ( sign_rec_ptr sign, unsigned short val );
-void getter_sign                ( sign_rec_ptr sign );
+void getter_sign                ( sign_rec_ptr sign, int *suspend );
 void sign_print			( sign_rec_ptr sign );
 void sign_iter			( sign_rec_ptr s0, sign_op );
 sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top );
@@ -177,10 +177,10 @@ unsigned short	engine_sc_and( rule_rec_ptr rule );
 void		engine_forward_rule( rule_rec_ptr rule );
 void		engine_forward_cond( rule_rec_ptr rule, cond_rec_ptr cond );
 void		engine_forward_sign( sign_rec_ptr sign );
-void		engine_backward_hypo( hypo_rec_ptr hypo );
-void		engine_backward_compound( compound_rec_ptr compound );
-void		engine_backward_rule( rule_rec_ptr rule );
-void		engine_backward_cond( cond_rec_ptr cond );
+void		engine_backward_hypo( hypo_rec_ptr hypo, int *suspend );
+void		engine_backward_compound( compound_rec_ptr compound, int *suspend );
+void		engine_backward_rule( rule_rec_ptr rule, int *suspend );
+void		engine_backward_cond( cond_rec_ptr cond, int *suspend );
 void            engine_free_state( engine_state_rec_ptr state );
 void            engine_print_state( engine_state_rec_ptr state );
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h );
@@ -203,8 +203,9 @@ void engine_default_on_agenda_pop( sign_rec_ptr,  short val );
 int  engine_dsl_init();
 void engine_dsl_free();
 int  engine_dsl_eval( const char * expr );
+int  engine_dsl_eval_async( const char * expr, int *err, int *suspend );
 int  engine_dsl_DSLvar_declare( const char *dsl_var );
-void engine_dsl_getter_compound( compound_rec_ptr compound );
+void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend );
 #endif
 
 sign_rec_ptr agenda_get_allsigns();
