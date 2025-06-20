@@ -8,6 +8,14 @@
 #include <string.h>
 #include "agenda.h"
 
+#define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
+  (sign)->val.type = _VAL_T_BOOL; \
+  (sign)->val.val_bool = 0;           \
+  (sign)->val.val_int  = 0;           \
+  (sign)->val.val_float = 0.0;        \
+  (sign)->val.valptr = (char *)0;     \
+
+
 compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 				   const char *s, const int ngetters ){
   compound_rec_ptr compound;
@@ -15,7 +23,7 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 
   compound			= (compound_rec_ptr) malloc( sizeof( struct compound_rec ) );
   compound->next		= top;
-  compound->val			= 0xff;
+  _INIT_VAL(compound);
   len				= (unsigned short)strlen( s );
   compound->len_type		= (len <= _CHOP) ? len : _CHOP;
   char *to			= compound->str;

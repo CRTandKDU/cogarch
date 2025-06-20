@@ -81,15 +81,20 @@ Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char
 }
 
 finalcut::FString val_repr( const sign_rec_ptr s, unsigned short ency_t ){
-  if( _UNKNOWN == s->val ) return finalcut::FString( "UNKNOWN" );
-  switch( ency_t ){
-  case ENCY_HYPO:
-    return( 0 == s->val ? finalcut::FString( "FALSE" ) : finalcut::FString( "TRUE" ) );
+  if( _UNKNOWN == s->val.status ) return finalcut::FString( "UNKNOWN" );
+  switch( s->val.type ){
+  case _VAL_T_BOOL:
+    return( _FALSE == s->val.val_bool) ?
+      finalcut::FString( "FALSE" ) : finalcut::FString( "TRUE" );
     break;
-  case ENCY_SIGN:
-    if( COMPOUND_MASK == (s->len_type & TYPE_MASK) )
-          return( 0 == s->val ? finalcut::FString( "FALSE" ) : finalcut::FString( "TRUE" ) );
-    return( std::move( finalcut::FString() << s->val ) );
+  case _VAL_T_INT:
+    return( std::move( finalcut::FString() << s->val.val_int ) );
+    break;
+  case _VAL_T_FLOAT:
+    return( std::move( finalcut::FString() << s->val.val_float ) );
+    break;
+  case _VAL_T_STR:
+    return( std::move( finalcut::FString() << s->val.valptr ) );
     break;
   }
   return finalcut::FString( "error" );

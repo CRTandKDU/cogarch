@@ -8,10 +8,22 @@ using namespace finalcut;
 
 void QuestionWidget::cb_ok(){
   FString val_str	= input.getText();
-  int val		= std::stoi( val_str.c_str() );
+  int val_int		= std::stoi( val_str.c_str() );
   sign_rec_ptr sign	= sign_find( current_sign.c_str(), loadkb_get_allsigns() );
+  struct val_rec        val;
   if( sign ){
-    sign_set_default( sign, val );
+    val.status = _KNOWN;
+    val.type   = sign->val.type;
+    switch( sign->val.type ){
+    case _VAL_T_STR:
+      val.valptr = (char *)malloc( strlen( val_str.c_str() ) );
+      strcpy( val.valptr, val_str.c_str() );
+      break;
+    case _VAL_T_INT:
+      val.val_int = val_int;
+      break;
+    }
+    sign_set_default( sign, &val );
     hide();
     engine_resume_knowcess( repl_getState() );
   }

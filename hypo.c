@@ -24,14 +24,17 @@ void hypo_del( hypo_rec_ptr hypo ){
 }
 
 void hypo_print( hypo_rec_ptr hypo ){
-  char *esc = S_val_color( hypo->val );
+  char *esc; 
   short len = hypo->len_type & HYPO_UNMASK;
+  if( _KNOWN == hypo->val.status &&
+      _VAL_T_BOOL == hypo->val.type ){
+    esc = S_val_color( hypo->val.val_bool );
+  }
+  else esc = S_val_color( 2 );
 
   //
-  if(TRACE_ON) printf( "%sHYPO:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, hypo->str,
-	  len, hypo->len_type, hypo->len_type & TYPE_MASK,
-	  _VALSTR(hypo->val),
-	  hypo->val );
+  if(TRACE_ON) printf( "%sHYPO:\t%s (%d, %d, %d)\n", esc, hypo->str,
+		       len, hypo->len_type, hypo->len_type & TYPE_MASK );
   if(TRACE_ON) printf( "\tGetters: %d, Setters: %d\n", hypo->ngetters, hypo->nsetters );
   for( unsigned short i=0; i < hypo->ngetters; i++ ){
     bwrd_rec_ptr bwrd = (bwrd_rec_ptr) (hypo->getters)[i];

@@ -624,43 +624,43 @@ static void vm_extension_free(vm_extension_t *v) {
   free(v);
 }
 
-static int cb_nxpget(vm_extension_t * const v) {
-  cell_t val;
-  int    res, r;
-  char   str[80], *s;
-  // Marshall string from FORTH
-  r   = embed_pop( v->h, &val );
-  s   = str;
-  r   = (int)val;
-  for( short i=0; i<r ; i++ ){
-    res = embed_pop( v->h, &val );
-    *s++ = val;
-  }
-  *s = 0;
-  if(TRACE_ON) printf( "<FORTH EXT> %s\n", str );
-  /* // Get or infer value */
-  /* if( 0 == strcmp( str, "TEMP1" ) ) */
-  /*   val = (cell_t)20; */
-  /* else */
-  /*   val = (cell_t)5; */
-  sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
-  if( sign ){
-    if( _UNKNOWN == sign->val ){
-      /* ((sign_getter_t) sign->getters) ( sign ); */
-      val = sign_get_default( sign );
-      sign_set_default( sign, (unsigned short)val );
-    }
-    else val = sign->val;
-  }
-  else{
-    // Report undefined DSL-shared variable
-    val = (cell_t)0;
-  }
+/* static int cb_nxpget(vm_extension_t * const v) { */
+/*   cell_t val; */
+/*   int    res, r; */
+/*   char   str[80], *s; */
+/*   // Marshall string from FORTH */
+/*   r   = embed_pop( v->h, &val ); */
+/*   s   = str; */
+/*   r   = (int)val; */
+/*   for( short i=0; i<r ; i++ ){ */
+/*     res = embed_pop( v->h, &val ); */
+/*     *s++ = val; */
+/*   } */
+/*   *s = 0; */
+/*   if(TRACE_ON) printf( "<FORTH EXT> %s\n", str ); */
+/*   /\* // Get or infer value *\/ */
+/*   /\* if( 0 == strcmp( str, "TEMP1" ) ) *\/ */
+/*   /\*   val = (cell_t)20; *\/ */
+/*   /\* else *\/ */
+/*   /\*   val = (cell_t)5; *\/ */
+/*   sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() ); */
+/*   if( sign ){ */
+/*     if( _UNKNOWN == sign->val.status ){ */
+/*       /\* ((sign_getter_t) sign->getters) ( sign ); *\/ */
+/*       val = sign_get_default( sign ); */
+/*     /\* TODO: sign_set_default( sign, (unsigned short)val ); *\/ */
+/*     } */
+/*   /\* TODO:    else val = sign->val; *\/ */
+/*   } */
+/*   else{ */
+/*     // Report undefined DSL-shared variable */
+/*     val = (cell_t)0; */
+/*   } */
   
-  // Push to FORTH stack
-  res = embed_push( v->h, val );
-  return 0;
-}
+/*   // Push to FORTH stack */
+/*   res = embed_push( v->h, val ); */
+/*   return 0; */
+/* } */
 
 static int cb_nxpget_async(vm_extension_t * const v) {
   cell_t val;
@@ -678,13 +678,14 @@ static int cb_nxpget_async(vm_extension_t * const v) {
   //
   sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
   if( sign ){
-    if( _UNKNOWN == sign->val ){
+    if( _UNKNOWN == sign->val.status ){
       ((sign_getter_t) sign->getters) ( sign, v->suspend );
       res = embed_push( v->h, (cell_t)_UNKNOWN );
       return eclr(v);
     }
     else{
-      val = (cell_t) sign->val;
+      /* TODO: select according to type */
+      val = (cell_t) sign->val.val_int;
       // Push to FORTH stack
       res = embed_push( v->h, val );
       return eclr(v);

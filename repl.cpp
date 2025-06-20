@@ -33,16 +33,16 @@ Menu *S_main_dlg = nullptr;
 Menu* repl_getMainDlg(){ return S_main_dlg; }
 void  repl_log( const char *s ){ S_main_dlg->log( s ); }
 
-std::string local_val_repr( const sign_rec_ptr s, int val ){
-  if( _UNKNOWN == val ) return std::string( "UNKNOWN" );
+std::string local_val_repr( const sign_rec_ptr s, struct val_rec *val ){
+  if( _UNKNOWN == val->status ) return std::string( "UNKNOWN" );
   switch(s->len_type & TYPE_MASK){
   case SIGN_MASK:
-    return( std::to_string( val ) );
+    return( std::to_string( val->val_int ) );
     break;
   case COMPOUND_MASK:
   case RULE_MASK:
   case HYPO_MASK:
-    return( 0 == val ? std::string( "FALSE" ) : std::string( "TRUE" ) );
+    return( 0 == val->val_bool ? std::string( "FALSE" ) : std::string( "TRUE" ) );
     break;
   }
   return std::string( "error" );
@@ -67,6 +67,9 @@ void getter_sign( sign_rec_ptr sign, int *suspend ){
 
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #ifdef ENGINE_DSL_HOWERJFORTH
+  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0 };
+  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
+
   int err;
   if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
   int r = engine_dsl_eval_async( (char *) (compound->dsl_expression), &err, suspend );
@@ -76,8 +79,9 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
   repl_log( buf );
   switch( err ){
   case 0:
+    // Ignore DSL evaluation if a question is pending! Re-evaluation will happen later.
     if( _FALSE == *suspend )
-      sign_set_default( (sign_rec_ptr)compound, r );
+      sign_set_default( (sign_rec_ptr)compound, r ? &v_true : &v_false );
     break;
   }
   
@@ -86,23 +90,23 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 
 void cb_on_gate( sign_rec_ptr sign, short val ){
   char buf[64];
-  sprintf( buf, "Gating %s (%d) - %d", sign->str, sign->val, val );
+  sprintf( buf, "Gating %s (%d) - %d", sign->str, sign->val.val_bool, val );
   repl_log( buf );
   //
   engine_default_on_gate( sign, val );
   S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
 }
 
-void cb_on_agenda_push( sign_rec_ptr sign, short val ){
+void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
   char buf[64];
-  sprintf( buf, "Push %s (%d)", sign->str, val );
+  sprintf( buf, "Push %s", sign->str );
   repl_log( buf );
   //
   S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
   engine_default_on_agenda_push( sign, val );
 }
 
-void cb_on_agenda_pop( sign_rec_ptr sign,  short val ){
+void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
   char buf[64];
   sprintf( buf, "Pop %s", sign->str );
   repl_log( buf );
@@ -111,9 +115,9 @@ void cb_on_agenda_pop( sign_rec_ptr sign,  short val ){
   engine_default_on_agenda_pop( sign, val );
 }
 
-void cb_on_set( sign_rec_ptr sign, short val ){
+void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
   char buf[64];
-  sprintf( buf, "Set %s = %s.", sign->str, local_val_repr(sign, (int)val ).c_str() );
+  sprintf( buf, "Set %s = %s.", sign->str, local_val_repr(sign, val ).c_str() );
   S_main_dlg->log( buf );
   S_main_dlg->redraw();
   _UPDATE_ENCYS;   

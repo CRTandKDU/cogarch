@@ -56,17 +56,22 @@ void rule_del( rule_rec_ptr rule ){
 }
 
 void rule_print( rule_rec_ptr rule ){
-  char *esc = S_val_color( rule->val );
+  char *esc;
   short len = rule->len_type & RULE_UNMASK;
-  if(TRACE_ON) printf( "%sRULE:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, rule->str,
-	  len, rule->len_type, rule->len_type & TYPE_MASK,
-	  _VALSTR(rule->val),
-	  rule->val );
+
+  if( _KNOWN == rule->val.status &&
+      _VAL_T_BOOL == rule->val.type ){
+    esc = S_val_color( rule->val.val_bool );
+  }
+  else esc = S_val_color( 2 );
+
+  if(TRACE_ON) printf( "%sRULE:\t%s (%d, %d, %d)\n", esc, rule->str,
+		       len, rule->len_type, rule->len_type & TYPE_MASK );
   if(TRACE_ON) printf( "\tGetters: %d, Setters: %d\n", rule->ngetters, rule->nsetters );
   if( rule->setters ){
     hypo_print( (hypo_rec_ptr)rule->setters );
   }
-  esc = S_val_color( _UNKNOWN );
+  esc = S_val_color( 2 );
   if(TRACE_ON) printf( "%s\tCOND: %d (%d)\n", esc, rule->ngetters, sizeof((rule->getters)) );
   if( rule->getters ){
     for( unsigned short i = 0; i<rule->ngetters; i++ ){

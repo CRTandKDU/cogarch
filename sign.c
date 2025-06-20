@@ -8,6 +8,13 @@
 #include <string.h>
 #include "agenda.h"
 
+#define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
+  (sign)->val.type = _VAL_T_BOOL; \
+  (sign)->val.val_bool = 0;           \
+  (sign)->val.val_int  = 0;           \
+  (sign)->val.val_float = 0.0;        \
+  (sign)->val.valptr = (char *)0;     \
+  
 
 extern effect S_on_get;
 extern effect S_on_set;
@@ -24,7 +31,8 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
   //
   sign			= (sign_rec_ptr) malloc( sizeof( struct sign_rec ) );;
   sign->next		= top;
-  sign->val		= 0xff;
+  // Default to boolean type (most common).
+  _INIT_VAL(sign);
   len			= (unsigned short)strlen( s );
   sign->len_type	= (len <= _CHOP) ? len : _CHOP;
   char *to		= sign->str;
@@ -89,16 +97,32 @@ void sign_pushsetter( sign_rec_ptr sign, empty_ptr setr ){
 // I/O
 unsigned short sign_get_default( sign_rec_ptr sign ){
   char buf[32] = { 0 };
-  if( S_on_get ) S_on_get( sign, _UNKNOWN );
+  if( S_on_get ) S_on_get( sign, (struct val_rec *)0 );
   printf( "Q: What is the value of %s?\n(Type 0 or 1)\nA: ", sign->str );
   fgets( buf, 30, stdin );
   return (unsigned short)strtoul( buf, NULL, 0 );
 }
 
-void sign_set_default( sign_rec_ptr sign, unsigned short val ){
-  if( _UNKNOWN == val ) return;
+void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
+  if( _UNKNOWN == val->status ) return;
+  if( sign->val.type != val->type ) return;
+  //
+  sign->val.status = val->status;
+  switch( sign->val.type ){
+  case _VAL_T_BOOL:
+    sign->val.val_bool = val->val_bool;
+    break;
+  case _VAL_T_INT:
+    sign->val.val_int = val->val_int;
+    break;
+  case _VAL_T_FLOAT:
+    sign->val.val_float = val->val_float;
+    break;
+  case _VAL_T_STR:
+    sign->val.valptr = val->valptr;
+    break;
+  }
   
-  sign->val = val;
   if( S_on_set ) S_on_set( sign, val );
 }
 
@@ -111,12 +135,17 @@ void sign_set_default( sign_rec_ptr sign, unsigned short val ){
 
 // Managers
 void sign_print( sign_rec_ptr sign ){
-  char *esc = S_val_color( sign->val );
+  char *esc;
   short len = sign->len_type & SIGN_UNMASK;
-  if(TRACE_ON) printf( "%sSIGN:\t%s (%d, %d, %d)\t%s (Val %d)\n", esc, sign->str,
-	  len, sign->len_type, sign->len_type & TYPE_MASK,
-	  _VALSTR(sign->val),
-	  sign->val );
+  if( _KNOWN == sign->val.status &&
+      _VAL_T_BOOL == sign->val.type ){
+    esc = S_val_color( sign->val.val_bool );
+  }
+  else esc = S_val_color( 2 );
+  
+  if(TRACE_ON) printf( "%sSIGN:\t%s (%d, %d, %d)", esc, sign->str,
+		       len, sign->len_type, sign->len_type & TYPE_MASK
+		       );
   if(TRACE_ON) printf( "\tGetters %d (%d), Setters %d (%d)\n",
 	  sign->ngetters, sizeof( sign->getters ),
 	  sign->nsetters, sizeof( sign->setters ) );

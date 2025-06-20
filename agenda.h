@@ -28,8 +28,9 @@ typedef struct compound_rec *compound_rec_ptr;
 
 #define _TRUE		 ((unsigned short)1)
 #define _FALSE		 ((unsigned short)0)
+
 #define _UNKNOWN	 ((unsigned short)0xFF)
-#define _VALSTR(val)	 (_UNKNOWN == (val) ? "UNKNOWN" : ((_TRUE==(val))?"TRUE":"FALSE"))
+#define _KNOWN	         ((unsigned short)0xFE)
 
 #define _CHOP 32
 
@@ -48,12 +49,27 @@ char *S_val_color( unsigned short val );
 struct fwrd_rec {
   // Rule rec pointer
   rule_rec_ptr rule;
-  int idx_cond;
+  int          idx_cond;
 };
 typedef struct fwrd_rec *fwrd_rec_ptr;
 
+#define _VAL_T_BOOL	1
+#define _VAL_T_INT	2
+#define _VAL_T_FLOAT	3
+#define _VAL_T_STR	4
+
+struct val_rec{
+  unsigned short status;
+  unsigned short type;
+  char           *valptr;
+  unsigned short val_bool;
+  int            val_int;
+  float          val_float;
+};
+
+
 #define _SIGN_INTERNALS    sign_rec_ptr   next;      \
-  unsigned short val;       \
+  struct val_rec val;       \
   unsigned short len_type;  \
   char           str[_CHOP+1];    \
   int            ngetters;  \
@@ -82,7 +98,7 @@ void sign_del			( sign_rec_ptr sign );
 void sign_pushgetter		( sign_rec_ptr sign, empty_ptr getr );
 void sign_pushsetter		( sign_rec_ptr sign, empty_ptr setr );
 unsigned short sign_get_default	( sign_rec_ptr sign );
-void sign_set_default           ( sign_rec_ptr sign, unsigned short val );
+void sign_set_default           ( sign_rec_ptr sign, struct val_rec *val );
 void getter_sign                ( sign_rec_ptr sign, int *suspend );
 void sign_print			( sign_rec_ptr sign );
 void sign_iter			( sign_rec_ptr s0, sign_op );
@@ -163,7 +179,7 @@ typedef struct cell_rec *cell_rec_ptr;
 struct cell_rec {
   cell_rec_ptr next;
   sign_rec_ptr sign_or_hypo;
-  unsigned short val;
+  struct val_rec val;
 };
 
 struct engine_state_rec {
@@ -184,20 +200,21 @@ void		engine_backward_cond( cond_rec_ptr cond, int *suspend );
 void            engine_free_state( engine_state_rec_ptr state );
 void            engine_print_state( engine_state_rec_ptr state );
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h );
-void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, unsigned short val );
+void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, struct val_rec *val );
 void            engine_pop( engine_state_rec_ptr state );
 void            engine_knowcess( engine_state_rec_ptr state );
 void            engine_resume_knowcess( engine_state_rec_ptr state );
 
 // Global
-typedef void (*effect) (sign_rec_ptr, short);
+typedef void (*effect)      (sign_rec_ptr, struct val_rec *);
+typedef void (*effect_gate) (sign_rec_ptr, short);
 
-void engine_register_effects( effect f_get, effect f_set, effect f_gate, effect f_push, effect f_pop );
-void engine_default_on_get( sign_rec_ptr sign,  short val );
-void engine_default_on_set( sign_rec_ptr sign,  short val);
-void engine_default_on_gate( sign_rec_ptr sign, short val );
-void engine_default_on_agenda_push( sign_rec_ptr, short val );
-void engine_default_on_agenda_pop( sign_rec_ptr,  short val );
+void engine_register_effects( effect f_get, effect f_set, effect_gate f_gate, effect f_push, effect f_pop );
+void engine_default_on_get( sign_rec_ptr sign,  struct val_rec *val);
+void engine_default_on_set( sign_rec_ptr sign,  struct val_rec *val);
+void engine_default_on_gate( sign_rec_ptr sign,  short val);
+void engine_default_on_agenda_push( sign_rec_ptr, struct val_rec *val);
+void engine_default_on_agenda_pop( sign_rec_ptr,  struct val_rec *val);
 
 #ifdef ENGINE_DSL
 int  engine_dsl_init();

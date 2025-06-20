@@ -68,8 +68,11 @@ sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_p
       int r;
       if(TRACE_ON) printf( "Found DSL-shared variable: %s\n", pw );
       lsign = sign_find( pw, top );
-      if( NULL == lsign )
+      if( NULL == lsign ){
 	top = lsign = sign_pushnew( top, pw, 0, sizeof(void *), 0, sizeof(fwrd_rec_ptr) );
+	/* TODO: Find a way to properly set type num or str */
+	lsign->val.type = _VAL_T_INT;
+      }
       compound_DSLvar_pushnew( compound, lsign );
       r = engine_dsl_DSLvar_declare( pw );
     }
