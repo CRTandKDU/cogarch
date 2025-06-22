@@ -6,6 +6,7 @@ Revisiting the historical demonstration knowledge base for NEXPERT.
 
 #+BEGIN_RULE
 NO TANKS_OUT_PRESSURE_LOW
+$CRT_and_KDU nxp@ =s( AGREE)
 pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
 THEN THERMAL_TRANSIENT_CONDITION
 #+END_RULE

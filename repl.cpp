@@ -34,19 +34,41 @@ Menu* repl_getMainDlg(){ return S_main_dlg; }
 void  repl_log( const char *s ){ S_main_dlg->log( s ); }
 
 std::string local_val_repr( const sign_rec_ptr s, struct val_rec *val ){
-  if( _UNKNOWN == val->status ) return std::string( "UNKNOWN" );
-  switch(s->len_type & TYPE_MASK){
-  case SIGN_MASK:
-    return( std::to_string( val->val_int ) );
+  if( _UNKNOWN == s->val.status ) return std::string( "UNKNOWN" );
+  switch( s->val.type ){
+  case _VAL_T_BOOL:
+    return( _FALSE == s->val.val_bool) ?
+      std::string( "FALSE" ) : std::string( "TRUE" );
     break;
-  case COMPOUND_MASK:
-  case RULE_MASK:
-  case HYPO_MASK:
-    return( 0 == val->val_bool ? std::string( "FALSE" ) : std::string( "TRUE" ) );
+  case _VAL_T_INT:
+    return( std::to_string( s->val.val_int ) );
+    break;
+  case _VAL_T_FLOAT:
+     break;
+  case _VAL_T_STR:
+    if( s->val.valptr )
+      return( std::string( s->val.valptr ) );
+    else
+      return( std::string( "error" ) );
     break;
   }
   return std::string( "error" );
 }
+
+// std::string local_val_repr( const sign_rec_ptr s, struct val_rec *val ){
+//   if( _UNKNOWN == val->status ) return std::string( "UNKNOWN" );
+//   switch(s->len_type & TYPE_MASK){
+//   case SIGN_MASK:
+//     return( std::to_string( val->val_int ) );
+//     break;
+//   case COMPOUND_MASK:
+//   case RULE_MASK:
+//   case HYPO_MASK:
+//     return( 0 == val->val_bool ? std::string( "FALSE" ) : std::string( "TRUE" ) );
+//     break;
+//   }
+//   return std::string( "error" );
+// }
 
 //----------------------------------------------------------------------
 // Getter callbacks from the engine
@@ -120,9 +142,8 @@ void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
   sprintf( buf, "Set %s = %s.", sign->str, local_val_repr(sign, val ).c_str() );
   S_main_dlg->log( buf );
   S_main_dlg->redraw();
+
   _UPDATE_ENCYS;   
-  // Important! This is where sign's values are forwarded.
-  engine_default_on_set( sign, val );
 }
 
 const char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };

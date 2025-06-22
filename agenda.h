@@ -1,6 +1,8 @@
 #ifndef AGENDA_H
 #define  AGENDA_H
 
+#include <cstdint>
+
 #define TRACE_ON 0
 
 struct empty {};
@@ -65,6 +67,9 @@ struct val_rec{
   unsigned short val_bool;
   int            val_int;
   float          val_float;
+#ifdef ENGINE_DSL_HOWERJFORTH
+  uint16_t       val_forth;
+#endif
 };
 
 
@@ -221,7 +226,7 @@ int  engine_dsl_init();
 void engine_dsl_free();
 int  engine_dsl_eval( const char * expr );
 int  engine_dsl_eval_async( const char * expr, int *err, int *suspend );
-int  engine_dsl_DSLvar_declare( const char *dsl_var );
+int  engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign );
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend );
 #endif
 

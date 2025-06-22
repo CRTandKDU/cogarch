@@ -94,7 +94,10 @@ finalcut::FString val_repr( const sign_rec_ptr s, unsigned short ency_t ){
     return( std::move( finalcut::FString() << s->val.val_float ) );
     break;
   case _VAL_T_STR:
-    return( std::move( finalcut::FString() << s->val.valptr ) );
+    if( s->val.valptr )
+      return( std::move( finalcut::FString() << s->val.valptr ) );
+    else
+      return( finalcut::FString( "error" ) );
     break;
   }
   return finalcut::FString( "error" );

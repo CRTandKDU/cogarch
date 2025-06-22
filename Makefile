@@ -14,7 +14,7 @@ APIS		= sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
 REPL_DEPS       = Question.hpp Menu.hpp Listview.hpp
 
 repl: repl.cpp Question.o Menu.o Listview.o $(APIS) 
-	$(CPP) -o $@ $^ $(CFLAGS) -O3 $(DSL_CFLAGS) $(DSL_LFLAGS) -lfinal
+	$(CPP) -o $@ $^ $(CFLAGS) -O3  $(DSL_CFLAGS) $(DSL_LFLAGS) -lfinal
 
 agenda: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(DSL_CFLAGS) $(DSL_LFLAGS)

@@ -662,12 +662,11 @@ static void vm_extension_free(vm_extension_t *v) {
 /*   return 0; */
 /* } */
 
-static int cb_nxpget_async(vm_extension_t * const v) {
-  cell_t val;
-  int    res, r;
-  char   str[80], *s;
+sign_rec_ptr nxpget_sign( vm_extension_t * const v ){
   // Marshall string from FORTH
-  r   = embed_pop( v->h, &val );
+  cell_t val;
+  char   str[80], *s;
+  int    res, r = embed_pop( v->h, &val );
   s   = str;
   r   = (int)val;
   for( short i=0; i<r ; i++ ){
@@ -676,24 +675,74 @@ static int cb_nxpget_async(vm_extension_t * const v) {
   }
   *s = 0;
   //
-  sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() );
+  return sign_find( str, loadkb_get_allsigns() );
+}
+
+int nxpget_unknown( vm_extension_t * const v, sign_rec_ptr sign ){
+  int res;
+  ((sign_getter_t) sign->getters) ( sign, v->suspend );
+  switch( sign->val.type ){
+  case _VAL_T_INT:
+    res = embed_push( v->h, (cell_t)_UNKNOWN );
+    break;
+  case _VAL_T_STR:
+    res = embed_push( v->h, (cell_t) sign->val.val_forth );
+    res = embed_push( v->h, (cell_t) 0 );
+    break;
+  }
+  return eclr(v);
+}
+
+int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
+  int res;
+  cell_t val;
+  switch( sign->val.type ){
+  case _VAL_T_INT:
+    val = (cell_t) sign->val.val_int;
+    res = embed_push( v->h, val );
+    break;
+    //
+  case _VAL_T_STR:
+    cell_t cell = sign->val.val_forth;;
+    /* embed_mmu_read_t  mr = v->h->o.read; */
+    embed_mmu_write_t mw = v->h->o.write;
+    int len;
+    // Fill val_forth predefined FORTH variable for this sign
+    if( sign->val.valptr ){
+      len = strlen( sign->val.valptr );
+      for( short i=0; i<len; i += 2 ){
+	cell_t addr = (cell + i)>>1%32768;
+	cell_t val  = sign->val.valptr[i] + ( (((i+1) > len) ? 0 : sign->val.valptr[i+1])<<8 );
+	mw( v->h, addr, val );
+      }
+    }
+    else
+      len = 0;
+    //
+    res = embed_push( v->h, cell );
+    if( 0 != res )
+      embed_fatal( "can't push sign$ in nxp@" );
+    res = embed_push( v->h, len );
+    if( 0 != res )
+      embed_fatal( "can't push len in nxp@" );
+    break;
+  }
+  return eclr(v);
+}
+
+static int cb_nxpget_async(vm_extension_t * const v) {
+  sign_rec_ptr sign = nxpget_sign( v );
   if( sign ){
     if( _UNKNOWN == sign->val.status ){
-      ((sign_getter_t) sign->getters) ( sign, v->suspend );
-      res = embed_push( v->h, (cell_t)_UNKNOWN );
-      return eclr(v);
+      return nxpget_unknown( v, sign );
     }
-    else{
-      /* TODO: select according to type */
-      val = (cell_t) sign->val.val_int;
-      // Push to FORTH stack
-      res = embed_push( v->h, val );
-      return eclr(v);
+    //
+    if( _KNOWN == sign->val.status ){
+      return nxpget_known( v, sign );
     }
   }
   else{
     // Report undefined DSL-shared variable
-    val = (cell_t)0;
     embed_error( "No sign\r" );
   }
   return eclr(v);
@@ -714,14 +763,28 @@ static int cb_nxpset(vm_extension_t * const v) {
 /* #endif   */
 /* } */
 
-int engine_dsl_DSLvar_declare( const char *dsl_var ){
+int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
   // Define a FORTH word to get-memoize the value of a sign to be passed to C primitive `nxp@`
-  static const char templ_sign_decl[] = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop ;\n";
+  static const char templ_sign_decl[]  = ": %s $\" %s\" dup c@ for dup r@ + c@ swap next drop ;\n";
+  static const char templ_sign$_decl[] = "create %s_$ 32 allot\n%s_$\n";
   int  r = 0;
+  cell_t val;
   if( NULL == sign_find( dsl_var, loadkb_get_allsigns() ) ){
     char prgm[80];
     sprintf( prgm, templ_sign_decl, dsl_var, dsl_var );
     r = embed_eval( S_v->h, prgm );
+    if( 0 != r )
+      embed_fatal( "can't compile sign decl" );
+    if( '$' == dsl_var[0] ){
+      sprintf( prgm, templ_sign$_decl, dsl_var, dsl_var );
+      r = embed_eval( S_v->h, prgm );
+      if( 0 != r )
+	embed_fatal( "can't compile sign$ decl" );
+      r = embed_pop( S_v->h, &val );
+      if( 0 != r )
+	embed_fatal( "can't pop sign $ address" );
+      sign->val.val_forth = val;
+    }
     if(TRACE_ON) printf ("__FUNCTION__ = %s res = %d\n", __FUNCTION__, r);
   }
   return r;
@@ -739,6 +802,9 @@ int  engine_dsl_init(){
   int    res;
   /* int    r = nxp_init( v ); */
   if(TRACE_ON) printf( "Engine DSL: howerjforth\n\n" );
+  res = embed_eval( v->h, ": =s( [char] ) parse compare 0 = ;\n" );
+  if( 0 != res )
+    embed_fatal( "can't compile word =s(" );
   S_v = v;
   return 0;
 }

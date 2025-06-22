@@ -3,12 +3,13 @@
 #include "Question.hpp"
 
 extern engine_state_rec_ptr repl_getState();
+extern void  repl_log( const char *s );
+
 
 using namespace finalcut;
 
 void QuestionWidget::cb_ok(){
   FString val_str	= input.getText();
-  int val_int		= std::stoi( val_str.c_str() );
   sign_rec_ptr sign	= sign_find( current_sign.c_str(), loadkb_get_allsigns() );
   struct val_rec        val;
   if( sign ){
@@ -16,16 +17,21 @@ void QuestionWidget::cb_ok(){
     val.type   = sign->val.type;
     switch( sign->val.type ){
     case _VAL_T_STR:
+      if( val.valptr ) free( val.valptr );
       val.valptr = (char *)malloc( strlen( val_str.c_str() ) );
       strcpy( val.valptr, val_str.c_str() );
+
+      char buf[32];
+      sprintf( buf, "Question %d", sign->val.val_forth );
+      repl_log( buf );
       break;
     case _VAL_T_INT:
-      val.val_int = val_int;
+      val.val_int = std::stoi( val_str.c_str() );
       break;
     }
     sign_set_default( sign, &val );
     hide();
-    engine_resume_knowcess( repl_getState() );
+    //   engine_resume_knowcess( repl_getState() );
   }
 }
 

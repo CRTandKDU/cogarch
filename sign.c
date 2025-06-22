@@ -8,12 +8,24 @@
 #include <string.h>
 #include "agenda.h"
 
+#ifdef ENGINE_DSL_HOWERJFORTH
 #define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
   (sign)->val.type = _VAL_T_BOOL; \
   (sign)->val.val_bool = 0;           \
   (sign)->val.val_int  = 0;           \
   (sign)->val.val_float = 0.0;        \
   (sign)->val.valptr = (char *)0;     \
+  (sign)->val.val_forth = (uint16_t) 0;   \
+
+#else
+#define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
+  (sign)->val.type = _VAL_T_BOOL; \
+  (sign)->val.val_bool = 0;           \
+  (sign)->val.val_int  = 0;           \
+  (sign)->val.val_float = 0.0;        \
+  (sign)->val.valptr = (char *)0;     \
+
+#endif
   
 
 extern effect S_on_get;
@@ -124,6 +136,9 @@ void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
   }
   
   if( S_on_set ) S_on_set( sign, val );
+  // Important! This is where sign's values are forwarded.
+  //  engine_default_on_set( sign, val );
+
 }
 
 // Default sync sign-getter
