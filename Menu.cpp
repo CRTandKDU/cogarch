@@ -65,9 +65,9 @@ Menu::Menu (finalcut::FWidget* parent)
   //      << "<Shift>+<Menu>   Open dialog menu\n"
   //      << "<Meta>+<Q>       Exit";
 
-  Trace.addColumn( L"Log" );
-  Trace.hideSortIndicator(true);
-  log( "Session inited." );
+  // Trace.addColumn( L"Log" );
+  // Trace.hideSortIndicator(true);
+  // log( "Session inited." );
 }
 
 //----------------------------------------------------------------------
@@ -170,6 +170,16 @@ void Menu::defaultCallback (const finalcut::FMenuList* mb)
       );
       continue;
     }
+    _IF_MENUITEM(_MI_RESET){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_reset,
+	item
+      );
+      continue;
+    }
     _IF_MENUITEM(_MI_KNOWCESS){
       // Add the callback function
       item->addCallback
@@ -249,7 +259,6 @@ void Menu::initLayout()
   // Headline1.setGeometry (FPoint{ 3, 2}, FSize{ 5, 1});
   // Headline2.setGeometry (FPoint{19, 2}, FSize{10, 1});
   // Info.setGeometry(FPoint{2, 1}, FSize{36, 5});
-  Trace.setGeometry( FPoint{2,2}, FSize{36,10} );
   FDialog::initLayout();
 }
 
@@ -296,7 +305,7 @@ void Menu::cb_open (const finalcut::FMenuItem* menuitem)
   if( res ) exit(res);
 
   char buf[64];
-  sprintf( buf, "Loaded KB %s.", filename.c_str() );
+  sprintf( buf, "Loaded KB %s.\n", filename.c_str() );
   log( buf );
   emitCallback("event_loadkb");
 }
@@ -338,7 +347,7 @@ void Menu::cb_suggest (const finalcut::FMenuItem* menuitem){
     if ( ret == finalcut::FMessageBox::ButtonType::Yes ){
       engine_pushnew_hypo( repl_getState(), h );
       char buf[64];
-      sprintf( buf, "Suggested %s.", h->str );
+      sprintf( buf, "Suggested %s.\n", h->str );
       log( buf );
     }
   }
@@ -354,17 +363,26 @@ void Menu::cb_knowcess (const finalcut::FMenuItem* menuitem){
 }
 
 //----------------------------------------------------------------------
-void Menu::log( const char *msg ){
-  std::vector<std::array<std::string, 1>> lines = {};
-  std::array<std::string, 1> arr;
-  arr.at(0) = std::string( msg );
-  lines.push_back( arr );
-  for (const auto& place : lines)
-    {
-      const finalcut::FStringList line (place.cbegin(), place.cend());
-      Trace.insert (line);
-    }
+void Menu::cb_reset (const finalcut::FMenuItem* menuitem){
+  engine_reset( repl_getState() );
+  repl_getMainDlg()->EncyWindow[ENCY_SIGN].ency->repopulate();
+  repl_getMainDlg()->EncyWindow[ENCY_HYPO].ency->repopulate();
+  repl_getMainDlg()->EncyWindow[ENCY_AGND].ency->repopulate();
+}
 
+//----------------------------------------------------------------------
+void Menu::log( const char *msg ){
+  // std::vector<std::array<std::string, 1>> lines = {};
+  // std::array<std::string, 1> arr;
+  // arr.at(0) = std::string( msg );
+  // lines.push_back( arr );
+  // for (const auto& place : lines)
+  //   {
+  //     const finalcut::FStringList line (place.cbegin(), place.cend());
+  //     Trace.insert (line);
+  //   }
+  Trace.scrolltext.append( finalcut::FString( msg ) );
+  Trace.redraw();
 }
 
 

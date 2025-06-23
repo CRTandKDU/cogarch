@@ -10,8 +10,8 @@
 #include "agenda.h"
 
 extern void  repl_log( const char *s );
+extern engine_state_rec_ptr repl_getState();
 
-extern engine_state_rec_ptr S_State;
 effect S_on_get		= (effect)0;  // Triggered on get in `sign_default_get`
 effect S_on_set		= (effect)0;  // Triggered on set in `sign_default_set`
 effect_gate S_on_gate	= (effect_gate)0;  // Triggered on setting cond in `engine_forward_sign`
@@ -38,7 +38,7 @@ void engine_default_on_gate( hypo_rec_ptr hypo, short val ){
   // Postpone hypo when one of its rule might be true or
   // compound if one of its DSL-shared var is known.
   if( _TRUE == val && _UNKNOWN == hypo->val.status ){
-    cell_rec_ptr new_cell, cell = S_State->agenda;
+    cell_rec_ptr new_cell, cell = repl_getState()->agenda;
     if( cell ){
       // Is hypo already on top of stack?
       if( cell->sign_or_hypo == hypo ) return;
@@ -60,10 +60,10 @@ void engine_default_on_gate( hypo_rec_ptr hypo, short val ){
       /* if( S_on_push ) S_on_push( hypo, _UNKNOWN ); */
     }
     else{
-      engine_pushnew_hypo( S_State, hypo );
+      engine_pushnew_hypo( repl_getState(), hypo );
     }
   }
-  // engine_print_state( S_State );
+  // engine_print_state( repl_getState() );
 }
 
 void engine_default_on_agenda_push( sign_rec_ptr,  struct val_rec * val ){
@@ -86,13 +86,18 @@ void engine_register_effects( effect f_get,
 }
 
 //----------------------------------------------------------------------
-void            engine_free_state( engine_state_rec_ptr state ){
+void free_state(  engine_state_rec_ptr state ){
   cell_rec_ptr prev, cell = state->agenda;
   while( cell ){
     prev = cell;
     cell = prev->next;
     free( (void *)prev );
   }
+  state->agenda = (cell_rec_ptr)0;
+}
+
+void            engine_free_state( engine_state_rec_ptr state ){
+  free_state( state );
   free( (void *)state );
 }
 
@@ -107,6 +112,59 @@ void engine_print_state( engine_state_rec_ptr state ){
 	    
   }
   if(TRACE_ON) printf( "----\t----\t----\t----\n" );
+}
+
+//----------------------------------------------------------------------
+void reset( sign_rec_ptr sign ){
+  sign->val.status = _UNKNOWN;
+  //
+  switch( sign->len_type & TYPE_MASK ){
+  case HYPO_MASK:
+  case COMPOUND_MASK:
+    // _VAL_T_BOOL
+    sign->val.val_bool = _UNKNOWN;
+    break;
+    //
+  case SIGN_MASK:
+    switch( sign->val.type ){
+    case _VAL_T_BOOL:
+      sign->val.val_bool = _UNKNOWN;
+      break;
+    case _VAL_T_INT:
+      sign->val.val_int = _UNKNOWN;
+      break;
+    case _VAL_T_STR:
+      if( sign->val.valptr ) free( sign->val.valptr );
+      sign->val.valptr = (char *)0;
+      break;
+    }
+    break;
+    //
+  case RULE_MASK:
+    // _VAL_T_BOOL
+    sign->val.val_bool = _UNKNOWN;
+    if( sign->ngetters ){
+      short i, nconds = sign->ngetters;
+      for( i=0; i<nconds; i++ ){ ((cond_rec_ptr) sign->getters[i])->val = _UNKNOWN; }
+    }
+    break;
+    
+  }
+}
+
+void engine_reset( engine_state_rec_ptr state ){
+  sign_rec_ptr top;
+  if( top = (sign_rec_ptr) loadkb_get_allsigns() ){
+    sign_iter( top, reset );
+  }
+  if( top = (sign_rec_ptr) loadkb_get_allhypos() ){
+    sign_iter( top, reset );
+  }
+  if( top = (sign_rec_ptr) loadkb_get_allrules() ){
+    sign_iter( top, reset );
+  }
+  free_state( state );
+  state->current_sign = (sign_rec_ptr)0;
 }
 
 //----------------------------------------------------------------------
@@ -348,7 +406,7 @@ void engine_backward_cond( cond_rec_ptr cond, int* suspend ){
   if( _UNKNOWN == cond->sign->val.status ){
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ||
 	COMPOUND_MASK == (cond->sign->len_type & TYPE_MASK) ){
-      engine_pushnew_hypo( S_State, (hypo_rec_ptr) cond->sign );
+      engine_pushnew_hypo( repl_getState(), (hypo_rec_ptr) cond->sign );
     }
     // Hypothesis: backward on rules
     if( HYPO_MASK == (cond->sign->len_type & TYPE_MASK) ){

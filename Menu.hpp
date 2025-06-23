@@ -3,6 +3,7 @@
 #include "agenda.h"
 #include "Listview.hpp"
 #include "Question.hpp"
+#include "Textwindow.hpp"
 
 #define _MI_OPEN	"&Open..."
 #define _MI_QUIT	"&Quit"
@@ -11,6 +12,7 @@
 #define _MI_AGENDA	"&Agenda"
 #define _MI_SUGGEST	"&Suggest"
 #define _MI_KNOWCESS    "&Knowcess"
+#define _MI_RESET       "&Reset"
 
 //----------------------------------------------------------------------
 // class Menu
@@ -83,7 +85,7 @@ private:
     finalcut::FMenu  Expert{};
     finalcut::FMenuItem  Suggest{_MI_SUGGEST, &Expert};
     finalcut::FMenuItem  Volunteer{"&Volunteer", &Expert};
-    finalcut::FMenuItem  Reset{"&Reset", &Expert};
+    finalcut::FMenuItem  Reset{_MI_RESET, &Expert};
     finalcut::FMenuItem  Line5{&Expert};      
     finalcut::FMenuItem  Agenda{_MI_AGENDA, &Expert};
     finalcut::FMenuItem  Knowcess{_MI_KNOWCESS, &Expert};
@@ -122,6 +124,7 @@ private:
   void cb_ency     (const finalcut::FMenuItem* menuitem);
   void cb_suggest  (const finalcut::FMenuItem* menuitem);
   void cb_knowcess (const finalcut::FMenuItem* menuitem);
+  void cb_reset    (const finalcut::FMenuItem* menuitem);
 
   void cb_loadkb  ();
 
@@ -138,6 +141,6 @@ private:
   finalcut::FLabel      Headline1{this};
   finalcut::FLabel      Headline2{this};
   finalcut::FLabel      Info{this};
-  finalcut::FListView   Trace{this};
+  TextWindow  Trace{this};
 };
 #endif

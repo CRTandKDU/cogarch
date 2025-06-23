@@ -81,6 +81,8 @@ void sign_del( sign_rec_ptr sign ){
     for( unsigned short i=0; i<sign->nsetters; i++ ){ free( (void *) (sign->setters)[i] ); }
   if( sign->ngetters && sign->getters ) free( sign->getters );
   if( sign->nsetters && sign->setters ) free( sign->setters );
+  //
+  if( sign->val.valptr ) free( sign->val.valptr );
   free( sign );
 }
 
@@ -137,7 +139,7 @@ void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
   
   if( S_on_set ) S_on_set( sign, val );
   // Important! This is where sign's values are forwarded.
-  //  engine_default_on_set( sign, val );
+  engine_default_on_set( sign, val );
 
 }
 

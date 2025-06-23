@@ -31,7 +31,11 @@ engine_state_rec_ptr repl_getState(){ return S_State; }
 
 Menu *S_main_dlg = nullptr;
 Menu* repl_getMainDlg(){ return S_main_dlg; }
-void  repl_log( const char *s ){ S_main_dlg->log( s ); }
+void  repl_log( const char *s ){
+  char buf[80];
+  sprintf( buf, "%s\n", s );
+  S_main_dlg->log( buf );
+}
 
 std::string local_val_repr( const sign_rec_ptr s, struct val_rec *val ){
   if( _UNKNOWN == s->val.status ) return std::string( "UNKNOWN" );
@@ -138,10 +142,10 @@ void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
 }
 
 void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
-  char buf[64];
-  sprintf( buf, "Set %s = %s.", sign->str, local_val_repr(sign, val ).c_str() );
-  S_main_dlg->log( buf );
-  S_main_dlg->redraw();
+  char buf[80];
+  std::string valstr = local_val_repr(sign, val );
+  sprintf( buf, "Set %s = %s.", sign->str, valstr.c_str() );
+  repl_log( buf );
 
   _UPDATE_ENCYS;   
 }
@@ -191,7 +195,7 @@ auto main (int argc, char* argv[]) -> int
 
     // Create main dialog object
   Menu main_dlg {&app};
-  main_dlg.setText ("Session");
+  main_dlg.setText ("NXP");
   main_dlg.setSize ({40, 14});
   main_dlg.setShadow();
   S_main_dlg = &main_dlg;

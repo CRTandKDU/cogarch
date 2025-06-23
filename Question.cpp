@@ -21,8 +21,8 @@ void QuestionWidget::cb_ok(){
       val.valptr = (char *)malloc( strlen( val_str.c_str() ) );
       strcpy( val.valptr, val_str.c_str() );
 
-      char buf[32];
-      sprintf( buf, "Question %d", sign->val.val_forth );
+      char buf[80];
+      sprintf( buf, "Answer %s %d", val.valptr, sign->val.val_forth );
       repl_log( buf );
       break;
     case _VAL_T_INT:
@@ -31,7 +31,7 @@ void QuestionWidget::cb_ok(){
     }
     sign_set_default( sign, &val );
     hide();
-    //   engine_resume_knowcess( repl_getState() );
+    engine_resume_knowcess( repl_getState() );
   }
 }
 

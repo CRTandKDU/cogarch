@@ -209,6 +209,7 @@ void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_pt
 void            engine_pop( engine_state_rec_ptr state );
 void            engine_knowcess( engine_state_rec_ptr state );
 void            engine_resume_knowcess( engine_state_rec_ptr state );
+void            engine_reset( engine_state_rec_ptr state );
 
 // Global
 typedef void (*effect)      (sign_rec_ptr, struct val_rec *);
