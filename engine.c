@@ -257,7 +257,8 @@ void engine_resume_knowcess( engine_state_rec_ptr state ){
     }
     else{
       // A VOLUNTEER operation
-      sign_set_default( (sign_rec_ptr) cell->sign_or_hypo, &(cell->val) );
+      /* sign_set_default( (sign_rec_ptr) cell->sign_or_hypo, &(cell->val) ); */
+      engine_forward_sign( (sign_rec_ptr) cell->sign_or_hypo );
       engine_pop( state );
       goto next;
     }

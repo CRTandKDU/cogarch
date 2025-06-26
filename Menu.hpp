@@ -11,6 +11,7 @@
 #define _MI_HYPOS	"Hypotheses"
 #define _MI_AGENDA	"&Agenda"
 #define _MI_SUGGEST	"&Suggest"
+#define _MI_VOLUNTEER   "&Volunteer"
 #define _MI_KNOWCESS    "&Knowcess"
 #define _MI_RESET       "&Reset"
 
@@ -33,7 +34,8 @@ public:
     { nullptr, 0 },
     { nullptr, 0 }
   };
-  QuestionWidget *q = nullptr;
+  QuestionWidget *q = nullptr;  // Question dialog
+  QuestionWidget *v = nullptr;  // Volunteer dialog
 
   void log( const char *msg );  
 
@@ -84,7 +86,7 @@ private:
 
     finalcut::FMenu  Expert{};
     finalcut::FMenuItem  Suggest{_MI_SUGGEST, &Expert};
-    finalcut::FMenuItem  Volunteer{"&Volunteer", &Expert};
+    finalcut::FMenuItem  Volunteer{_MI_VOLUNTEER, &Expert};
     finalcut::FMenuItem  Reset{_MI_RESET, &Expert};
     finalcut::FMenuItem  Line5{&Expert};      
     finalcut::FMenuItem  Agenda{_MI_AGENDA, &Expert};
@@ -123,6 +125,8 @@ private:
   void cb_open     (const finalcut::FMenuItem*);
   void cb_ency     (const finalcut::FMenuItem* menuitem);
   void cb_suggest  (const finalcut::FMenuItem* menuitem);
+  void cb_volunteer  (const finalcut::FMenuItem* menuitem);
+  void cb_doVolunteer();
   void cb_knowcess (const finalcut::FMenuItem* menuitem);
   void cb_reset    (const finalcut::FMenuItem* menuitem);
 

@@ -29,8 +29,8 @@ void QuestionWidget::cb_ok(){
       val.val_int = std::stoi( val_str.c_str() );
       break;
     }
-    sign_set_default( sign, &val );
     hide();
+    sign_set_default( sign, &val );
     engine_resume_knowcess( repl_getState() );
   }
 }

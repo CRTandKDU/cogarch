@@ -22,6 +22,7 @@ using finalcut::FSize;
 
 extern engine_state_rec_ptr repl_getState();
 extern Menu *repl_getMainDlg();
+extern void  repl_log( const char *s );
 
 //----------------------------------------------------------------------
 Menu::Menu (finalcut::FWidget* parent)
@@ -126,8 +127,8 @@ void Menu::configureExpertMenuItems()
   expert_menu.Suggest.addAccelerator (FKey::Ctrl_s);
   expert_menu.Volunteer.setStatusbarMessage ("Volunteer sign's value");
   expert_menu.Volunteer.addAccelerator (FKey::Ctrl_v);
-  expert_menu.Volunteer.setStatusbarMessage ("Clears all values to UNKNOWN");
-  expert_menu.Volunteer.addAccelerator (FKey::Ctrl_r);
+  expert_menu.Reset.setStatusbarMessage ("Clears all values to UNKNOWN");
+  expert_menu.Reset.addAccelerator (FKey::Ctrl_r);
   expert_menu.Line5.setSeparator();
   expert_menu.Agenda.setStatusbarMessage ("Show/Hide Agenda");
   expert_menu.Agenda.addAccelerator (FKey::Ctrl_a);
@@ -186,6 +187,16 @@ void Menu::defaultCallback (const finalcut::FMenuList* mb)
       (
         "clicked",
         this, &Menu::cb_knowcess,
+	item
+      );
+      continue;
+    }
+    _IF_MENUITEM(_MI_VOLUNTEER){
+      // Add the callback function
+      item->addCallback
+      (
+        "clicked",
+        this, &Menu::cb_volunteer,
 	item
       );
       continue;
@@ -350,6 +361,62 @@ void Menu::cb_suggest (const finalcut::FMenuItem* menuitem){
       sprintf( buf, "Suggested %s.\n", h->str );
       log( buf );
     }
+  }
+  
+}
+
+//----------------------------------------------------------------------
+void Menu::cb_doVolunteer(){
+  FString val_str	= v->input.getText();
+  sign_rec_ptr sign	= sign_find( v->current_sign.c_str(), loadkb_get_allsigns() );
+  struct val_rec        val;
+
+  //
+  if( sign ){
+    val.status = _KNOWN;
+    val.type   = sign->val.type;
+    switch( sign->val.type ){
+    case _VAL_T_STR:
+      val.valptr = (char *)malloc( strlen( val_str.c_str() ) );
+      strcpy( val.valptr, val_str.c_str() );
+
+      char buf[80];
+      sprintf( buf, "Value %s %d", val.valptr, sign->val.val_forth );
+      repl_log( buf );
+      break;
+    case _VAL_T_BOOL:
+      val.val_bool = std::stoi( val_str.c_str() );
+      break;
+    case _VAL_T_INT:
+      val.val_int = std::stoi( val_str.c_str() );
+      break;
+    }
+  
+    sign_set_default( sign, &val );
+    engine_pushnew_signdata( repl_getState(), sign, &val );
+    char buf[64];
+    sprintf( buf, "Volunteered %s.\n", sign->str );
+    repl_log( buf );
+  }
+  //
+  v->setModal( false );
+  v->hide();
+}
+
+void Menu::cb_volunteer (const finalcut::FMenuItem* menuitem){
+  finalcut::FListViewItem *data = EncyWindow[ENCY_SIGN].ency->getCurrentItem();
+  auto text = data->getText( 1 );
+
+  sign_rec_ptr sign = sign_find( text.c_str(), loadkb_get_allsigns() );
+  if( sign ){
+    if( v ) delete v;
+    v = new QuestionWidget( this, _FALSE );
+    v->button.addCallback ("clicked", this, &Menu::cb_doVolunteer );
+    v->current_sign = finalcut::FString( sign->str );
+    v->input.setText( FString("Type value here") );
+    v->setModal( true );
+    v->show();
+
   }
   
 }

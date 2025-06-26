@@ -7,11 +7,11 @@ using namespace finalcut;
 class QuestionWidget : public FDialog
 {
   public:
-    explicit QuestionWidget (FWidget* parent = nullptr)
-      : FDialog{parent}
+  explicit QuestionWidget (FWidget* parent = nullptr, unsigned short def = _TRUE )
+    : FDialog{parent}
     {
       // Connect the button signal "clicked" with the callback method
-      button.addCallback ("clicked", this, &QuestionWidget::cb_ok);
+      if( def ) button.addCallback ("clicked", this, &QuestionWidget::cb_ok );
     }
 
   FString current_sign;
