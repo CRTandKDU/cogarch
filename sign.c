@@ -72,7 +72,7 @@ sign_rec_ptr sign_pushnew( sign_rec_ptr top,
 }
 
 void sign_del( sign_rec_ptr sign ){
-  if(TRACE_ON) printf( "Deleting %s\n", sign->str );
+  fprintf( stderr, "Deleting %s\n", sign->str );
   if( COMPOUND_MASK == (sign->len_type & TYPE_MASK) )
     compound_del( (compound_rec_ptr) sign );
   if( sign->ngetters )
@@ -173,7 +173,7 @@ void sign_iter( sign_rec_ptr s0, sign_op func ){
   while( s ){
     prev = s;
     s = s->next;
-    func( prev );
+    if( prev ) func( prev );
   }
 }
 

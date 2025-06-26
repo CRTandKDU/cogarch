@@ -35,7 +35,7 @@ Listview::Listview (finalcut::FWidget* parent, unsigned short ency_t, const char
   listview.addColumn (ENCY_AGND == ency_t ? "Cause" : "Value");
 
   // Set right alignment for the third, fourth, and fifth column
-  listview.setColumnAlignment (2, finalcut::Align::Right);
+ listview.setColumnAlignment (2, finalcut::Align::Right);
 
   // Set the type of sorting
   listview.setColumnSortType (1, finalcut::SortType::Name);
@@ -184,13 +184,25 @@ void Listview::onClose (finalcut::FCloseEvent* ev)
 void Listview::cb_showInMessagebox()
 {
   const auto& item = listview.getCurrentItem();
-  finalcut::FMessageBox info ( "Sign " + item->getText(1)
-			       , "  Value: " + item->getText(2) + "\n"
-			       , finalcut::FMessageBox::ButtonType::Ok
-			       , finalcut::FMessageBox::ButtonType::Reject
-			       , finalcut::FMessageBox::ButtonType::Reject
-			       , this );
-  info.show();
+  sign_rec_ptr sign = (sign_rec_ptr) sign_find( item->getText(1).c_str(), loadkb_get_allsigns() );
+  if( sign && (COMPOUND_MASK == (sign->len_type & TYPE_MASK)) ){
+    finalcut::FMessageBox info ( "Sign " + item->getText(1)
+				 , finalcut::FString( ((compound_rec_ptr) sign)->dsl_expression ) + "\n"
+				 , finalcut::FMessageBox::ButtonType::Ok
+				 , finalcut::FMessageBox::ButtonType::Reject
+				 , finalcut::FMessageBox::ButtonType::Reject
+				 , this );
+    info.show();
+  }
+  else{
+    finalcut::FMessageBox info ( "Sign " + item->getText(1)
+				 , "  Value: " + item->getText(2) + "\n"
+				 , finalcut::FMessageBox::ButtonType::Ok
+				 , finalcut::FMessageBox::ButtonType::Reject
+				 , finalcut::FMessageBox::ButtonType::Reject
+				 , this );
+    info.show();
+  }
 }
 
 //----------------------------------------------------------------------

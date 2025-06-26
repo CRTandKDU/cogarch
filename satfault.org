@@ -3,12 +3,109 @@
 * The Historical Knowledge Base (1985)
 Revisiting the historical demonstration knowledge base for NEXPERT.
 
+For a couple of years, and at least until /Nexpert Object/ was released, the so-called ~SATFAULT~ knowledge base
+was the product demonstration workhorse. 
 
-#+BEGIN_RULE
-NO TANKS_OUT_PRESSURE_LOW
-$CRT_and_KDU nxp@ =s( AGREE)
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
-THEN THERMAL_TRANSIENT_CONDITION
+** Data capture and checks/alarms.
+
+#+BEGIN_RULE tank_pressure_check_1
+pressure_P1 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_2
+pressure_P2 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_3
+pressure_P3 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_4
+pressure_P4 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_5
+pressure_P1 nxp@ pressure_P3 nxp@ =
+THEN TANKS_EQUAL
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_6
+pressure_P2 nxp@ pressure_P4 nxp@ =
+THEN TANKS_EQUAL
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_5
+pressure_P1 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_6
+pressure_P2 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_7
+pressure_P1 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_8
+pressure_P2 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_9
+pressure_out_P3 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_10
+pressure_out_P3 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_11
+pressure_out_P3 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_12
+pressure_out_P4 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_13
+pressure_P1 nxp@ 370 >
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_14
+pressure_P2 nxp@ 370 >
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_15
+pressure_P1 nxp@ 20 <
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_16
+pressure_P2 nxp@ 20 <
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_17
+pressure_P1 nxp@ 370 >
+THEN TANK_P1_OR_P2_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_18
+pressure_P2 nxp@ 370 >
+THEN TANK_P1_OR_P2_WAS_HIGH
 #+END_RULE
 
 #+BEGIN_RULE
@@ -16,13 +113,133 @@ pressure_out_P3 nxp@ 20 <
 THEN TANKS_OUT_PRESSURE_LOW
 #+END_RULE
 
-Some more text
-
 #+BEGIN_RULE data_capture_2
 pressure_out_P4 nxp@ 20 <
 THEN TANKS_OUT_PRESSURE_LOW
 #+END_RULE
 
-More information still
+#+BEGIN_RULE
+NO TANKS_OUT_PRESSURE_LOW
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN THERMAL_TRANSIENT_CONDITION
+#+END_RULE
 
+** Immediate action remedies
 
+#+BEGIN_RULE action_remedy_1
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+YES ALARM_TANK_WAS_P1_OR_P2
+YES TANK_P1_OR_P2_WAS_HIGH
+THEN ACTION_12
+#+END_RULE
+
+#+BEGIN_RULE action_remedy_2
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+YES ALARM_TANK_WAS_P1_OR_P2
+NO TANK_P1_OR_P2_WAS_HIGH
+THEN ACTION_14
+#+END_RULE
+
+#+BEGIN_RULE action_remedy_3
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+YES ALARM_TANK_WAS_P1_OR_P2
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ <>
+THEN ACTION_19
+#+END_RULE
+
+#+BEGIN_RULE action_remedy_4
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER)
+YES ALERT
+THEN ACTION_4
+#+END_RULE
+
+** Diagnostic rules
+
+#+BEGIN_RULE diagnostic_1
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+NO ALARM_TANK_WAS_P1_OR_P2
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN DECREASE_DUE_TO_THERMAL_CONDITIONS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_2
+YES ACTION_12
+pressure_P2 nxp@ pressure_P5 nxp@ =
+THEN EXC_P_RISE_V10
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_3
+YES ACTION_12
+pressure_P1 nxp@ pressure_P5 nxp@ =
+THEN EXC_P_RISE_V3
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_4
+YES ACTION_4
+YES TANKS_EQUAL
+YES ALARM_TANK_WAS_HIGH
+THEN EXC_P_RISE_V16
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_5
+YES ACTION_19
+NO TANKS_OUT_PRESSURE_LOW
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN THERMAL_TRANSIENT_CONDITION
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_6
+YES ACTION_19
+YES TANKS_OUT_PRESSURE_LOW
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN POSSIBLE_LEAK
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_7
+YES ACTION_14
+YES TANKS_EQUAL
+THEN POSSIBLE_LEAK
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_8
+YES ACTION_4
+YES TANKS_EQUAL
+NO ALARM_TANK_WAS_HIGH
+THEN POSSIBLE_LEAK
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_9
+$CRT_and_KDU nxp@ =s( DISAGREE)
+YES ALERT
+THEN MDM_ANALOG_INPUT_PARAMETER_LOSS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_10
+YES ACTION_14
+NO TANKS_EQUAL
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_10
+YES ACTION_4
+NO TANKS_EQUAL
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_11
+YES ACTION_19
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ <>
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_12
+YES ACTION_12
+pressure_P1 nxp@ pressure_P5 nxp@ <>
+pressure_P2 nxp@ pressure_P5 nxp@ <>
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE

@@ -15,6 +15,7 @@
   (sign)->val.val_float = 0.0;        \
   (sign)->val.valptr = (char *)0;     \
 
+extern void  repl_log( const char *s );
 
 compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 				   const char *s, const int ngetters ){
@@ -41,7 +42,9 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 void compound_DSL_set( compound_rec_ptr compound, const char * expr ){
   compound_del( compound );
   compound->dsl_expression = (char *) malloc( strlen( expr ) );
-  strcpy( compound->dsl_expression, expr );
+  if( compound->dsl_expression ){
+    strcpy( compound->dsl_expression, expr );
+  }
 }
 
 void compound_del( compound_rec_ptr compound ){

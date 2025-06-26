@@ -91,16 +91,29 @@ void getter_sign( sign_rec_ptr sign, int *suspend ){
   // sign_set_default( sign, sign_get_default( sign ) );
 }
 
+void fixCR( char *str ){
+  char *s = str;
+  while( *s ){
+    if( ('\n' == *s) && (0 != *(s+1)) ){
+      *(s+1) = 0;
+      return;
+    }
+    s++;
+  }
+}
+
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #ifdef ENGINE_DSL_HOWERJFORTH
   struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0 };
   struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
-
-  int err;
-  if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression );
-  int r = engine_dsl_eval_async( (char *) (compound->dsl_expression), &err, suspend );
-  if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r );
+  int  err;
   char buf[128];
+  sprintf( buf, "Getter compound %s (%s)\n", compound->str, (char *) (compound->dsl_expression) );
+  repl_log( buf );
+  // WHY?
+  fixCR( compound->dsl_expression );
+  int r = engine_dsl_eval_async( (const char *) compound->dsl_expression, &err, suspend );
+
   sprintf( buf, "FORTH Res %d Err %d\n", r, err );
   repl_log( buf );
   switch( err ){

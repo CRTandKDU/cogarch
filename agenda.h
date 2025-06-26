@@ -34,7 +34,7 @@ typedef struct compound_rec *compound_rec_ptr;
 #define _UNKNOWN	 ((unsigned short)0xFF)
 #define _KNOWN	         ((unsigned short)0xFE)
 
-#define _CHOP 32
+#define _CHOP 48
 
 char *S_val_color( unsigned short val );
 

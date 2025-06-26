@@ -96,8 +96,8 @@ int          loadkb_howmany( sign_rec_ptr top ){
 
 
 void loadkb_reset(){
-  if( KB_Signs ) sign_iter(KB_Signs,&sign_del) ;
   if( KB_Hypos ) sign_iter(KB_Hypos,&hypo_del) ;
+  if( KB_Signs ) sign_iter(KB_Signs,&sign_del) ;
   if( KB_Rules ) sign_iter(KB_Rules,&rule_del) ;
 
   KB_Signs = (sign_rec_ptr) NULL;
@@ -162,7 +162,10 @@ int loadkb_file( const char *fn ){
 	break;
 	
       case 1: // Parsing lines as conditions until hypothesis declaration
+	/* for( short j=0; j<_DSL_LINE; dsl_expr[j++] = 0 ); */
+	/* strncpy( dsl_expr, line, (size_t)read ); */
 	strcpy( dsl_expr, line );
+	
 	_FW(line,pch);
 	//
 	if( 0 == strcmp( _THEN, pch ) ){
