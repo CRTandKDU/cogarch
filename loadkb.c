@@ -70,7 +70,7 @@ sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_p
       lsign = sign_find( pw, top );
       if( NULL == lsign ){
 	top = lsign = sign_pushnew( top, pw, 0, sizeof(void *), 0, sizeof(fwrd_rec_ptr) );
-	/* TODO: Find a way to properly set type num or str */
+
 	lsign->val.type = _VAL_T_INT;
 	if( '$' == pw[0] ) lsign->val.type = _VAL_T_STR;
       }

@@ -41,9 +41,16 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 
 void compound_DSL_set( compound_rec_ptr compound, const char * expr ){
   compound_del( compound );
-  compound->dsl_expression = (char *) malloc( strlen( expr ) );
+  char *s, *t;
+  compound->dsl_expression = (char *) malloc( 1 + strlen( expr ) );
   if( compound->dsl_expression ){
-    strcpy( compound->dsl_expression, expr );
+    /* strcpy( compound->dsl_expression, expr ); */
+    s = (char *) expr; t = compound->dsl_expression;
+    while( *s ){
+      if( 0x0d == *s ){ *t++ = '\n'; break; }
+      *t++ = *s++;
+    }
+    *t = 0x0;
   }
 }
 

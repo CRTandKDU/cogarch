@@ -111,7 +111,7 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
   sprintf( buf, "Getter compound %s (%s)\n", compound->str, (char *) (compound->dsl_expression) );
   repl_log( buf );
   // WHY?
-  fixCR( compound->dsl_expression );
+  // fixCR( compound->dsl_expression );
   int r = engine_dsl_eval_async( (const char *) compound->dsl_expression, &err, suspend );
 
   sprintf( buf, "FORTH Res %d Err %d\n", r, err );
