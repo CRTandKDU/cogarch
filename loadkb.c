@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include "agenda.h"
 
+extern void  repl_log( const char *s );
 
 const char * _BEG_RULE = "#+BEGIN_RULE";
 const char * _END_RULE = "#+END_RULE";
@@ -148,11 +149,14 @@ int loadkb_file( const char *fn ){
 	  if(TRACE_ON) printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
 	  if( NULL != pch && *pch != 0x0A ){
 	    if(TRACE_ON) printf( "NW %s\n", pch );
+	    repl_log( "Named rule:" );
+	    repl_log( pch );
 	    KB_Rules = lrule = rule_pushnew( KB_Rules, pch, 0, (hypo_rec_ptr)NULL );
 	  }
 	  else{
 	    char tmp[32];
 	    int  tmpn = sprintf( tmp, "RULE_%d", rule_count++ );
+	    repl_log( "Unamed rule:" );
 	    KB_Rules = lrule = rule_pushnew( KB_Rules, tmp, 0, (hypo_rec_ptr)NULL );
 	    if(TRACE_ON) printf( "NW anonymous rule: %s\n", tmp );
 	  }
