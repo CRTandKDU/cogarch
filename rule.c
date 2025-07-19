@@ -9,30 +9,64 @@
 #include <string.h>
 #include "agenda.h"
 
+#define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
+  (sign)->val.type = _VAL_T_BOOL; \
+  (sign)->val.val_bool = 0;           \
+  (sign)->val.val_int  = 0;           \
+  (sign)->val.val_float = 0.0;        \
+  (sign)->val.valptr = (char *)0;     \
+
+extern void  repl_log( const char *s );
+
 rule_rec_ptr rule_pushnew( rule_rec_ptr top,
 			   const char *s, const int ngetters, hypo_rec_ptr h ){
   bwrd_rec_ptr bwrd;
+  unsigned short len;
   // Set up rule sign-instance
-  rule_rec_ptr rule = (rule_rec_ptr)sign_pushnew( top, s,
-						  ngetters, sizeof(cond_rec_ptr),
-						  0, sizeof(void *) );
-  rule->len_type = (unsigned short)strlen( s ) | RULE_MASK;
-  rule->getters  = (empty_ptr *)0;
+  rule_rec_ptr rule			= (rule_rec_ptr) malloc( sizeof( struct rule_rec ) );
+  rule->next				= (sign_rec_ptr)top;
+  _INIT_VAL(rule);
+  len					= (unsigned short)strlen( s );
+  rule->len_type			= (len <= _CHOP) ? len : _CHOP;
+  char *to				= rule->str;
+  char *from				= (char *)s;
+  for( unsigned short i			= 0; i < rule->len_type; *to++ = *from++, i++ ); *to = 0;
+  rule->len_type 	                |= RULE_MASK;
+  rule->ngetters			= ngetters;
+  rule->getters				= (empty_ptr *)0;
   // Set up hypothesis in `setters` field, keeping `nsetters` to 0
-  rule->setters = (empty_ptr *)h;
+  rule->nsetters			= 0;
+  rule->setters				= (empty_ptr *)h;
   if( h ){
     // Point back from hypo to rules
     sign_pushgetter( h, (empty_ptr)malloc( sizeof(struct bwrd_rec) ) );
     bwrd = (bwrd_rec_ptr) (h->getters)[_LAST_RULE(h)];
     bwrd->rule = rule;
   }
+  //
+  rule->nrhs = 0;
+  rule->rhs  = (empty_ptr *)0;
   return rule;
+}
+
+void rule_pushnewrhs( rule_rec_ptr rule, char *dsl_expr ){
+  int len = strlen( dsl_expr );
+  if( 0 == rule->nrhs ){
+    rule->rhs = (empty_ptr *)malloc( sizeof(empty_ptr) );
+  }
+  else{
+    rule->rhs = (empty_ptr *)realloc( rule->rhs, (1 + rule->nrhs)*sizeof(empty_ptr) );
+  }
+  //
+  (rule->rhs)[ rule->nrhs ] = (empty_ptr)malloc( len*sizeof(char) );
+  strcpy( (char *) (rule->rhs)[ rule->nrhs ], dsl_expr );
+  rule->nrhs += 1;
 }
 
 void rule_pushnewcond( rule_rec_ptr rule, unsigned short op, sign_rec_ptr sign ){
   cond_rec_ptr cond;
   fwrd_rec_ptr fwrd;
-  sign_pushgetter( rule, (empty_ptr)malloc( sizeof(struct cond_rec) ) );
+  sign_pushgetter( (sign_rec_ptr)rule, (empty_ptr)malloc( sizeof(struct cond_rec) ) );
   cond = (cond_rec_ptr)  (rule->getters)[_LAST_COND(rule)];
   cond->in = cond->out = op;
   cond->val = (unsigned short)0xff;
@@ -52,6 +86,10 @@ void rule_del( rule_rec_ptr rule ){
   if( rule->ngetters )
     for( unsigned short i=0; i<rule->ngetters; i++ ){ free( (void *) (rule->getters)[i] ); }
   if( rule->getters ) free( rule->getters );
+  //
+  if( rule->nrhs )
+    for( unsigned short i=0; i<rule->nrhs; i++ ){ free( (void *) (rule->rhs)[i] ); }
+  if( rule->rhs ) free( rule->rhs );
   free( rule );
 }
 
@@ -85,6 +123,12 @@ void rule_print( rule_rec_ptr rule ){
 		((fwrd_rec_ptr)(sign->setters)[j])->rule->str,
 		((fwrd_rec_ptr)(sign->setters)[j])->idx_cond );
       }
+    }
+  }
+  //
+  if( rule->rhs ){
+    for( unsigned short i =0; i < rule->nrhs; i++ ){
+      if(TRACE_ON) printf( "\t\tRHS: %s\n", (char *) rule->rhs[i] );
     }
   }
   if(TRACE_ON) printf( "%s\n", esc );

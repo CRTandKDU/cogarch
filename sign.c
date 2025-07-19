@@ -138,7 +138,7 @@ void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
   }
   
   if( S_on_set ) S_on_set( sign, val );
-  // Important! This is where sign's values are forwarded.
+  // IMPORTANT! This is where sign's values are forwarded.
   engine_default_on_set( sign, val );
 
 }

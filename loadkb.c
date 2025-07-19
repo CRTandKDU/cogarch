@@ -41,10 +41,16 @@ void str_toupper( char *word ){
    }
 }
 
+void repl_txt( char *s ){
+  char buf[32];
+  sprintf( buf, "<%s> %d", s, strlen(s) );
+  repl_log( buf );
+}
+
 #ifdef ENGINE_DSL_HOWERJFORTH
 sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_ptr top ){
   // Destroys dsl_expr and top
-  const char *ws = " \t"; // Whitespace characters that separate tokens
+  const char *ws = " \t\x0d"; // Whitespace characters that separate tokens
   char *pw, *pnw;
   unsigned short cont = _TRUE;
   pw = dsl_expr;
@@ -64,18 +70,20 @@ sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_p
     if( *dsl_expr ){
       *dsl_expr++ = 0; // Terminate current next word in pnw
     }
-    if( 0 == strcmp( pnw, "nxp@" ) || 0 == strcmp( pnw, "nxp!" ) ){
+    repl_txt(pnw);
+    if( (0 == strcmp( pnw, "nxp@" )) || (0 == strcmp( pnw, "nxp!" )) ){
       sign_rec_ptr lsign;
       int r;
       if(TRACE_ON) printf( "Found DSL-shared variable: %s\n", pw );
+      repl_log( pw );
       lsign = sign_find( pw, top );
       if( NULL == lsign ){
 	top = lsign = sign_pushnew( top, pw, 0, sizeof(void *), 0, sizeof(fwrd_rec_ptr) );
-
+	repl_log( "pushnew" );
 	lsign->val.type = _VAL_T_INT;
 	if( '$' == pw[0] ) lsign->val.type = _VAL_T_STR;
       }
-      compound_DSLvar_pushnew( compound, lsign );
+      if( compound ) compound_DSLvar_pushnew( compound, lsign );
       r = engine_dsl_DSLvar_declare( pw, lsign );
     }
     pw = pnw;
@@ -99,7 +107,7 @@ int          loadkb_howmany( sign_rec_ptr top ){
 void loadkb_reset(){
   if( KB_Hypos ) sign_iter(KB_Hypos,&hypo_del) ;
   if( KB_Signs ) sign_iter(KB_Signs,&sign_del) ;
-  if( KB_Rules ) sign_iter(KB_Rules,&rule_del) ;
+  if( KB_Rules ) sign_iter( (sign_rec_ptr)KB_Rules, (sign_op) &rule_del) ;
 
   KB_Signs = (sign_rec_ptr) NULL;
   KB_Hypos = (hypo_rec_ptr) NULL;
@@ -129,6 +137,8 @@ int loadkb_file( const char *fn ){
     return 1;
 
   loadkb_reset();
+
+
   retcode       = 0;
   lno		= 1;
   sno		= 0;
@@ -149,14 +159,14 @@ int loadkb_file( const char *fn ){
 	  if(TRACE_ON) printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
 	  if( NULL != pch && *pch != 0x0A ){
 	    if(TRACE_ON) printf( "NW %s\n", pch );
-	    repl_log( "Named rule:" );
-	    repl_log( pch );
+	    /* repl_log( "Named rule:" ); */
+	    /* repl_log( pch ); */
 	    KB_Rules = lrule = rule_pushnew( KB_Rules, pch, 0, (hypo_rec_ptr)NULL );
 	  }
 	  else{
 	    char tmp[32];
 	    int  tmpn = sprintf( tmp, "RULE_%d", rule_count++ );
-	    repl_log( "Unamed rule:" );
+	    /* repl_log( "Unamed rule:" ); */
 	    KB_Rules = lrule = rule_pushnew( KB_Rules, tmp, 0, (hypo_rec_ptr)NULL );
 	    if(TRACE_ON) printf( "NW anonymous rule: %s\n", tmp );
 	  }
@@ -255,10 +265,20 @@ int loadkb_file( const char *fn ){
 	if(TRACE_ON) printf( "State 1: new state %d, schange %d\n", sno, schange );
 	break;
 
-      case 2: // Waiting for end of rule
+      case 2: // Waiting for end of rule parsing RHS
+	strcpy( dsl_expr, line );
 	_FW(line,pch);
 	if( 0 == strcmp( _END_RULE, pch ) ){
 	  _TRANSITION(0);
+	}
+	else{
+	  // RHS command
+	  repl_log( "RHS:" );
+	  repl_log( dsl_expr );
+	  rule_pushnewrhs( lrule, dsl_expr );
+#ifdef ENGINE_DSL
+	  KB_Signs = loadkb_parse( dsl_expr, (compound_rec_ptr)0, KB_Signs );
+#endif
 	}
 	break;
 
@@ -282,7 +302,7 @@ int loadkb_file( const char *fn ){
   if(TRACE_ON) printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
   sign_iter( KB_Hypos, &hypo_print );
   if(TRACE_ON) printf( "%s----\t----\t----\n", S_val_color(_UNKNOWN) );
-  sign_iter( KB_Rules, &rule_print );
+  sign_iter( (sign_rec_ptr)KB_Rules, (sign_op) &rule_print );
 
   if( 0 == rule_count ) retcode = 255;
 

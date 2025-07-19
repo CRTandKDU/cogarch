@@ -297,7 +297,7 @@ unsigned short engine_sc_and( rule_rec_ptr rule ){
     }
   }
   /* rule->val = _TRUE; */
-  sign_set_default( rule, &v );
+  sign_set_default( (sign_rec_ptr)rule, &v );
   return _TRUE;
 }
 
@@ -326,10 +326,19 @@ void engine_forward_cond( rule_rec_ptr rule, cond_rec_ptr cond ){
   unsigned short val = cond->val;
   if( _FALSE == val ){
     /* rule->val = _FALSE; */
-    sign_set_default( rule, &v );
+    sign_set_default( (sign_rec_ptr)rule, &v );
   }
   if( _TRUE == val ){
     unsigned short rval = engine_sc_and( rule );
+    // Rule could be evaluated to TRUE, execute RHS
+    if( _TRUE == rval && 0 < rule->nrhs ){
+#ifdef ENGINE_DSL
+      int res;
+      for( unsigned short i = 0; i < rule->nrhs; i++ ){
+	res = engine_dsl_rhs_eval( (char *) (rule->rhs[i]) );
+      }
+#endif
+    }
   }
   engine_forward_rule( rule );
 }

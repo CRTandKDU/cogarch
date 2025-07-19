@@ -11,11 +11,14 @@ typedef struct empty *empty_ptr;
 struct sign_rec;
 typedef struct sign_rec *sign_rec_ptr;
 typedef void (*sign_op) (sign_rec_ptr);
-typedef sign_rec_ptr rule_rec_ptr;
 typedef sign_rec_ptr hypo_rec_ptr;
 
 struct compound_rec;
 typedef struct compound_rec *compound_rec_ptr;
+
+struct rule_rec;
+typedef struct rule_rec *rule_rec_ptr;
+
 
 #define SIGN_MASK	(unsigned short)0x00
 #define SIGN_UNMASK	(unsigned short)0x0F
@@ -142,9 +145,16 @@ typedef struct cond_rec *cond_rec_ptr;
 /*   hypo_rec_ptr   setters; */
 /* }; */
 
+struct rule_rec {
+  _SIGN_INTERNALS;
+  int            nrhs;
+  empty_ptr      *rhs;
+};
+
 rule_rec_ptr rule_pushnew( rule_rec_ptr top,
 			   const char *s, const int ngetters, hypo_rec_ptr h );
 void rule_pushnewcond( rule_rec_ptr rule, unsigned short op, sign_rec_ptr sign );
+void rule_pushnewrhs( rule_rec_ptr rule, char *dsl_expr );
 void rule_del( rule_rec_ptr rule );
 void rule_print( rule_rec_ptr rule );
 
@@ -226,6 +236,7 @@ void engine_default_on_agenda_pop( sign_rec_ptr,  struct val_rec *val);
 int  engine_dsl_init();
 void engine_dsl_free();
 int  engine_dsl_eval( const char * expr );
+int  engine_dsl_rhs_eval( const char * expr );
 int  engine_dsl_eval_async( const char * expr, int *err, int *suspend );
 int  engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign );
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend );

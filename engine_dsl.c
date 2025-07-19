@@ -703,7 +703,7 @@ int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
     break;
     //
   case _VAL_T_STR:
-    cell_t cell = sign->val.val_forth;;
+    cell_t cell = sign->val.val_forth;
     /* embed_mmu_read_t  mr = v->h->o.read; */
     embed_mmu_write_t mw = v->h->o.write;
     int len;
@@ -749,6 +749,34 @@ static int cb_nxpget_async(vm_extension_t * const v) {
 }
 
 static int cb_nxpset(vm_extension_t * const v) {
+  unsigned short i;
+  int            res, len;
+  cell_t         val;
+  struct val_rec vrec = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
+  sign_rec_ptr   sign = nxpget_sign( v );
+  if( sign ){
+    switch( sign->val.type ){
+    case _VAL_T_INT:
+      res = embed_pop( v->h, &val );
+      vrec.type    = _VAL_T_INT;
+      vrec.val_int = (int)val;
+      sign_set_default( sign, &vrec );
+      break;
+    case _VAL_T_STR:
+      res = embed_pop( v->h, &val );
+      len = (int)val;
+      vrec.type    = _VAL_T_STR;
+      vrec.valptr = (char *)malloc( len*sizeof(char) );
+      for( i = 0; i < len; i++ ){
+	res = embed_pop( v->h, &val );
+	vrec.valptr[i] = (char)val;
+      }
+      res = embed_pop( v->h, &val ); // Ignore ')'
+      vrec.valptr[i] = 0;
+      sign_set_default( sign, &vrec );
+      break;
+    }
+  }
   return 0;
 }
 
@@ -762,6 +790,24 @@ static int cb_nxpset(vm_extension_t * const v) {
 /*   sign_set_default( (sign_rec_ptr)compound, r ); */
 /* #endif   */
 /* } */
+
+/* Each Sign is represented by a "shadow" word in the FORTH environment. The shadow */
+/* word for a sign spells out the name of the sign on the stack: each character */
+/* is pushed, and then the length, in PASCAL style. */
+/*   TANK_p1 ( -- 7 T A N K _ p 1 ) */
+
+/* The generic operators nxp@ and nxp! pop the stack to reconstitute the Sign name */
+/* and operate on the Sign in the NXP environment. */
+/*     TANK_p1 nxp@ ( -- 370 )   */
+/*     100 TANK_p1 nxp! ( -- ) */
+    
+/* In addition string-valued Signs are allocated memory (currently up to 32 chars) in */
+/* the FORTH environment. The address of this memory block is passed back to NXP to be */
+/* stored with the Sign record (in the 'val_forth' field). Word nxp@ fills this memory */
+/* block with the NXP value and pushes its address on the stack. Word nxp! does not */
+/* use it. */
+/*     $CRT_andKDU nxp@ =s( AGREE)  ( -- 0 or -1 ) */
+/*     s( FLUID-TRANSFER) $TASK nxp!  (  -- ) */
 
 int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
   // Define a FORTH word to get-memoize the value of a sign to be passed to C primitive `nxp@`
@@ -790,6 +836,24 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
   return r;
 }
 
+/* The HOWERJFORTH (embed FORTH by R. J. Howe) requires several words to be predefined. */
+/* +----------+------------------------------+------------------------------+ */
+/* |Sign Type |LHS                           |RHS                           | */
+/* +----------+------------------------------+------------------------------+ */
+/* |int       |none                          |none                          | */
+/* +----------+------------------------------+------------------------------+ */
+/* |float     |TODO                          |TODO                          | */
+/* +----------+------------------------------+------------------------------+ */
+/* |string    |=s( Testing equality          |s( Constant string            | */
+/* |          |$CRT_and_KDU nxp@ =s( AGREE)  |s( FLUID-TRANSFER) $TASK nxp! | */
+/* +----------+------------------------------+------------------------------+ */
+
+/* The nxp@ and nxp! words are the generic operators to get and set values of signs */
+/* from a condition or an action in a rule. */
+
+/* Signs (integer- and string-valued) in the knowledge base are represented in FORTH */
+/* by "shadow" words used to marshall values between NXP and FORTH environments. */
+
 int  engine_dsl_init(){
   BUILD_BUG_ON(sizeof(double_cell_t) != sizeof(sdc_t));
   vm_extension_t *v = vm_extension_new();
@@ -805,6 +869,9 @@ int  engine_dsl_init(){
   res = embed_eval( v->h, ": =s( [char] ) parse compare 0 = ;\n" );
   if( 0 != res )
     embed_fatal( "can't compile word =s(" );
+  res = embed_eval( v->h, ": s( [char] ) parse dup >r for dup r@ + c@ swap next drop r> ;\n" );
+  if( 0 != res )
+    embed_fatal( "can't compile word s(" );
   S_v = v;
   return 0;
 }
@@ -812,6 +879,8 @@ int  engine_dsl_init(){
 void engine_dsl_free(){
   vm_extension_free(S_v);
 }
+
+extern void  repl_log( const char *s );
 
 int  engine_dsl_eval( const char * expr ){
   cell_t val;
@@ -823,7 +892,11 @@ int  engine_dsl_eval( const char * expr ){
   return r;
 }
 
-extern void  repl_log( const char *s );
+int  engine_dsl_rhs_eval( const char * expr ){
+  cell_t val;
+  int r = embed_eval( S_v->h, expr );
+  return r;
+}
 
 int  engine_dsl_eval_async( const char * expr, int *err, int *suspend ){
   cell_t val;
