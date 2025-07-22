@@ -158,7 +158,7 @@ void Listview::repopulate()
 }
 
 //----------------------------------------------------------------------
-finalcut::FListViewItem* Listview::getCurrentItem(){
+finalcut::nxpFListViewItem* Listview::getCurrentItem(){
   return listview.getCurrentItem();
 }
 

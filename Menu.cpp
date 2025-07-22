@@ -344,7 +344,7 @@ void Menu::cb_ency (const finalcut::FMenuItem* menuitem)
 
 //----------------------------------------------------------------------
 void Menu::cb_suggest (const finalcut::FMenuItem* menuitem){
-  finalcut::FListViewItem *hypo = EncyWindow[ENCY_HYPO].ency->getCurrentItem();
+  finalcut::nxpFListViewItem *hypo = EncyWindow[ENCY_HYPO].ency->getCurrentItem();
   auto text = hypo->getText( 1 );
 
   hypo_rec_ptr h = (hypo_rec_ptr)sign_find( text.c_str(), loadkb_get_allhypos() );
@@ -404,7 +404,7 @@ void Menu::cb_doVolunteer(){
 }
 
 void Menu::cb_volunteer (const finalcut::FMenuItem* menuitem){
-  finalcut::FListViewItem *data = EncyWindow[ENCY_SIGN].ency->getCurrentItem();
+  finalcut::nxpFListViewItem *data = EncyWindow[ENCY_SIGN].ency->getCurrentItem();
   auto text = data->getText( 1 );
 
   sign_rec_ptr sign = sign_find( text.c_str(), loadkb_get_allsigns() );

@@ -16,6 +16,7 @@ s( tanks.csv) nxp_csv@ drop
 pressure_P1 nxp@ 20 >
 $task nxp@ =s( TRANSFER)
 THEN WOW
+s( tanks_saved.csv) nxp_csv! drop
 #+END_RULE
 
 More information still

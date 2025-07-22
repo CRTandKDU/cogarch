@@ -101,7 +101,8 @@ struct vm_extension_t {
   X("nxp@",     cb_nxpget_async,     true)      \
   X("nxp!",     cb_nxpset,     true)            \
   X("nxp_show", cb_nxpshow,    true)            \
-  X("nxp_csv@", cb_nxpcsv,     true)            \
+  X("nxp_csv@", cb_nxpcsv_r,    true)            \
+  X("nxp_csv!", cb_nxpcsv_w,    true)            \
 
 #define X(NAME, FUNCTION, USE) static int FUNCTION ( vm_extension_t * const v );
 CALLBACK_XMACRO
@@ -717,6 +718,11 @@ static int cb_nxpget_async(vm_extension_t * const v) {
 /* ----------------------------------------------------------------------------- */
 static int S_csv_col		= 0;
 static sign_rec_ptr S_csv_sign	= NULL;
+static FILE *S_temp		= NULL;
+static short put_comma		= 0;
+
+typedef void (*csv_cb1_t) (void *s, size_t i, void *p);
+typedef void (*csv_cb2_t) (int c, void *p);
 
 void cb1 (void *s, size_t i, void *p) {
   struct val_rec vrec = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
@@ -750,8 +756,48 @@ void cb2 (int c, void *p) {
   S_csv_sign	= NULL;
 }
 
+void cb3 (void *s, size_t i, void *p) {
+  if (put_comma)
+    putc(',', S_temp);
+  switch( S_csv_col ){
+  case 0:
+    S_csv_sign = sign_find( (char *)s, loadkb_get_allsigns() );
+    csv_fwrite(S_temp, s, i);
+    break;
+  case 1:
+    if( S_csv_sign && (_KNOWN == S_csv_sign->val.status) ){
+      switch( S_csv_sign->val.type ){
+      case _VAL_T_INT:
+	char buf[16];
+	sprintf( buf, "%d", S_csv_sign->val.val_int );
+	csv_fwrite(S_temp, (void *) buf, strlen(buf) );
+	break;
+      case _VAL_T_STR:
+	csv_fwrite(S_temp, (void *) S_csv_sign->val.valptr, strlen(S_csv_sign->val.valptr) );
+	break;
+      }
+    }
+    else{
+        csv_fwrite(S_temp, s, i);
+    }
+    break;
+  default:
+    csv_fwrite(S_temp, s, i);
+    break;
+  }
+  //
+  S_csv_col += 1;
+  put_comma = 1;
+}
 
-int nxpcsv_read( char *fn ){
+void cb4 (int c, void *p) {
+  put_comma = 0;
+  putc('\n', S_temp);
+  S_csv_col     = 0;
+  S_csv_sign	= NULL;
+}
+
+int nxpcsv_io( char *fn, csv_cb1_t f_cb1, csv_cb2_t f_cb2 ){
   FILE *fp;
   /* int i; */
   struct csv_parser p;
@@ -772,7 +818,7 @@ int nxpcsv_read( char *fn ){
     return(EXIT_FAILURE);
   }
   while ((bytes_read=fread(buf, 1, 1024, fp)) > 0) {
-    if ((retval = csv_parse(&p, buf, bytes_read, &cb1, &cb2, NULL)) != bytes_read) {
+    if ((retval = csv_parse(&p, buf, bytes_read, f_cb1, f_cb2, NULL)) != bytes_read) {
       if (csv_error(&p) == CSV_EPARSE) {
 	printf("%s: malformed at byte %lu\n", fn, (unsigned long)pos + retval + 1);
 	goto end;
@@ -794,11 +840,10 @@ int nxpcsv_read( char *fn ){
   return EXIT_SUCCESS;
 }
 
-static int cb_nxpcsv(vm_extension_t * const v) {
+void marshall_forth_string( char *str, vm_extension_t * const v ){
   cell_t val;
   int    res, r;
-  char   str[32], *s;
-  // Marshall string from FORTH
+  char   *s;
   r   = embed_pop( v->h, &val );
   s   = str;
   r   = (int)val;
@@ -808,11 +853,41 @@ static int cb_nxpcsv(vm_extension_t * const v) {
   }
   res = embed_pop( v->h, &val );
   *s = 0;
+}
+
+static int cb_nxpcsv_r(vm_extension_t * const v) {
+  int    res, r;
+  char   str[32];
+  // Marshall file name string from FORTH
+  marshall_forth_string( str, v );
   //
-  r = nxpcsv_read( str );
+  r = nxpcsv_io( str, &cb1, &cb2 );
   res = embed_push( v->h, (EXIT_SUCCESS == r) ? (cell_t)65535 : (cell_t)0 );
   return res;
 }
+
+static int cb_nxpcsv_w(vm_extension_t * const v) {
+  int    res = 0, r;
+  char   str[32];
+  // Marshall file name string from FORTH
+  marshall_forth_string( str, v );
+  S_temp = fopen("temp.csv", "wb");
+  if (!S_temp) {
+    /* fprintf(stderr, "Failed to open %s: %s, skipping\n", fn, strerror(errno)); */
+    return(EXIT_FAILURE);
+  }
+  
+  r = nxpcsv_io( str, &cb3, &cb4 );
+  res = embed_push( v->h, (EXIT_SUCCESS == r) ? (cell_t)65535 : (cell_t)0 );
+  fclose( S_temp );
+  // Overwrite argument file
+  char cmdstr[80];
+  sprintf( cmdstr, "mv temp.csv %s", str );
+  system( cmdstr );
+  //
+  return res;
+}
+
 
 /* ----------------------------------------------------------------------------- */
 static int cb_nxpshow(vm_extension_t * const v) {
@@ -830,6 +905,7 @@ static int cb_nxpshow(vm_extension_t * const v) {
   }
   res = embed_pop( v->h, &val ); // Ignore ')'
   *(cmdstr + i + 9) = 0;
+
   system( cmdstr );
   free( cmdstr );
   return res;

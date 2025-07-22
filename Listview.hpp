@@ -1,7 +1,7 @@
 #ifndef LISTVIEW_HPP
 #define LISTVIEW_HPP
 #include "agenda.h"
-
+#include "nxpFListView.hpp"
 
 //----------------------------------------------------------------------
 // class Listview
@@ -18,7 +18,7 @@ public:
 
   // Methods
   void repopulate();
-  finalcut::FListViewItem* getCurrentItem();
+  finalcut::nxpFListViewItem* getCurrentItem();
 
 private:
   // Method
@@ -33,8 +33,8 @@ private:
   void cb_showHideColumns();
 
   // Data members
-  finalcut::FListView listview{this};
-  finalcut::FButton   columns{this};
+  finalcut::nxpFListView listview{this};
+  finalcut::FButton      columns{this};
   // finalcut::FButton   quit{this};
 };
 
