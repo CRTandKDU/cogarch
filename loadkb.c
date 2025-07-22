@@ -70,16 +70,16 @@ sign_rec_ptr loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_p
     if( *dsl_expr ){
       *dsl_expr++ = 0; // Terminate current next word in pnw
     }
-    repl_txt(pnw);
+    /* repl_txt(pnw); */
     if( (0 == strcmp( pnw, "nxp@" )) || (0 == strcmp( pnw, "nxp!" )) ){
       sign_rec_ptr lsign;
       int r;
       if(TRACE_ON) printf( "Found DSL-shared variable: %s\n", pw );
-      repl_log( pw );
+      /* repl_log( pw ); */
       lsign = sign_find( pw, top );
       if( NULL == lsign ){
 	top = lsign = sign_pushnew( top, pw, 0, sizeof(void *), 0, sizeof(fwrd_rec_ptr) );
-	repl_log( "pushnew" );
+	/* repl_log( "pushnew" ); */
 	lsign->val.type = _VAL_T_INT;
 	if( '$' == pw[0] ) lsign->val.type = _VAL_T_STR;
       }
@@ -273,8 +273,8 @@ int loadkb_file( const char *fn ){
 	}
 	else{
 	  // RHS command
-	  repl_log( "RHS:" );
-	  repl_log( dsl_expr );
+	  /* repl_log( "RHS:" ); */
+	  /* repl_log( dsl_expr ); */
 	  rule_pushnewrhs( lrule, dsl_expr );
 #ifdef ENGINE_DSL
 	  KB_Signs = loadkb_parse( dsl_expr, (compound_rec_ptr)0, KB_Signs );

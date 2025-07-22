@@ -6,12 +6,6 @@
 
 
 /* #define ENGINE_DSL */
-#include <stddef.h>
-#include "agenda.h"
-  
-#ifdef ENGINE_DSL_HOWERJFORTH
-#include "embed.h"
-#include "util.h"
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -23,7 +17,14 @@
 #include <math.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stddef.h>
 
+#include "agenda.h"
+  
+#ifdef ENGINE_DSL_HOWERJFORTH
+#include "embed.h"
+#include "util.h"
+#include <csv.h>
 
 struct vm_extension_t;
 typedef struct vm_extension_t vm_extension_t;
@@ -97,8 +98,10 @@ struct vm_extension_t {
   X("fmin",     cb_fmin,       true)		\
   X("fmax",     cb_fmax,       true)		\
   \
-  X("nxp@",     cb_nxpget_async,     true)            \
+  X("nxp@",     cb_nxpget_async,     true)      \
   X("nxp!",     cb_nxpset,     true)            \
+  X("nxp_show", cb_nxpshow,    true)            \
+  X("nxp_csv@", cb_nxpcsv,     true)            \
 
 #define X(NAME, FUNCTION, USE) static int FUNCTION ( vm_extension_t * const v );
 CALLBACK_XMACRO
@@ -624,43 +627,6 @@ static void vm_extension_free(vm_extension_t *v) {
   free(v);
 }
 
-/* static int cb_nxpget(vm_extension_t * const v) { */
-/*   cell_t val; */
-/*   int    res, r; */
-/*   char   str[80], *s; */
-/*   // Marshall string from FORTH */
-/*   r   = embed_pop( v->h, &val ); */
-/*   s   = str; */
-/*   r   = (int)val; */
-/*   for( short i=0; i<r ; i++ ){ */
-/*     res = embed_pop( v->h, &val ); */
-/*     *s++ = val; */
-/*   } */
-/*   *s = 0; */
-/*   if(TRACE_ON) printf( "<FORTH EXT> %s\n", str ); */
-/*   /\* // Get or infer value *\/ */
-/*   /\* if( 0 == strcmp( str, "TEMP1" ) ) *\/ */
-/*   /\*   val = (cell_t)20; *\/ */
-/*   /\* else *\/ */
-/*   /\*   val = (cell_t)5; *\/ */
-/*   sign_rec_ptr sign = sign_find( str, loadkb_get_allsigns() ); */
-/*   if( sign ){ */
-/*     if( _UNKNOWN == sign->val.status ){ */
-/*       /\* ((sign_getter_t) sign->getters) ( sign ); *\/ */
-/*       val = sign_get_default( sign ); */
-/*     /\* TODO: sign_set_default( sign, (unsigned short)val ); *\/ */
-/*     } */
-/*   /\* TODO:    else val = sign->val; *\/ */
-/*   } */
-/*   else{ */
-/*     // Report undefined DSL-shared variable */
-/*     val = (cell_t)0; */
-/*   } */
-  
-/*   // Push to FORTH stack */
-/*   res = embed_push( v->h, val ); */
-/*   return 0; */
-/* } */
 
 sign_rec_ptr nxpget_sign( vm_extension_t * const v ){
   // Marshall string from FORTH
@@ -748,6 +714,128 @@ static int cb_nxpget_async(vm_extension_t * const v) {
   return eclr(v);
 }
 
+/* ----------------------------------------------------------------------------- */
+static int S_csv_col		= 0;
+static sign_rec_ptr S_csv_sign	= NULL;
+
+void cb1 (void *s, size_t i, void *p) {
+  struct val_rec vrec = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
+  switch( S_csv_col ){
+  case 0:
+    S_csv_sign = sign_find( (char *)s, loadkb_get_allsigns() );
+    break;
+  case 1:
+    if( S_csv_sign ){
+      switch( S_csv_sign->val.type ){
+      case _VAL_T_INT:
+	vrec.type    = _VAL_T_INT;
+	vrec.val_int = (int) strtol((char *)s, (char **)NULL, 10);
+	sign_set_default( S_csv_sign, &vrec );
+	break;
+      case _VAL_T_STR:
+	vrec.type   = _VAL_T_STR;
+	vrec.valptr = (char *)malloc( strlen((char *)s)*sizeof(char) );
+	strcpy( vrec.valptr, (char *)s );
+	sign_set_default( S_csv_sign, &vrec );
+	break;
+      }
+      
+    }
+  }
+  S_csv_col += 1;
+}
+
+void cb2 (int c, void *p) {
+  S_csv_col     = 0;
+  S_csv_sign	= NULL;
+}
+
+
+int nxpcsv_read( char *fn ){
+  FILE *fp;
+  /* int i; */
+  struct csv_parser p;
+  char buf[1024];
+  size_t bytes_read;
+  size_t pos;
+  size_t retval;
+
+  if (csv_init(&p, CSV_STRICT | CSV_APPEND_NULL) != 0) {
+    /* fprintf(stderr, "Failed to initialize csv parser\n"); */
+    return(EXIT_FAILURE);
+  }
+  pos		= 0;
+  S_csv_col	= 0;
+  fp = fopen(fn, "rb");
+  if (!fp) {
+    /* fprintf(stderr, "Failed to open %s: %s, skipping\n", fn, strerror(errno)); */
+    return(EXIT_FAILURE);
+  }
+  while ((bytes_read=fread(buf, 1, 1024, fp)) > 0) {
+    if ((retval = csv_parse(&p, buf, bytes_read, &cb1, &cb2, NULL)) != bytes_read) {
+      if (csv_error(&p) == CSV_EPARSE) {
+	printf("%s: malformed at byte %lu\n", fn, (unsigned long)pos + retval + 1);
+	goto end;
+      } else {
+	printf("Error while processing %s: %s\n", fn, csv_strerror(csv_error(&p)));
+	goto end;
+      }
+    }
+    pos += bytes_read;
+  }
+  /* printf("%s well-formed\n", fn); */
+
+ end:
+  fclose(fp);
+  csv_fini(&p, NULL, NULL, NULL);
+  pos = 0;
+  
+  csv_free(&p);
+  return EXIT_SUCCESS;
+}
+
+static int cb_nxpcsv(vm_extension_t * const v) {
+  cell_t val;
+  int    res, r;
+  char   str[32], *s;
+  // Marshall string from FORTH
+  r   = embed_pop( v->h, &val );
+  s   = str;
+  r   = (int)val;
+  for( short i=0; i<r ; i++ ){
+    res = embed_pop( v->h, &val );
+    *s++ = val;
+  }
+  res = embed_pop( v->h, &val );
+  *s = 0;
+  //
+  r = nxpcsv_read( str );
+  res = embed_push( v->h, (EXIT_SUCCESS == r) ? (cell_t)65535 : (cell_t)0 );
+  return res;
+}
+
+/* ----------------------------------------------------------------------------- */
+static int cb_nxpshow(vm_extension_t * const v) {
+  unsigned short i;
+  int            res, len;
+  cell_t         val;
+  char           *cmdstr;
+  res = embed_pop( v->h, &val );
+  len = (int)val;
+  cmdstr = (char *)malloc( (len + 10)*sizeof(char) );
+  strcpy( cmdstr, "cygstart " );
+  for( i = 0; i < len; i++ ){
+    res = embed_pop( v->h, &val );
+    *(cmdstr + i + 9) = (char)val;
+  }
+  res = embed_pop( v->h, &val ); // Ignore ')'
+  *(cmdstr + i + 9) = 0;
+  system( cmdstr );
+  free( cmdstr );
+  return res;
+}
+
+/* ----------------------------------------------------------------------------- */
 static int cb_nxpset(vm_extension_t * const v) {
   unsigned short i;
   int            res, len;
@@ -846,6 +934,14 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
 /* +----------+------------------------------+------------------------------+ */
 /* |string    |=s( Testing equality          |s( Constant string            | */
 /* |          |$CRT_and_KDU nxp@ =s( AGREE)  |s( FLUID-TRANSFER) $TASK nxp! | */
+/* +----------+------------------------------+------------------------------+ */
+/* +----------+------------------------------+------------------------------+ */
+/* |string    |nxp_csv@ Read col 0-1 of csv file, returning TRUE or FALSE   | */
+/* |int       | s( tanks.csv) nxp_csv@                                      | */
+/* +----------+------------------------------+------------------------------+ */
+/* +----------+------------------------------+------------------------------+ */
+/* |          |nxp_show Show an image file                                  | */
+/* |          | s( DIAGNOS.PNG) nxp_show                                    | */
 /* +----------+------------------------------+------------------------------+ */
 
 /* The nxp@ and nxp! words are the generic operators to get and set values of signs */

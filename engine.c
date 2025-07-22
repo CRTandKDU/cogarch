@@ -12,11 +12,12 @@
 extern void  repl_log( const char *s );
 extern engine_state_rec_ptr repl_getState();
 
-effect S_on_get		= (effect)0;  // Triggered on get in `sign_default_get`
-effect S_on_set		= (effect)0;  // Triggered on set in `sign_default_set`
-effect_gate S_on_gate	= (effect_gate)0;  // Triggered on setting cond in `engine_forward_sign`
-effect S_on_push	= (effect)0;  // Triggered on pushing hypo/compound on agenda
-effect S_on_pop	        = (effect)0;  // Triggered on popping agenda
+effect S_on_get		= (effect)0;		// Triggered on get in `sign_default_get`
+effect S_on_set		= (effect)0;		// Triggered on set in `sign_default_set`
+effect_gate S_on_gate	= (effect_gate)0;	// Triggered on setting cond in `engine_forward_sign`
+effect S_on_push	= (effect)0;		// Triggered on pushing hypo/compound on agenda
+effect S_on_pop	        = (effect)0;		// Triggered on popping agenda
+effect S_on_endsession  = (effect)0;            // Triggered on empty agenda after knowcess
 
 //----------------------------------------------------------------------
 void engine_default_on_get( sign_rec_ptr sign,  struct val_rec * val ){
@@ -73,16 +74,18 @@ void engine_default_on_agenda_pop( sign_rec_ptr,  struct val_rec * val ){
 }
 
 
-void engine_register_effects( effect f_get,
-			      effect f_set,
-			      effect_gate f_gate,
-			      effect f_push,
-			      effect f_pop ){
-  S_on_get	= f_get;
-  S_on_set	= f_set;
-  S_on_gate	= f_gate;
-  S_on_push     = f_push;
-  S_on_pop      = f_pop;
+void engine_register_effects( effect		f_get,
+			      effect		f_set,
+			      effect_gate	f_gate,
+			      effect		f_push,
+			      effect		f_pop,
+			      effect		f_endsession){
+  S_on_get		= f_get;
+  S_on_set		= f_set;
+  S_on_gate		= f_gate;
+  S_on_push		= f_push;
+  S_on_pop		= f_pop;
+  S_on_endsession	= f_endsession;
 }
 
 //----------------------------------------------------------------------
@@ -217,6 +220,7 @@ void engine_knowcess( engine_state_rec_ptr state ){
     /* state->agenda = cell->next; */
     engine_pop( state );
   }
+  if( S_on_endsession ) S_on_endsession( (sign_rec_ptr) NULL, NULL );  
 }
 
 /* ** A somewhat async version of knowcess. */
@@ -263,6 +267,7 @@ void engine_resume_knowcess( engine_state_rec_ptr state ){
       goto next;
     }
   }
+  if( S_on_endsession ) S_on_endsession( (sign_rec_ptr) NULL, NULL );  
   /* repl_log( "Done!" ); */
 }
 
@@ -432,3 +437,9 @@ void engine_backward_cond( cond_rec_ptr cond, int* suspend ){
   }
 }
 
+/* Defeasible Inference */
+/* TODO: Handling 'RESET' and 'CHANGE' of sign values trigerred by RHS */
+/* This could be done either in `sign.c` 'sign_set_default' function, or */
+/* pre-emptively in the 'on_set' callback where both previous and new */
+/* values are available. */
+  

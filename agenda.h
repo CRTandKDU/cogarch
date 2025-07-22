@@ -225,7 +225,12 @@ void            engine_reset( engine_state_rec_ptr state );
 typedef void (*effect)      (sign_rec_ptr, struct val_rec *);
 typedef void (*effect_gate) (sign_rec_ptr, short);
 
-void engine_register_effects( effect f_get, effect f_set, effect_gate f_gate, effect f_push, effect f_pop );
+void engine_register_effects( effect		f_get,
+			      effect		f_set,
+			      effect_gate	f_gate,
+			      effect		f_push,
+			      effect		f_pop,
+			      effect		f_endsession);
 void engine_default_on_get( sign_rec_ptr sign,  struct val_rec *val);
 void engine_default_on_set( sign_rec_ptr sign,  struct val_rec *val);
 void engine_default_on_gate( sign_rec_ptr sign,  short val);

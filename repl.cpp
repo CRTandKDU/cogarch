@@ -37,21 +37,21 @@ void  repl_log( const char *s ){
   S_main_dlg->log( buf );
 }
 
-std::string local_val_repr( const sign_rec_ptr s, struct val_rec *val ){
-  if( _UNKNOWN == s->val.status ) return std::string( "UNKNOWN" );
-  switch( s->val.type ){
+std::string local_val_repr( struct val_rec *val ){
+  if( _UNKNOWN == val->status ) return std::string( "UNKNOWN" );
+  switch( val->type ){
   case _VAL_T_BOOL:
-    return( _FALSE == s->val.val_bool) ?
+    return( _FALSE == val->val_bool) ?
       std::string( "FALSE" ) : std::string( "TRUE" );
     break;
   case _VAL_T_INT:
-    return( std::to_string( s->val.val_int ) );
+    return( std::to_string( val->val_int ) );
     break;
   case _VAL_T_FLOAT:
      break;
   case _VAL_T_STR:
-    if( s->val.valptr )
-      return( std::string( s->val.valptr ) );
+    if( val->valptr )
+      return( std::string( val->valptr ) );
     else
       return( std::string( "error" ) );
     break;
@@ -156,10 +156,15 @@ void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
 
 void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
   char buf[80];
-  std::string valstr = local_val_repr(sign, val );
-  sprintf( buf, "Set %s = %s.", sign->str, valstr.c_str() );
+  std::string valstr_old = local_val_repr( &sign->val );
+  std::string valstr_new = local_val_repr( val );
+  sprintf( buf, "Set %s from %s to %s.", sign->str, valstr_old.c_str(), valstr_new.c_str() );
   repl_log( buf );
 
+  _UPDATE_ENCYS;   
+}
+
+void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
   _UPDATE_ENCYS;   
 }
 
@@ -195,7 +200,8 @@ auto main (int argc, char* argv[]) -> int
 			   &cb_on_set,
 			   &cb_on_gate,
 			   &cb_on_agenda_push,
-			   &cb_on_agenda_pop
+			   &cb_on_agenda_pop,
+			   &cb_on_endsession
 			   );
 
   // Set up DSL
@@ -217,7 +223,7 @@ auto main (int argc, char* argv[]) -> int
   main_dlg.EncyWindow[ENCY_SIGN].ency = new Listview(&main_dlg, ENCY_SIGN, "Sign");
   main_dlg.EncyWindow[ENCY_SIGN].ency->setText (L"Encyclopedia: Signs");
   finalcut::FPoint position{25, 5};
-  finalcut::FSize size{37, 20};
+  finalcut::FSize size{50, 20};
   main_dlg.EncyWindow[ENCY_SIGN].ency->setGeometry ( position, size );
   main_dlg.EncyWindow[ENCY_SIGN].ency->setShadow();
   main_dlg.EncyWindow[ENCY_SIGN].ency->hide();

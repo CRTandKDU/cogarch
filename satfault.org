@@ -12,7 +12,7 @@
   	       (end (org-element-property :contents-end   (car args)))
   	       (params (org-element-property :parameters (car args)))
   	      )
-  	  (format "<pre><code>RULE %s\n%s\n</code></pre>\n\n" params (buffer-substring-no-properties beg end)))
+  	  (format "<pre><code>RULE %s\nIF\n%s\n</code></pre>\n\n" params (buffer-substring-no-properties beg end)))
   	  res)
       )
     )
@@ -153,11 +153,10 @@ As recently as April 2024, USGS reviewed the status of the current Landsat-7 to 
 #+ATTR_HTML: :width 600px
 [[./img/LandsatStatus.png]]
 
-And as this is written [[https://interestingengineering.com/space/china-refuels-satellites-in-earths-orbit][China’s satellites may have pulled off world’s first in-orbit fuel refill, beating US]] turning ORS up to a power fight for geostrategic dominance.
+And as this is written [[https://interestingengineering.com/space/china-refuels-satellites-in-earths-orbit][China’s satellites may have pulled off world’s first in-orbit fuel refill, beating US]] turning ORS up to a power fight for geopolitical dominance.
     
 ** HORSES
-The original knowledge-base development was inspired by Boy's work at NASA Ames on [[https://ntrs.nasa.gov/api/citations/19880014770/downloads/19880014770.pdf][Fault Diagnosis In Orbital Refueling Operations]], a paper presented at the /Space Station Human Factors Research Review/, NASA Ames Research
-Center, December 1985. Thus clearly positioned within the field of Human-Computer Interaction (HCI) research, the /expert system/ approach pionneered here was a stepping stone to later /intelligent assistant systems/ research:
+The original knowledge-base development was inspired by Boy's work at NASA Ames on [[https://ntrs.nasa.gov/api/citations/19880014770/downloads/19880014770.pdf][Fault Diagnosis In Orbital Refueling Operations]], a paper presented at the /Space Station Human Factors Research Review/, NASA Ames Research Center, December 1985. Thus clearly positioned within the field of Human-Computer Interaction (HCI) research, the /expert system/ approach pionneered here was a stepping stone to later /intelligent assistant systems/ research:
 
 #+begin_quote
 Usually, operation manuals are provided for helping astronauts during space
@@ -194,7 +193,288 @@ NASA procedure manuals were transposed into expert system's rules used both for 
 #+ATTR_HTML: :width 689px
 [[./img/CRTKDU.png]]
 
+** Overview of SATFAULT
+Keeping in line with the methodology of the original HORSES expert system, the much simplified ~SATFAULT~ usual session ran through three distinct phases:
+  * (Simulated) data capture and alarm levels checks: signs are data
+    points like pressure or temperature in hydrazine tanks, hypothesis
+    are categories of alarms to keep track of triggering events in
+    later phases.
+  * Immediate remedies, so called "actions", to bring back data
+    indicators to nominal values. Signs are the alarm
+    types--hypotheses in the previous phase--and hypothesis are the
+    action reference, as defined in the NASA manual. The RHS of these
+    rules change the data signs back to nominal values when triggered.
+  * Diagnosis rules proper, which based on the result of the immediate
+    remedy actions and the alarm type from the first phase offer
+    explanation and assessment of the event/situation.
 
+Such a structure, while simplistic compared to the original, nonetheless played well to the competitive features of the engine. Starting a session by volunteering some data points outside their safe zone for some tanks, for instance, would trigger forward chaining, processing and checking the data, possibly with additional interactive questions or graphics/image instructions, through the 3 phases above to produce a complete, explainable trace of reasoning from data to diagnosis. Suggesting a diagnostic hypothesis, on the other hand (usually 'EXC_P_RISE_V10' or 'EXC_P_RISE_V16'), would start backward chaining instead and drive the optimal collection of data points, questioning the user or retrieving data from outside sources like spreadsheet files (or executable third-party programs), to produce a comprehensive situation assessment within the initial diagnosis to explore.
+  
+* A Modern Rendering of SATFAULT
+This transposition of the original knowledge-base (1996), itself an upgraded version to object-oriented representation, is presented here[fn:2] with FORTH as the extension programming language for compound conditions and actions.
+
+** Data capture and checks/alarms.
+
+#+BEGIN_RULE  tank_pressure_check_1
+pressure_P1 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_2
+pressure_P2 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_3
+pressure_P3 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_4
+pressure_P4 nxp@ 370 >
+THEN ALARM_TANK_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_5
+pressure_P1 nxp@ pressure_P3 nxp@ =
+THEN TANKS_EQUAL
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_6
+pressure_P2 nxp@ pressure_P4 nxp@ =
+THEN TANKS_EQUAL
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_5
+pressure_P1 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_6
+pressure_P2 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_7
+pressure_P1 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_8
+pressure_P2 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_9
+pressure_out_P3 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_10
+pressure_out_P3 nxp@ 370 >
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_11
+pressure_out_P3 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_12
+pressure_out_P4 nxp@ 20 <
+THEN ALERT
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_13
+pressure_P1 nxp@ 370 >
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_14
+pressure_P2 nxp@ 370 >
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_15
+pressure_P1 nxp@ 20 <
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_16
+pressure_P2 nxp@ 20 <
+THEN ALARM_TANK_WAS_P1_OR_P2
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_17
+pressure_P1 nxp@ 370 >
+THEN TANK_P1_OR_P2_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE tank_pressure_check_18
+pressure_P2 nxp@ 370 >
+THEN TANK_P1_OR_P2_WAS_HIGH
+#+END_RULE
+
+#+BEGIN_RULE
+pressure_out_P3 nxp@ 20 <
+THEN TANKS_OUT_PRESSURE_LOW
+#+END_RULE
+
+#+BEGIN_RULE data_capture_2
+pressure_out_P4 nxp@ 20 <
+THEN TANKS_OUT_PRESSURE_LOW
+#+END_RULE
+
+#+BEGIN_RULE
+NO TANKS_OUT_PRESSURE_LOW
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN THERMAL_TRANSIENT_CONDITION
+#+END_RULE
+
+** Immediate action remedies
+
+#+BEGIN_RULE action_remedy_1
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+YES ALARM_TANK_WAS_P1_OR_P2
+YES TANK_P1_OR_P2_WAS_HIGH
+THEN ACTION_12
+200 pressure_P1 nxp!
+205 pressure_P2 nxp!
+300 pressure_P3 nxp!
+200 pressure_P4 nxp!
+200 pressure_out_P3 nxp!
+205 pressure_out_P4 nxp!
+200 pressure_P5 nxp!
+#+END_RULE
+
+#+BEGIN_RULE action_remedy_2
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+YES ALARM_TANK_WAS_P1_OR_P2
+NO TANK_P1_OR_P2_WAS_HIGH
+THEN ACTION_14
+200 pressure_P1 nxp!
+205 pressure_P2 nxp!
+300 pressure_P3 nxp!
+200 pressure_P4 nxp!
+200 pressure_out_P3 nxp!
+205 pressure_out_P4 nxp!
+#+END_RULE
+
+#+BEGIN_RULE action_remedy_3
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+YES ALARM_TANK_WAS_P1_OR_P2
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ <>
+THEN ACTION_19
+200 pressure_out_P3 nxp!
+200 pressure_out_P4 nxp!
+#+END_RULE
+
+#+BEGIN_RULE action_remedy_4
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER)
+YES ALERT
+THEN ACTION_4
+200 pressure_P1 nxp!
+205 pressure_P2 nxp!
+300 pressure_P3 nxp!
+200 pressure_P4 nxp!
+200 pressure_out_P3 nxp!
+205 pressure_out_P4 nxp!
+#+END_RULE
+
+** Diagnostic rules
+
+#+BEGIN_RULE diagnostic_1
+$CRT_and_KDU nxp@ =s( AGREE)
+$task nxp@ =s( FLUID_TRANSFER) invert
+NO ALARM_TANK_WAS_P1_OR_P2
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN DECREASE_DUE_TO_THERMAL_CONDITIONS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_2
+YES ACTION_12
+pressure_P2 nxp@ pressure_P5 nxp@ =
+THEN EXC_P_RISE_V10
+s( img/DIAGNOS.PNG) nxp_show
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_3
+YES ACTION_12
+pressure_P1 nxp@ pressure_P5 nxp@ =
+THEN EXC_P_RISE_V3
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_4
+YES ACTION_4
+YES TANKS_EQUAL
+YES ALARM_TANK_WAS_HIGH
+THEN EXC_P_RISE_V16
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_5
+YES ACTION_19
+NO TANKS_OUT_PRESSURE_LOW
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN THERMAL_TRANSIENT_CONDITION
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_6
+YES ACTION_19
+YES TANKS_OUT_PRESSURE_LOW
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
+THEN POSSIBLE_LEAK
+s( img/POSSIBLE.PNG) nxp_show
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_7
+YES ACTION_14
+YES TANKS_EQUAL
+THEN POSSIBLE_LEAK
+s( img/CONTACT_.PNG) nxp_show
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_8
+YES ACTION_4
+YES TANKS_EQUAL
+NO ALARM_TANK_WAS_HIGH
+THEN POSSIBLE_LEAK
+s( img/POSSIBLE.PNG) nxp_show
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_9
+$CRT_and_KDU nxp@ =s( DISAGREE)
+YES ALERT
+THEN MDM_ANALOG_INPUT_PARAMETER_LOSS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_10
+Yes ACTION_14
+NO TANKS_EQUAL
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_10
+YES ACTION_4
+NO TANKS_EQUAL
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_11
+YES ACTION_19
+pressure_out_P3 nxp@ pressure_out_P4 nxp@ <>
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
+
+#+BEGIN_RULE diagnostic_12
+YES ACTION_12
+pressure_P1 nxp@ pressure_P5 nxp@ <>
+pressure_P2 nxp@ pressure_P5 nxp@ <>
+THEN XDRC_FAILURE_OR_BIAS
+#+END_RULE
 
 * A version of the original file
 Files preserved from the Java implementation on <1996-07-16 mar.>
@@ -1000,247 +1280,6 @@ Files preserved from the Java implementation on <1996-07-16 mar.>
 	@CACTIONSON=TRUE;
 )
 #+end_example
-
-* A Modern Rendering of SATFAULT
-This transposition of the original knowledge-base (1996), itself an upgraded version to object-oriented representation, is presented here[fn:2] with FORTH as the extension programming language for compound conditions and actions.
-
-** Data capture and checks/alarms.
-
-#+BEGIN_RULE  tank_pressure_check_1
-pressure_P1 nxp@ 370 >
-THEN ALARM_TANK_WAS_HIGH
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_2
-pressure_P2 nxp@ 370 >
-THEN ALARM_TANK_WAS_HIGH
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_3
-pressure_P3 nxp@ 370 >
-THEN ALARM_TANK_WAS_HIGH
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_4
-pressure_P4 nxp@ 370 >
-THEN ALARM_TANK_WAS_HIGH
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_5
-pressure_P1 nxp@ pressure_P3 nxp@ =
-THEN TANKS_EQUAL
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_6
-pressure_P2 nxp@ pressure_P4 nxp@ =
-THEN TANKS_EQUAL
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_5
-pressure_P1 nxp@ 370 >
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_6
-pressure_P2 nxp@ 370 >
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_7
-pressure_P1 nxp@ 20 <
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_8
-pressure_P2 nxp@ 20 <
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_9
-pressure_out_P3 nxp@ 370 >
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_10
-pressure_out_P3 nxp@ 370 >
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_11
-pressure_out_P3 nxp@ 20 <
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_12
-pressure_out_P4 nxp@ 20 <
-THEN ALERT
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_13
-pressure_P1 nxp@ 370 >
-THEN ALARM_TANK_WAS_P1_OR_P2
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_14
-pressure_P2 nxp@ 370 >
-THEN ALARM_TANK_WAS_P1_OR_P2
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_15
-pressure_P1 nxp@ 20 <
-THEN ALARM_TANK_WAS_P1_OR_P2
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_16
-pressure_P2 nxp@ 20 <
-THEN ALARM_TANK_WAS_P1_OR_P2
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_17
-pressure_P1 nxp@ 370 >
-THEN TANK_P1_OR_P2_WAS_HIGH
-#+END_RULE
-
-#+BEGIN_RULE tank_pressure_check_18
-pressure_P2 nxp@ 370 >
-THEN TANK_P1_OR_P2_WAS_HIGH
-#+END_RULE
-
-#+BEGIN_RULE
-pressure_out_P3 nxp@ 20 <
-THEN TANKS_OUT_PRESSURE_LOW
-#+END_RULE
-
-#+BEGIN_RULE data_capture_2
-pressure_out_P4 nxp@ 20 <
-THEN TANKS_OUT_PRESSURE_LOW
-#+END_RULE
-
-#+BEGIN_RULE
-NO TANKS_OUT_PRESSURE_LOW
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
-THEN THERMAL_TRANSIENT_CONDITION
-#+END_RULE
-
-** Immediate action remedies
-
-#+BEGIN_RULE action_remedy_1
-$CRT_and_KDU nxp@ =s( AGREE)
-$task nxp@ =s( FLUID_TRANSFER) invert
-YES ALARM_TANK_WAS_P1_OR_P2
-YES TANK_P1_OR_P2_WAS_HIGH
-THEN ACTION_12
-#+END_RULE
-
-#+BEGIN_RULE action_remedy_2
-$CRT_and_KDU nxp@ =s( AGREE)
-$task nxp@ =s( FLUID_TRANSFER) invert
-YES ALARM_TANK_WAS_P1_OR_P2
-NO TANK_P1_OR_P2_WAS_HIGH
-THEN ACTION_14
-#+END_RULE
-
-#+BEGIN_RULE action_remedy_3
-$CRT_and_KDU nxp@ =s( AGREE)
-$task nxp@ =s( FLUID_TRANSFER) invert
-YES ALARM_TANK_WAS_P1_OR_P2
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ <>
-THEN ACTION_19
-#+END_RULE
-
-#+BEGIN_RULE action_remedy_4
-$CRT_and_KDU nxp@ =s( AGREE)
-$task nxp@ =s( FLUID_TRANSFER)
-YES ALERT
-THEN ACTION_4
-#+END_RULE
-
-** Diagnostic rules
-
-#+BEGIN_RULE diagnostic_1
-$CRT_and_KDU nxp@ =s( AGREE)
-$task nxp@ =s( FLUID_TRANSFER) invert
-NO ALARM_TANK_WAS_P1_OR_P2
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
-THEN DECREASE_DUE_TO_THERMAL_CONDITIONS
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_2
-YES ACTION_12
-pressure_P2 nxp@ pressure_P5 nxp@ =
-THEN EXC_P_RISE_V10
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_3
-YES ACTION_12
-pressure_P1 nxp@ pressure_P5 nxp@ =
-THEN EXC_P_RISE_V3
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_4
-YES ACTION_4
-YES TANKS_EQUAL
-YES ALARM_TANK_WAS_HIGH
-THEN EXC_P_RISE_V16
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_5
-YES ACTION_19
-NO TANKS_OUT_PRESSURE_LOW
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
-THEN THERMAL_TRANSIENT_CONDITION
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_6
-YES ACTION_19
-YES TANKS_OUT_PRESSURE_LOW
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
-THEN POSSIBLE_LEAK
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_7
-YES ACTION_14
-YES TANKS_EQUAL
-THEN POSSIBLE_LEAK
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_8
-YES ACTION_4
-YES TANKS_EQUAL
-NO ALARM_TANK_WAS_HIGH
-THEN POSSIBLE_LEAK
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_9
-$CRT_and_KDU nxp@ =s( DISAGREE)
-YES ALERT
-THEN MDM_ANALOG_INPUT_PARAMETER_LOSS
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_10
-YES ACTION_14
-NO TANKS_EQUAL
-THEN XDRC_FAILURE_OR_BIAS
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_10
-YES ACTION_4
-NO TANKS_EQUAL
-THEN XDRC_FAILURE_OR_BIAS
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_11
-YES ACTION_19
-pressure_out_P3 nxp@ pressure_out_P4 nxp@ <>
-THEN XDRC_FAILURE_OR_BIAS
-#+END_RULE
-
-#+BEGIN_RULE diagnostic_12
-YES ACTION_12
-pressure_P1 nxp@ pressure_P5 nxp@ <>
-pressure_P2 nxp@ pressure_P5 nxp@ <>
-THEN XDRC_FAILURE_OR_BIAS
-#+END_RULE
 
 * Footnotes
 [fn:2] This Web page is actually exported from an org-mode file which /is/ the knowledge-base for a revisited NXP architecture. (See: [[https://github.com/CRTandKDU/cogarch/tree/main][Work in progress!]]) 

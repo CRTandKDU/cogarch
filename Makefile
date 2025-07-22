@@ -1,9 +1,9 @@
 CC		= g++
 CPP		= g++
-CFLAGS		=  -I. -I../libforth -I../embed-master
+CFLAGS		=  -I. -I../libforth -I../embed-master -I../libcsv
 EXTRA_CFLAGS	= -O2 -Wall -Wextra -std=c99
 DSL_CFLAGS	= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
-DSL_LFLAGS      = ../embed-master/util.o -L../embed-master -lembed -lm
+DSL_LFLAGS      = ../libcsv/libcsv_la-libcsv.o ../embed-master/util.o -L../embed-master -lembed -lm
 # DSL_CFLAGS	= 
 # DSL_LFLAGS      = 
 LFLAGS		=  -L../libforth -L../embed-master

@@ -166,7 +166,7 @@ finalcut::FListViewItem* Listview::getCurrentItem(){
 void Listview::initLayout()
 {
   // Set FListView geometry
-  listview.setGeometry(FPoint{2, 1}, FSize{33, 14});
+  listview.setGeometry(FPoint{2, 1}, FSize{46, 14});
   // Set columns button geometry
   columns.setGeometry(FPoint{2, 16}, FSize{11, 1});
   // Set quit button geometry

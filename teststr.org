@@ -1,0 +1,23 @@
+#+TITLE: SATFAULT
+
+* The Historical Knowledge Base (1985)
+Revisiting the historical demonstration knowledge base for NEXPERT.
+
+
+#+BEGIN_RULE
+$CRT_and_KDU nxp@ =s( AGREE)
+THEN THERMAL_TRANSIENT_CONDITION
+100 pressure1 nxp! 150 pressure2 nxp!
+s( img/DIAGNOS.PNG) nxp_show
+s( tanks.csv) nxp_csv@ drop
+#+END_RULE
+
+#+BEGIN_RULE consequence
+pressure_P1 nxp@ 20 >
+$task nxp@ =s( TRANSFER)
+THEN WOW
+#+END_RULE
+
+More information still
+
+

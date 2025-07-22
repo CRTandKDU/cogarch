@@ -120,6 +120,8 @@ unsigned short sign_get_default( sign_rec_ptr sign ){
 void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
   if( _UNKNOWN == val->status ) return;
   if( sign->val.type != val->type ) return;
+  // A chance to handle previous and new value
+  if( S_on_set ) S_on_set( sign, val );
   //
   sign->val.status = val->status;
   switch( sign->val.type ){
@@ -137,7 +139,6 @@ void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
     break;
   }
   
-  if( S_on_set ) S_on_set( sign, val );
   // IMPORTANT! This is where sign's values are forwarded.
   engine_default_on_set( sign, val );
 
