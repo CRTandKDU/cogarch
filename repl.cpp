@@ -59,6 +59,25 @@ std::string local_val_repr( struct val_rec *val ){
   return std::string( "error" );
 }
 
+int repl_color_code( FString str ){
+  int res = 255;
+  sign_rec_ptr sign = sign_find( str.toString().c_str(), (sign_rec_ptr) loadkb_get_allhypos() );
+
+  if( sign &&
+      ( _KNOWN == sign->val.status ) &&
+      ( _VAL_T_BOOL == sign->val.type ) ){
+    switch( sign->val.val_bool ){
+    case _TRUE:
+      res = 1;
+      break;
+    case _FALSE:
+      res = 0;
+      break;
+    }
+  }
+  return res;
+}
+
 // std::string local_val_repr( const sign_rec_ptr s, struct val_rec *val ){
 //   if( _UNKNOWN == val->status ) return std::string( "UNKNOWN" );
 //   switch(s->len_type & TYPE_MASK){

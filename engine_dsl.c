@@ -931,6 +931,8 @@ static int cb_nxpset(vm_extension_t * const v) {
       len = (int)val;
       vrec.type    = _VAL_T_STR;
       vrec.valptr = (char *)malloc( len*sizeof(char) );
+      // Here expect a spelt-string as returned by s(
+      // nxp@, however, returns a forth-string as returned by s"
       for( i = 0; i < len; i++ ){
 	res = embed_pop( v->h, &val );
 	vrec.valptr[i] = (char)val;
@@ -1104,5 +1106,7 @@ int  engine_dsl_eval_async( const char * expr, int *err, int *suspend ){
   }
   return ret;
 }
+
+/* TODO: Better integration of string in embed/nxp */
 
 #endif // ENGINE_DSL_HOWERJFORTH

@@ -39,6 +39,8 @@
 #include <final/final.h>
 #include "nxpFListView.hpp"
 
+extern int repl_color_code( finalcut::FString );
+
 namespace finalcut
 {
 
@@ -1613,14 +1615,32 @@ inline void nxpFListView::adjustWidthForTreeView ( std::size_t& width
     width -= checkbox_space;
 }
 
+
 //----------------------------------------------------------------------
 void nxpFListView::drawListLine ( const nxpFListViewItem* item
                              , bool is_focus
                              , bool is_current )
 {
+  int color_code = 0;
+  const auto& wc = getColorTheme();
+  const auto& wc_list = wc->list;
+
+  color_code     = repl_color_code( item->getText(1) );
+  switch( color_code ){
+  case 0:
+    setColor( FColor::Red, wc_list.bg );
+    break;
+  case 1:
+    setColor( FColor::Green, wc_list.bg );
+    break;
+  default:
+    setColor (wc_list.fg, wc_list.bg);
+    break;
+  }
+  
   // Set line color and attributes
   setLineAttributes (is_current, is_focus);
-
+  
   // Create a string that contains the columns
   FString line = createColumnsString(item);
 
@@ -1746,7 +1766,7 @@ inline void nxpFListView::setLineAttributes ( bool is_current
   const auto& wc = getColorTheme();
   const auto& wc_list = wc->list;
   const auto& wc_current_element = wc->current_element;
-  setColor (wc_list.fg, wc_list.bg);
+  // setColor (wc_list.fg, wc_list.bg);
 
   if ( is_current )
   {

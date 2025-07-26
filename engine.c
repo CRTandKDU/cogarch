@@ -438,8 +438,12 @@ void engine_backward_cond( cond_rec_ptr cond, int* suspend ){
 }
 
 /* Defeasible Inference */
-/* TODO: Handling 'RESET' and 'CHANGE' of sign values trigerred by RHS */
+/* TODO: Handling 'RESET' and 'CHANGE' of sign values triggered by RHS */
 /* This could be done either in `sign.c` 'sign_set_default' function, or */
 /* pre-emptively in the 'on_set' callback where both previous and new */
 /* values are available. */
+  
+/* Backward-chaining to RHS */
+/* TODO: When nxp@ applies to a sign which appears before a nxp! in another rule, */
+/* first backward on rule before prompting the user. */
   
