@@ -110,36 +110,57 @@ void getter_sign( sign_rec_ptr sign, int *suspend ){
   // sign_set_default( sign, sign_get_default( sign ) );
 }
 
-void fixCR( char *str ){
-  char *s = str;
-  while( *s ){
-    if( ('\n' == *s) && (0 != *(s+1)) ){
-      *(s+1) = 0;
-      return;
-    }
-    s++;
-  }
-}
+// void fixCR( char *str ){
+//   char *s = str;
+//   while( *s ){
+//     if( ('\n' == *s) && (0 != *(s+1)) ){
+//       *(s+1) = 0;
+//       return;
+//     }
+//     s++;
+//   }
+// }
+
+static  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0, 0 };
+static  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0, 0 };
 
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #ifdef ENGINE_DSL_HOWERJFORTH
-  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0 };
-  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
+  if( _KNOWN == compound->val.status ) return;
+  
   int  err;
   char buf[128];
-  sprintf( buf, "Getter compound %s (%s)\n", compound->str, (char *) (compound->dsl_expression) );
+  sprintf( buf, "Getter compound %s (%d)\n", compound->str,
+	   // (char *) (compound->dsl_expression)
+	   *suspend
+	   );
   repl_log( buf );
+  // printf( buf );
   // WHY?
   // fixCR( compound->dsl_expression );
   int r = engine_dsl_eval_async( (const char *) compound->dsl_expression, &err, suspend );
 
-  sprintf( buf, "FORTH Res %d Err %d\n", r, err );
+  sprintf( buf, "FORTH Res %d Err %d Susp %d\n", r, err, *suspend );
+  repl_log( buf );
+  // printf( buf );
+  sprintf( buf, "Post-eval compound %s (%d)\n", compound->str,
+	   // (char *) (compound->dsl_expression)
+	   *suspend
+	   );
   repl_log( buf );
   switch( err ){
   case 0:
     // Ignore DSL evaluation if a question is pending! Re-evaluation will happen later.
-    if( _FALSE == *suspend )
+    if( _FALSE == *suspend ){
+      // sprintf( buf, "Getter compound %s (%d)\n", compound->str,
+      // 	       // (char *) (compound->dsl_expression)
+      // 	       *suspend
+      // 	       );
+      // printf( buf );
       sign_set_default( (sign_rec_ptr)compound, r ? &v_true : &v_false );
+      // sprintf( buf, "Compound Status %d Type %d\n", compound->val.status, compound->val.type );
+      // printf( "%s", buf );
+    }
     break;
   }
   
@@ -170,11 +191,12 @@ void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
   repl_log( buf );
 
   S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+  // S_main_dlg->Trace.scrolltext.clear();
   engine_default_on_agenda_pop( sign, val );
 }
 
 void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
-  char buf[80];
+  char buf[128];
   std::string valstr_old = local_val_repr( &sign->val );
   std::string valstr_new = local_val_repr( val );
   sprintf( buf, "Set %s from %s to %s.", sign->str, valstr_old.c_str(), valstr_new.c_str() );
@@ -184,6 +206,8 @@ void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
 }
 
 void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
+  char buf[]="End of session.";
+  repl_log( buf );
   _UPDATE_ENCYS;   
 }
 

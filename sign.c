@@ -118,6 +118,20 @@ unsigned short sign_get_default( sign_rec_ptr sign ){
 }
 
 void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
+  /* char buf[128]; */
+  /* sprintf( buf, "SetDef in %s Status %d Type %d Bool %d\n", sign->str, */
+  /* 	   sign->val.status, */
+  /* 	   sign->val.type, */
+  /* 	   sign->val.val_bool */
+  /* 	   ); */
+  /* printf( buf ); */
+  /* sprintf( buf, "SetDef val %s Status %d Type %d Bool %d\n", sign->str, */
+  /* 	   val->status, */
+  /* 	   val->type, */
+  /* 	   val->val_bool */
+  /* 	   ); */
+  /* printf( buf ); */
+  
   if( _UNKNOWN == val->status ) return;
   if( sign->val.type != val->type ) return;
   // A chance to handle previous and new value
@@ -139,6 +153,13 @@ void sign_set_default( sign_rec_ptr sign, struct val_rec *val ){
     break;
   }
   
+  /* sprintf( buf, "SetDef out %s Status %d Type %d Bool %d\n", sign->str, */
+  /* 	   sign->val.status, */
+  /* 	   sign->val.type, */
+  /* 	   sign->val.val_bool */
+  /* 	   ); */
+  /* printf( "%s", buf ); */
+
   // IMPORTANT! This is where sign's values are forwarded.
   engine_default_on_set( sign, val );
 

@@ -5,19 +5,20 @@ Revisiting the historical demonstration knowledge base for NEXPERT.
 
 
 #+BEGIN_RULE
-$CRT_and_KDU nxp@ =s( AGREE)
+$CRT_and_KDU nxp@ s( AGREE) compare 0=
 THEN THERMAL_TRANSIENT_CONDITION
 100 pressure1 nxp! 150 pressure2 nxp!
-s( img/DIAGNOS.PNG) nxp_show
-s( tanks.csv) nxp_csv@ drop
+s( TRANSFER) $task nxp!
 #+END_RULE
 
 #+BEGIN_RULE consequence
 pressure_P1 nxp@ 20 >
-$task nxp@ =s( TRANSFER)
+$task nxp@ s( TRANSFER) compare 0 =
 THEN WOW
 s( tanks_saved.csv) nxp_csv! drop
+s( img/DIAGNOS.PNG) nxp_show
 #+END_RULE
+
 
 More information still
 

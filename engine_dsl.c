@@ -20,11 +20,15 @@
 #include <stddef.h>
 
 #include "agenda.h"
-  
+
+extern void  repl_log( const char *s );
+
 #ifdef ENGINE_DSL_HOWERJFORTH
 #include "embed.h"
 #include "util.h"
 #include <csv.h>
+
+#define _MARSHALL_BUFLEN 80
 
 struct vm_extension_t;
 typedef struct vm_extension_t vm_extension_t;
@@ -101,8 +105,9 @@ struct vm_extension_t {
   X("nxp@",     cb_nxpget_async,     true)      \
   X("nxp!",     cb_nxpset,     true)            \
   X("nxp_show", cb_nxpshow,    true)            \
-  X("nxp_csv@", cb_nxpcsv_r,    true)            \
-  X("nxp_csv!", cb_nxpcsv_w,    true)            \
+  X("nxp_csv@", cb_nxpcsv_r,   true)            \
+  X("nxp_csv!", cb_nxpcsv_w,   true)            \
+  X("slog",     cb_nxpslog,    true)            \
 
 #define X(NAME, FUNCTION, USE) static int FUNCTION ( vm_extension_t * const v );
 CALLBACK_XMACRO
@@ -628,11 +633,56 @@ static void vm_extension_free(vm_extension_t *v) {
   free(v);
 }
 
+/* ----------------------------------------------------------------------------- */
+void marshall_forth_string( char *str, vm_extension_t * const v ){
+  cell_t val;
+  int    res, r;
+  char   *s;
+  r   = embed_pop( v->h, &val );
+  s   = str;
+  r   = (int)val;
+  for( short i=0; i<r ; i++ ){
+    res = embed_pop( v->h, &val );
+    *s++ = val;
+  }
+  res = embed_pop( v->h, &val );
+  *s = 0;
+}
 
+int marshall_forth_compactstring( char *str, vm_extension_t * const v ){
+  int len;
+  short i;
+  embed_mmu_read_t  mr = v->h->o.read;
+  cell_t val, addr;
+  // Read length
+  int r = embed_pop( v->h, &val );
+  len	= (int)val;
+  char buf[32];
+  /* sprintf( buf, "Marshall len %d\n", len ); */
+  /* repl_log( buf ); */
+  // Decode string at address `addr`
+  r	= embed_pop( v->h, &addr );
+  int loc = (addr>>1)%32768;
+  for( i=0; i <= len; i+=2 ){
+    val		= mr( v->h, loc + (i>>1) );
+    /* sprintf( buf, "%d|%c|%d\n", loc + (i>>1), ((int)val) & 0xFF, ((int)val) & 0xFF ); */
+    /* repl_log( buf ); */
+    if( i>0 ) str[i-1] = ((int)val) & 0xFF;
+    /* sprintf( buf, "%d|%c|%d\n", loc + (i>>1), (((int)val) >> 8) & 0xFF, (((int)val) >> 8) & 0xFF ); */
+    /* repl_log( buf ); */
+    str[i] = (i<len) ? (((int)val) >> 8) & 0xFF : 0;
+  }
+  str[len] = 0;
+  /* sprintf( buf, "Marshall str |%s|\n", str ); */
+  /* repl_log( buf ); */
+  return r;
+}
+
+/* ----------------------------------------------------------------------------- */
 sign_rec_ptr nxpget_sign( vm_extension_t * const v ){
   // Marshall string from FORTH
   cell_t val;
-  char   str[80], *s;
+  char   str[_MARSHALL_BUFLEN], *s;
   int    res, r = embed_pop( v->h, &val );
   s   = str;
   r   = (int)val;
@@ -840,26 +890,11 @@ int nxpcsv_io( char *fn, csv_cb1_t f_cb1, csv_cb2_t f_cb2 ){
   return EXIT_SUCCESS;
 }
 
-void marshall_forth_string( char *str, vm_extension_t * const v ){
-  cell_t val;
-  int    res, r;
-  char   *s;
-  r   = embed_pop( v->h, &val );
-  s   = str;
-  r   = (int)val;
-  for( short i=0; i<r ; i++ ){
-    res = embed_pop( v->h, &val );
-    *s++ = val;
-  }
-  res = embed_pop( v->h, &val );
-  *s = 0;
-}
-
 static int cb_nxpcsv_r(vm_extension_t * const v) {
   int    res, r;
-  char   str[32];
+  char   str[_MARSHALL_BUFLEN];
   // Marshall file name string from FORTH
-  marshall_forth_string( str, v );
+  marshall_forth_compactstring( str, v );
   //
   r = nxpcsv_io( str, &cb1, &cb2 );
   res = embed_push( v->h, (EXIT_SUCCESS == r) ? (cell_t)65535 : (cell_t)0 );
@@ -868,9 +903,9 @@ static int cb_nxpcsv_r(vm_extension_t * const v) {
 
 static int cb_nxpcsv_w(vm_extension_t * const v) {
   int    res = 0, r;
-  char   str[32];
+  char   str[_MARSHALL_BUFLEN];
   // Marshall file name string from FORTH
-  marshall_forth_string( str, v );
+  marshall_forth_compactstring( str, v );
   S_temp = fopen("temp.csv", "wb");
   if (!S_temp) {
     /* fprintf(stderr, "Failed to open %s: %s, skipping\n", fn, strerror(errno)); */
@@ -881,7 +916,7 @@ static int cb_nxpcsv_w(vm_extension_t * const v) {
   res = embed_push( v->h, (EXIT_SUCCESS == r) ? (cell_t)65535 : (cell_t)0 );
   fclose( S_temp );
   // Overwrite argument file
-  char cmdstr[80];
+  char cmdstr[_MARSHALL_BUFLEN];
   sprintf( cmdstr, "mv temp.csv %s", str );
   system( cmdstr );
   //
@@ -890,25 +925,41 @@ static int cb_nxpcsv_w(vm_extension_t * const v) {
 
 
 /* ----------------------------------------------------------------------------- */
+/* static int cb_nxpshow(vm_extension_t * const v) { */
+/*   unsigned short i; */
+/*   int            res, len; */
+/*   cell_t         val; */
+/*   char           *cmdstr; */
+/*   res = embed_pop( v->h, &val ); */
+/*   len = (int)val; */
+/*   cmdstr = (char *)malloc( (len + 10)*sizeof(char) ); */
+/*   strcpy( cmdstr, "cygstart " ); */
+/*   for( i = 0; i < len; i++ ){ */
+/*     res = embed_pop( v->h, &val ); */
+/*     *(cmdstr + i + 9) = (char)val; */
+/*   } */
+/*   res = embed_pop( v->h, &val ); // Ignore ')' */
+/*   *(cmdstr + i + 9) = 0; */
+
+/*   system( cmdstr ); */
+/*   free( cmdstr ); */
+/*   return res; */
+/* } */
+
 static int cb_nxpshow(vm_extension_t * const v) {
   unsigned short i;
-  int            res, len;
+  int            res;
   cell_t         val;
-  char           *cmdstr;
-  res = embed_pop( v->h, &val );
-  len = (int)val;
-  cmdstr = (char *)malloc( (len + 10)*sizeof(char) );
-  strcpy( cmdstr, "cygstart " );
-  for( i = 0; i < len; i++ ){
-    res = embed_pop( v->h, &val );
-    *(cmdstr + i + 9) = (char)val;
-  }
-  res = embed_pop( v->h, &val ); // Ignore ')'
-  *(cmdstr + i + 9) = 0;
-
+  char           cmdstr[_MARSHALL_BUFLEN] = "cygstart ";
+  res = marshall_forth_compactstring( cmdstr+9, v );
   system( cmdstr );
-  free( cmdstr );
   return res;
+}
+
+static int cb_nxpslog(vm_extension_t * const v) {
+  char str[_MARSHALL_BUFLEN];
+  int res = marshall_forth_compactstring( str, v );
+  return 0;
 }
 
 /* ----------------------------------------------------------------------------- */
@@ -916,6 +967,7 @@ static int cb_nxpset(vm_extension_t * const v) {
   unsigned short i;
   int            res, len;
   cell_t         val;
+  char           str[_MARSHALL_BUFLEN] = "";
   struct val_rec vrec = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
   sign_rec_ptr   sign = nxpget_sign( v );
   if( sign ){
@@ -927,18 +979,22 @@ static int cb_nxpset(vm_extension_t * const v) {
       sign_set_default( sign, &vrec );
       break;
     case _VAL_T_STR:
-      res = embed_pop( v->h, &val );
-      len = (int)val;
+      /* res = embed_pop( v->h, &val ); */
+      /* len = (int)val; */
+      /* vrec.type    = _VAL_T_STR; */
+      /* vrec.valptr = (char *)malloc( len*sizeof(char) ); */
+      /* // Here expect a spelt-string as returned by s( */
+      /* // nxp@, however, returns a forth-string as returned by s" */
+      /* for( i = 0; i < len; i++ ){ */
+      /* 	res = embed_pop( v->h, &val ); */
+      /* 	vrec.valptr[i] = (char)val; */
+      /* } */
+      /* res = embed_pop( v->h, &val ); // Ignore ')' */
+      /* vrec.valptr[i] = 0; */
+      res = marshall_forth_compactstring( str, v );
       vrec.type    = _VAL_T_STR;
-      vrec.valptr = (char *)malloc( len*sizeof(char) );
-      // Here expect a spelt-string as returned by s(
-      // nxp@, however, returns a forth-string as returned by s"
-      for( i = 0; i < len; i++ ){
-	res = embed_pop( v->h, &val );
-	vrec.valptr[i] = (char)val;
-      }
-      res = embed_pop( v->h, &val ); // Ignore ')'
-      vrec.valptr[i] = 0;
+      vrec.valptr  = (char *)malloc( strlen(str)*sizeof(char) );
+      strcpy( vrec.valptr, str );
       sign_set_default( sign, &vrec );
       break;
     }
@@ -982,7 +1038,7 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
   int  r = 0;
   cell_t val;
   if( NULL == sign_find( dsl_var, loadkb_get_allsigns() ) ){
-    char prgm[80];
+    char prgm[_MARSHALL_BUFLEN];
     sprintf( prgm, templ_sign_decl, dsl_var, dsl_var );
     r = embed_eval( S_v->h, prgm );
     if( 0 != r )
@@ -1010,10 +1066,6 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
 /* +----------+------------------------------+------------------------------+ */
 /* |float     |TODO                          |TODO                          | */
 /* +----------+------------------------------+------------------------------+ */
-/* |string    |=s( Testing equality          |s( Constant string            | */
-/* |          |$CRT_and_KDU nxp@ =s( AGREE)  |s( FLUID-TRANSFER) $TASK nxp! | */
-/* +----------+------------------------------+------------------------------+ */
-/* +----------+------------------------------+------------------------------+ */
 /* |string    |nxp_csv@ Read col 0-1 of csv file, returning TRUE or FALSE   | */
 /* |int       | s( tanks.csv) nxp_csv@                                      | */
 /* +----------+------------------------------+------------------------------+ */
@@ -1036,14 +1088,15 @@ int  engine_dsl_init(){
 
   /* const int r = vm_extension_run(v); */
   cell_t val;
-  char   str[80], *s;
+  char   str[_MARSHALL_BUFLEN], *s;
   int    res;
   /* int    r = nxp_init( v ); */
   if(TRACE_ON) printf( "Engine DSL: howerjforth\n\n" );
-  res = embed_eval( v->h, ": =s( [char] ) parse compare 0 = ;\n" );
-  if( 0 != res )
-    embed_fatal( "can't compile word =s(" );
-  res = embed_eval( v->h, ": s( [char] ) parse dup >r for dup r@ + c@ swap next drop r> ;\n" );
+  /* res = embed_eval( v->h, ": =s( [char] ) parse compare 0 = ;\n" ); */
+  /* if( 0 != res ) */
+  /*   embed_fatal( "can't compile word =s(" ); */
+  /* res = embed_eval( v->h, ": s( [char] ) parse dup >r for dup r@ + c@ swap next drop r> ;\n" ); */
+  res = embed_eval( v->h, ": s( [char] ) parse ;\n" );
   if( 0 != res )
     embed_fatal( "can't compile word s(" );
   S_v = v;
@@ -1072,10 +1125,13 @@ int  engine_dsl_rhs_eval( const char * expr ){
   return r;
 }
 
-int  engine_dsl_eval_async( const char * expr, int *err, int *suspend ){
+int  engine_dsl_eval_async( const char * exp, int *err, int *suspend ){
   cell_t val;
   int    ret = _UNKNOWN;
+  char   expr[80];
   //
+  strcpy( expr, exp );
+  
   char   buf[128];
   sprintf( buf, "<FORTH> Evaluating %s (Suspend %d)", expr, *suspend );
   repl_log( buf );

@@ -450,6 +450,7 @@ void Menu::log( const char *msg ){
   //   }
   Trace.scrolltext.append( finalcut::FString( msg ) );
   Trace.redraw();
+  Trace.scrolltext.scrollToEnd();
 }
 
 

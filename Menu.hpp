@@ -38,7 +38,8 @@ public:
   QuestionWidget *v = nullptr;  // Volunteer dialog
 
   void log( const char *msg );  
-
+  TextWindow  Trace{this};
+  
 private:
   struct FileMenu
   {
@@ -145,6 +146,6 @@ private:
   finalcut::FLabel      Headline1{this};
   finalcut::FLabel      Headline2{this};
   finalcut::FLabel      Info{this};
-  TextWindow  Trace{this};
+
 };
 #endif

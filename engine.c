@@ -51,14 +51,13 @@ void engine_default_on_gate( hypo_rec_ptr hypo, short val ){
       new_cell			= (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
       new_cell->sign_or_hypo	= hypo;
       new_cell->val.status	= _UNKNOWN;
-      new_cell->next		= cell->next;
+      new_cell->next		= (cell_rec_ptr)0;
       cell->next		= new_cell;
 
       char buf[64];
-      sprintf( buf, "Tail %s (%d)", hypo->str, new_cell->val );
+      sprintf( buf, "Appending %s (%d)", hypo->str, new_cell->val );
       repl_log( buf );
 
-      /* if( S_on_push ) S_on_push( hypo, _UNKNOWN ); */
     }
     else{
       engine_pushnew_hypo( repl_getState(), hypo );
@@ -195,6 +194,7 @@ void engine_pop( engine_state_rec_ptr state ){
   cell_rec_ptr cell = state->agenda;
   state->agenda = cell->next;
   if( S_on_pop ) S_on_pop( cell->sign_or_hypo, &(cell->val) );
+  free( cell );
 }
 
 void engine_knowcess( engine_state_rec_ptr state ){
@@ -267,8 +267,9 @@ void engine_resume_knowcess( engine_state_rec_ptr state ){
       goto next;
     }
   }
-  if( S_on_endsession ) S_on_endsession( (sign_rec_ptr) NULL, NULL );  
-  /* repl_log( "Done!" ); */
+  
+  if( ( (cell_rec_ptr)0 == state->agenda ) && S_on_endsession )
+    S_on_endsession( (sign_rec_ptr) NULL, NULL );
 }
 
 //----------------------------------------------------------------------
@@ -391,7 +392,13 @@ void engine_backward_hypo( hypo_rec_ptr hypo, int *suspend ){
 }
 
 void engine_backward_compound( compound_rec_ptr compound, int *suspend ){
-  if(TRACE_ON) printf ("__FUNCTION__ = %s %s\n", __FUNCTION__, compound->str);
+  if(TRACE_ON) printf ("__FUNCTION__ = %s %s %d %d %d\n",
+		       __FUNCTION__,
+		       compound->str,
+		       (compound->len_type & TYPE_MASK),
+		       compound->val.status,
+		       compound->ngetters
+		       );
   if( COMPOUND_MASK != (compound->len_type & TYPE_MASK) ) return;
   if( _UNKNOWN != compound->val.status ) return;
   if( 0 == compound->ngetters ){
