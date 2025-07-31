@@ -35,34 +35,35 @@ void engine_default_on_set( sign_rec_ptr sign,  struct val_rec * val ){
   }
 }
 
-void engine_default_on_gate( hypo_rec_ptr hypo, short val ){
-  // Postpone hypo when one of its rule might be true or
-  // compound if one of its DSL-shared var is known.
-  if( _TRUE == val && _UNKNOWN == hypo->val.status ){
-    cell_rec_ptr new_cell, cell = repl_getState()->agenda;
-    if( cell ){
-      // Is hypo already on top of stack?
-      if( cell->sign_or_hypo == hypo ) return;
-      while( cell->next ){
-	// Is hypo already stacked?
-	if( cell->sign_or_hypo == hypo ) return;
-	cell = cell->next;
-      }
-      new_cell			= (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );
-      new_cell->sign_or_hypo	= hypo;
-      new_cell->val.status	= _UNKNOWN;
-      new_cell->next		= (cell_rec_ptr)0;
-      cell->next		= new_cell;
+void engine_default_on_gate(hypo_rec_ptr hypo, short val) {
+	// Postpone hypo when one of its rule might be true or
+	// compound if one of its DSL-shared var is known.
+	if (_TRUE == val && _UNKNOWN == hypo->val.status) {
+		cell_rec_ptr new_cell, cell = repl_getState()->agenda;
+		if (cell) {
+			// Is hypo already on top of stack?
+			if (cell->sign_or_hypo == hypo) return;
+			while (cell->next) {
+				// Is hypo already stacked?
+				if (cell->sign_or_hypo == hypo) return;
+				cell = cell->next;
+			}
+			new_cell = (cell_rec_ptr)malloc(sizeof(struct cell_rec));
+			new_cell->sign_or_hypo = hypo;
+			new_cell->val.status = _UNKNOWN;
+            new_cell->val.type = hypo->val.type;
+			new_cell->next = (cell_rec_ptr)0;
+			cell->next = new_cell;
 
-      char buf[64];
-      sprintf( buf, "Appending %s (%d)", hypo->str, new_cell->val );
-      repl_log( buf );
+			char buf[64];
+			sprintf(buf, "Appending %s (%d)", hypo->str, (int)val);
+			repl_log(buf);
 
-    }
-    else{
-      engine_pushnew_hypo( repl_getState(), hypo );
-    }
-  }
+		}
+		else {
+			engine_pushnew_hypo(repl_getState(), hypo);
+		}
+	}
   // engine_print_state( repl_getState() );
 }
 
@@ -156,13 +157,13 @@ void reset( sign_rec_ptr sign ){
 
 void engine_reset( engine_state_rec_ptr state ){
   sign_rec_ptr top;
-  if( top = (sign_rec_ptr) loadkb_get_allsigns() ){
+  if( (top = (sign_rec_ptr) loadkb_get_allsigns()) ){
     sign_iter( top, reset );
   }
-  if( top = (sign_rec_ptr) loadkb_get_allhypos() ){
+  if( (top = (sign_rec_ptr) loadkb_get_allhypos()) ){
     sign_iter( top, reset );
   }
-  if( top = (sign_rec_ptr) loadkb_get_allrules() ){
+  if( (top = (sign_rec_ptr) loadkb_get_allrules()) ){
     sign_iter( top, reset );
   }
   free_state( state );
