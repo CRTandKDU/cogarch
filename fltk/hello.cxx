@@ -20,101 +20,20 @@
 #include <stdlib.h> // exit,malloc
 #include <string> // strerror
 #include <errno.h>  // errno
+#include <cstdarg>
 
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Native_File_Chooser.H>
-#include <FL/Fl_Box.H>
+#include <FL/Fl_Text_Buffer.H>
+#include <FL/Fl_Text_Display.H>
 #include <FL/fl_ask.H>
 
 #include "agenda.h"
+#include "Ency.hpp"
 #include "hello.h"
 
-#include "Ency.cpp"
-
-//----------------------------------------------------------------------
-// Minimal setup and ancillaries for engine
-//----------------------------------------------------------------------
-engine_state_rec_ptr S_State;
-
-engine_state_rec_ptr repl_getState() {
-  return S_State;
-}
-
-void repl_log(const char *s) {}
-
-void engine_dsl_getter_compound(compound_rec_ptr compound, int *suspend) {
-#ifdef ENGINE_DSL_HOWERJFORTH
-  if (_KNOWN == compound->val.status)
-    return;
-#endif
-}
-
-const char *S_Color[] = {"\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m"};
-
-char *S_val_color(unsigned short val) {
-  char *esc;
-  switch (val) {
-    case _TRUE:
-      esc = (char *)S_Color[0];
-      break;
-    case _FALSE:
-      esc = (char *)S_Color[1];
-      break;
-    default:
-      esc = (char *)S_Color[2];
-  }
-  return esc;
-}
-
-std::string repl_val_repr(struct val_rec *val) {
-  if (_UNKNOWN == val->status)
-    return std::string("UNKNOWN");
-  switch (val->type) {
-    case _VAL_T_BOOL:
-      return (_FALSE == val->val_bool) ? std::string("FALSE") : std::string("TRUE");
-      break;
-    case _VAL_T_INT:
-      return (std::to_string(val->val_int));
-      break;
-    case _VAL_T_FLOAT:
-      break;
-    case _VAL_T_STR:
-      if (val->valptr)
-        return (std::string(val->valptr));
-      else
-        return (std::string("error"));
-      break;
-  }
-  return std::string("error");
-}
-
-//----------------------------------------------------------------------
-// Getter callbacks from the engine
-//----------------------------------------------------------------------
-void getter_sign(sign_rec_ptr sign, int *suspend) {
-
-}
-
-void repl_init() {
-  // New state
-  S_State = (engine_state_rec_ptr)malloc(sizeof(struct engine_state_rec));
-  S_State->current_sign = (sign_rec_ptr)0;
-  S_State->agenda = (cell_rec_ptr)0;
-  // Set up DSL
-#ifdef ENGINE_DSL
-  engine_dsl_init();
-#endif
-}
-
-void repl_free() {
-#ifdef ENGINE_DSL
-  engine_dsl_free();
-#endif
-  loadkb_reset();
-  engine_free_state(S_State);
-}
 
 //------------------------------------------------------------------------------------------------------
 class Application : public Fl_Window {
@@ -174,7 +93,6 @@ class Application : public Fl_Window {
   static void open_cb(Fl_Widget *w, void *v) {
     Application *app = (Application *)v;
     app->fc->title("Load Knowledge Base");
-    app->fc->filter("Org Files\t*.org\nAll Files\t*.*");
     app->fc->type(Fl_Native_File_Chooser::BROWSE_FILE); // only picks files that exist
     switch (app->fc->show()) {
       case -1:
@@ -184,6 +102,7 @@ class Application : public Fl_Window {
       default: // Choice
         app->fc->preset_file(app->fc->filename());
         app->open(app->fc->filename());
+        repl_log("Loaded knowledge base '%s'\n", app->fc->filename());
         app->ency[0]->table->fill(loadkb_get_allsigns());
         app->ency[1]->table->fill(loadkb_get_allhypos());
         break;
@@ -231,12 +150,16 @@ class Application : public Fl_Window {
   }
 
 public:
+    Fl_Text_Buffer* buff;
+
     EncyWin *ency[2];
 
 
   // CTOR
   Application()
-    : Fl_Window(400, 200, "Native File Chooser Example") {
+    : Fl_Window(400, 200, "NXP") {
+    resizable(this);
+    // Menubar
     Fl_Menu_Bar *menu = new Fl_Menu_Bar(0, 0, 400, 25);
     menu->add("&File/&LoadKB", FL_COMMAND + 'o', open_cb, (void *)this);
     menu->add("&File/&Save", FL_COMMAND + 'w', save_cb, (void *)this, FL_MENU_INACTIVE);
@@ -252,24 +175,18 @@ public:
     menu->add("&Encylopedia/&Hypotheses", FL_COMMAND + 'y', hypo_cb, (void*)this);
     menu->add("&Encylopedia/&Rules", FL_COMMAND + 'y', hypo_cb, (void*)this);
 
-    // Describe the demo..
-    Fl_Box *box = new Fl_Box(20, 25 + 20, w() - 40, h() - 40 - 25);
-    box->color(45);
-    box->box(FL_FLAT_BOX);
-    box->align(FL_ALIGN_CENTER | FL_ALIGN_INSIDE | FL_ALIGN_WRAP);
-    box->label("This demo shows an example of implementing "
-               "common 'File' menu operations like:\n"
-               "    File/Open, File/Save, File/Save As\n"
-               "..using the Fl_Native_File_Chooser widget.\n\n"
-               "Note 'Save' and 'Save As' really *does* create files! "
-               "This is to show how behavior differs when "
-               "files exist vs. do not.");
-    box->labelsize(12);
+    buff = new Fl_Text_Buffer();
+    Fl_Text_Display* disp = new Fl_Text_Display(10, 10+25, 380, 180-25);
+    disp->buffer(buff);                 // attach text buffer to display widget
+    resizable(disp);
+    buff->text("NXP Architecture\nSession\n");
+    
     // Initialize the file chooser
     fc = new Fl_Native_File_Chooser();
-    fc->filter("Text\t*.txt\n");
+    fc->filter("Org Files\t*.org\nAll Files\t*.*");
     fc->preset_file(untitled_default());
     end();
+    
     // Encyclopedia
     ency[1] = new EncyWin((sign_rec_ptr)loadkb_get_allhypos(), EncyTable::item::HYPO);
     ency[0] = new EncyWin((sign_rec_ptr)loadkb_get_allsigns(), EncyTable::item::SIGN);
@@ -277,12 +194,105 @@ public:
   }
 };
 
+Application* S_app = (Application*)0;
+
+//----------------------------------------------------------------------
+// Minimal setup and ancillaries for engine
+//----------------------------------------------------------------------
+engine_state_rec_ptr S_State;
+
+engine_state_rec_ptr repl_getState() {
+    return S_State;
+}
+
+void repl_log(const char* fmt, ...) {
+    char buf[255];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, 255, fmt, args);
+    va_end(args);
+    S_app->buff->append(buf, -1);
+}
+
+void engine_dsl_getter_compound(compound_rec_ptr compound, int* suspend) {
+#ifdef ENGINE_DSL_HOWERJFORTH
+    if (_KNOWN == compound->val.status)
+        return;
+#endif
+}
+
+const char* S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
+
+char* S_val_color(unsigned short val) {
+    char* esc;
+    switch (val) {
+    case _TRUE:
+        esc = (char*)S_Color[0];
+        break;
+    case _FALSE:
+        esc = (char*)S_Color[1];
+        break;
+    default:
+        esc = (char*)S_Color[2];
+    }
+    return esc;
+}
+
+std::string repl_val_repr(struct val_rec* val) {
+    if (_UNKNOWN == val->status)
+        return std::string("UNKNOWN");
+    switch (val->type) {
+    case _VAL_T_BOOL:
+        return (_FALSE == val->val_bool) ? std::string("FALSE") : std::string("TRUE");
+        break;
+    case _VAL_T_INT:
+        return (std::to_string(val->val_int));
+        break;
+    case _VAL_T_FLOAT:
+        break;
+    case _VAL_T_STR:
+        if (val->valptr)
+            return (std::string(val->valptr));
+        else
+            return (std::string("error"));
+        break;
+    }
+    return std::string("error");
+}
+
+//----------------------------------------------------------------------
+// Getter callbacks from the engine
+//----------------------------------------------------------------------
+void getter_sign(sign_rec_ptr sign, int* suspend) {
+
+}
+
+void repl_init() {
+    // New state
+    S_State = (engine_state_rec_ptr)malloc(sizeof(struct engine_state_rec));
+    S_State->current_sign = (sign_rec_ptr)0;
+    S_State->agenda = (cell_rec_ptr)0;
+    // Set up DSL
+#ifdef ENGINE_DSL
+    engine_dsl_init();
+#endif
+}
+
+void repl_free() {
+#ifdef ENGINE_DSL
+    engine_dsl_free();
+#endif
+    loadkb_reset();
+    engine_free_state(S_State);
+}
+
 int main(int argc, char *argv[]) {
   int res;
   repl_init();
   //
   Fl::scheme("gtk+");
   Application *app = new Application();
+  S_app = app;
   app->show(argc, argv);
   res = Fl::run();
   //

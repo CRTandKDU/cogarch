@@ -7,9 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "agenda.h"
 
-extern void  repl_log( const char *s );
+extern void  repl_log( const char *s,... );
 extern engine_state_rec_ptr repl_getState();
 
 effect S_on_get		= (effect)0;		// Triggered on get in `sign_default_get`
