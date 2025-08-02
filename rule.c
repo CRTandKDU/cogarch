@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef FLTK
+#include <string>
+#endif
+
 #include "agenda.h"
 
 #define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
@@ -58,8 +63,17 @@ void rule_pushnewrhs( rule_rec_ptr rule, char *dsl_expr ){
     rule->rhs = (empty_ptr *)realloc( rule->rhs, (1 + rule->nrhs)*sizeof(empty_ptr) );
   }
   //
+#ifdef FLTK
+  std::string str = std::string(dsl_expr);
+  if ('\n' != str.back()) {
+      str.push_back('\n');
+  }
+  (rule->rhs)[rule->nrhs] = (empty_ptr)malloc(str.length());
+  strcpy((char *) (rule->rhs)[rule->nrhs], str.c_str());
+#else
   (rule->rhs)[ rule->nrhs ] = (empty_ptr)malloc( len*sizeof(char) );
   strcpy( (char *) (rule->rhs)[ rule->nrhs ], dsl_expr );
+#endif
   rule->nrhs += 1;
 }
 
@@ -87,8 +101,12 @@ void rule_del( rule_rec_ptr rule ){
     for( unsigned short i=0; i<rule->ngetters; i++ ){ free( (void *) (rule->getters)[i] ); }
   if( rule->getters ) free( rule->getters );
   //
+#ifndef FLTK
   if( rule->nrhs )
-    for( unsigned short i=0; i<rule->nrhs; i++ ){ free( (void *) (rule->rhs)[i] ); }
+    for( unsigned short i=0; i<rule->nrhs; i++ ){ 
+        free(  rule->rhs[i] ); 
+    }
+#endif
   if( rule->rhs ) free( rule->rhs );
   free( rule );
 }

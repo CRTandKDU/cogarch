@@ -6,6 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef FLTK
+#include <string>
+#endif
+
 #include "agenda.h"
 
 #define _INIT_VAL(sign)  (sign)->val.status = _UNKNOWN; \
@@ -41,6 +46,14 @@ compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 
 void compound_DSL_set( compound_rec_ptr compound, const char * expr ){
   compound_del( compound );
+#ifdef FLTK
+  std::string str = std::string(expr);
+  if ('\n' != str.back()) {
+      str.push_back('\n');
+  }
+  compound->dsl_expression = (char*)malloc(str.length());
+  strcpy(compound->dsl_expression, str.c_str());
+#else
   char *s, *t;
   compound->dsl_expression = (char *) malloc( 1 + strlen( expr ) );
   if( compound->dsl_expression ){
@@ -52,6 +65,7 @@ void compound_DSL_set( compound_rec_ptr compound, const char * expr ){
     }
     *t = 0x0;
   }
+#endif
 }
 
 void compound_del( compound_rec_ptr compound ){

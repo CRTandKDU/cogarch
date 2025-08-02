@@ -10,7 +10,12 @@
 #include <stdarg.h>
 #include "agenda.h"
 
+#ifdef FLTK
 extern void  repl_log( const char *s,... );
+#else
+extern void  repl_log( const char *s );
+#endif
+
 extern engine_state_rec_ptr repl_getState();
 
 effect S_on_get		= (effect)0;		// Triggered on get in `sign_default_get`
@@ -56,9 +61,10 @@ void engine_default_on_gate(hypo_rec_ptr hypo, short val) {
 			new_cell->next = (cell_rec_ptr)0;
 			cell->next = new_cell;
 
-			char buf[64];
-			sprintf(buf, "Appending %s (%d)", hypo->str, (int)val);
-			repl_log(buf);
+			//char buf[64];
+			//sprintf(buf, "Appending %s (%d)", hypo->str, (int)val);
+			//repl_log(buf);
+            repl_log("Appending %s (%d)", hypo->str, (int)val);
 
 		}
 		else {
@@ -341,10 +347,10 @@ void engine_forward_cond( rule_rec_ptr rule, cond_rec_ptr cond ){
     // Rule could be evaluated to TRUE, execute RHS
     if( _TRUE == rval && 0 < rule->nrhs ){
 #ifdef ENGINE_DSL
-      int res;
-      for( unsigned short i = 0; i < rule->nrhs; i++ ){
-	res = engine_dsl_rhs_eval( (char *) (rule->rhs[i]) );
-      }
+		int res;
+		for (unsigned short i = 0; i < rule->nrhs; i++) {
+			res = engine_dsl_rhs_eval((char*)(rule->rhs[i]));
+		}
 #endif
     }
   }

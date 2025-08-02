@@ -5,13 +5,13 @@
 
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
-#include <FL/Fl_Table.H>
+#include <FL/Fl_Table_Row.H>
 #include <FL/fl_draw.H>
 
 #include "agenda.h"
 #include "hello.h"
 
-class EncyTable : public Fl_Table {
+class EncyTable : public Fl_Table_Row {
     enum item;
     item item_t;
     std::vector<sign_rec_ptr> data;
@@ -24,7 +24,7 @@ class EncyTable : public Fl_Table {
     // Draw the cell data
     //    Dark gray text on white background with subtle border
     //
-    void DrawData(const char* s, int X, int Y, int W, int H);
+    void DrawData(const char* s, int R, int C, int X, int Y, int W, int H);
     // Handle drawing table's cells
     //     Fl_Table calls this function to draw each visible cell in the table.
     //     It's up to us to use FLTK's drawing functions to draw the cells the way we want.
@@ -43,6 +43,10 @@ public:
     void clear();
     int fill(sign_rec_ptr first);
     void update(sign_rec_ptr first);
+    sign_rec_ptr get_sign_at(int n) { return data.at(n); };
+
+    static void event_callback(Fl_Widget*, void*);
+    void event_callback2();                                     // callback for table events
 
     EncyTable(sign_rec_ptr first, EncyTable::item _item_t,
         int X, int Y, int W, int H, const char* L);

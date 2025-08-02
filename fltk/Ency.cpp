@@ -31,12 +31,18 @@ void EncyTable::DrawHeader(const char* s, int X, int Y, int W, int H) {
 // Draw the cell data
 //    Dark gray text on white background with subtle border
 //
-void EncyTable::DrawData(const char* s, int X, int Y, int W, int H) {
+void EncyTable::DrawData(const char* s, int R, int C,
+	int X, int Y, int W, int H) {
 	fl_push_clip(X, Y, W, H);
 	// Draw cell bg
-	fl_color(FL_WHITE); fl_rectf(X, Y, W, H);
+	Fl_Color bgcolor = row_selected(R) ? selection_color() : FL_WHITE;
+	fl_color(bgcolor); fl_rectf(X, Y, W, H);
 	// Draw cell data
-	fl_color(FL_GRAY0); fl_draw(s, X, Y, W, H, FL_ALIGN_LEFT);
+	Fl_Color fgcolor = ( _KNOWN == data.at(R)->val.status && _VAL_T_BOOL == data.at(R)->val.type ) ?
+		( _TRUE == data.at(R)->val.val_bool ? FL_GREEN : FL_RED ) :
+		FL_GRAY0 ;
+	fl_color(fgcolor);
+	fl_draw(s, X, Y, W, H, FL_ALIGN_LEFT);
 	// Draw box border
 	fl_color(color()); fl_rect(X, Y, W, H);
 	fl_pop_clip();
@@ -83,10 +89,10 @@ void EncyTable::draw_cell(TableContext context, int ROW, int COL,
 	case CONTEXT_CELL:                        // Draw data in cells
 		switch (COL) {
 		case 0:
-			DrawData(data.at(ROW)->str, X, Y, W, H);
+			DrawData(data.at(ROW)->str, ROW, COL, X, Y, W, H);
 			break;
 		case 1:
-			DrawData(repl_val_repr(&(data.at(ROW)->val)).c_str(), X, Y, W, H);
+			DrawData(repl_val_repr(&(data.at(ROW)->val)).c_str(), ROW, COL, X, Y, W, H);
 			break;
 		}
 		return;
@@ -113,14 +119,33 @@ int EncyTable::fill(sign_rec_ptr first) {
 }
 
 void EncyTable::update(sign_rec_ptr first) {
-	draw();
+	redraw();
+}
+
+// Callback whenever someone clicks on different parts of the table
+void EncyTable::event_callback(Fl_Widget*, void* data) {
+	EncyTable* o = (EncyTable*)data;
+	o->event_callback2();
+}
+
+void EncyTable::event_callback2() {
+	int COL = callback_col();
+	TableContext context = callback_context();
+
+	switch (context) {
+	case CONTEXT_COL_HEADER: {              // someone clicked on column header
+		break;
+	}
+	default:
+		return;
+	}
 }
 
 // Constructor
 //     Make our data array, and initialize the table options.
 //
 EncyTable::EncyTable(sign_rec_ptr first, EncyTable::item _item_t,
-	int X, int Y, int W, int H, const char* L = 0) : Fl_Table(X, Y, W, H, L) {
+	int X, int Y, int W, int H, const char* L = 0) : Fl_Table_Row(X, Y, W, H, L) {
 	int nrows;
 
 	top = first;

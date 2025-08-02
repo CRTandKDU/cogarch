@@ -84,7 +84,9 @@ void sign_del( sign_rec_ptr sign ){
   if( sign->ngetters && sign->getters ) free( sign->getters );
   if( sign->nsetters && sign->setters ) free( sign->setters );
   //
+#ifndef FLTK
   if( sign->val.valptr ) free( sign->val.valptr );
+#endif
   free( sign );
 }
 
