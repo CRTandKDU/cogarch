@@ -15,7 +15,7 @@ s( TRANSFER) $task nxp!
 pressure_P1 nxp@ 20 >
 $task nxp@ s( TRANSFER) compare 0 =
 THEN WOW
-s( tanks_saved.csv) nxp_csv! drop
+s( tanks.csv) nxp_csv@ drop
 s( img/DIAGNOS.PNG) nxp_show
 #+END_RULE
 

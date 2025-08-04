@@ -26,6 +26,7 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Native_File_Chooser.H>
+#include <FL/filename.H>
 #include <FL/Fl_Text_Buffer.H>
 #include <FL/Fl_Text_Display.H>
 #include <FL/fl_ask.H>
@@ -44,7 +45,15 @@
 // Minimal setup and ancillaries for engine
 //----------------------------------------------------------------------
 engine_state_rec_ptr S_State;
+std::string S_lastdir;
 
+void keep_directory(const char* fn) {
+    // Files referred to in a KB are relative to the KB directory
+    std::string fullfn = std::string(fn);
+    std::size_t pos = fullfn.find_last_of('/');
+    S_lastdir = std::string(fullfn.substr(0, pos + 1));
+    fprintf(stderr, "Path %s\n", S_lastdir.c_str());
+}
 
 //------------------------------------------------------------------------------------------------------
 class Application : public Fl_Window {
@@ -62,7 +71,7 @@ class Application : public Fl_Window {
   // 'Open' the file
   void open(const char *filename) { 
       int res;
-      printf("Open '%s'\n", filename);
+      //printf("Open '%s'\n", filename);
       res = loadkb_file(filename);
       if (res)
         printf("Failed to load '%s'\n", filename);
@@ -132,24 +141,26 @@ class Application : public Fl_Window {
       _UPDATE_ENCYS(app);
   }
 
+
   // Handle an 'Open' request from the menu
-  static void open_cb(Fl_Widget *w, void *v) {
-    Application *app = (Application *)v;
-    app->fc->title("Load Knowledge Base");
-    app->fc->type(Fl_Native_File_Chooser::BROWSE_FILE); // only picks files that exist
-    switch (app->fc->show()) {
-      case -1:
-        break; // Error
-      case 1:
-        break; // Cancel
-      default: // Choice
-        app->fc->preset_file(app->fc->filename());
-        app->open(app->fc->filename());
-        repl_log("Loaded knowledge base '%s'\n", app->fc->filename());
-        app->ency[0]->table->fill(loadkb_get_allsigns());
-        app->ency[1]->table->fill(loadkb_get_allhypos());
-        break;
-    }
+  static void open_cb(Fl_Widget* w, void* v) {
+	  Application* app = (Application*)v;
+	  app->fc->title("Load Knowledge Base");
+	  app->fc->type(Fl_Native_File_Chooser::BROWSE_FILE); // only picks files that exist
+	  switch (app->fc->show()) {
+	  case -1:
+		  break; // Error
+	  case 1:
+		  break; // Cancel
+	  default: // Choice
+		  app->fc->preset_file(app->fc->filename());
+		  app->open(app->fc->filename());
+          keep_directory(app->fc->filename());
+		  repl_log("Loaded knowledge base '%s'", app->fc->filename());
+		  app->ency[0]->table->fill(loadkb_get_allsigns());
+		  app->ency[1]->table->fill(loadkb_get_allhypos());
+		  break;
+	  }
   }
 
   // Handle a 'Save as' request from the menu
@@ -243,7 +254,11 @@ public:
 Application* S_app = (Application*)0;
 Application* repl_getApp() { return S_app; }
 
+//----------------------------------------------------------------------
+// Minimal setup and ancillaries for engine
+//----------------------------------------------------------------------
 
+std::string repl_getLastdir() { return S_lastdir; }
 engine_state_rec_ptr repl_getState() {
     return S_State;
 }
@@ -254,6 +269,8 @@ void repl_log(const char* fmt, ...) {
     va_start(args, fmt);
     vsnprintf(buf, 255, fmt, args);
     va_end(args);
+    S_app->buff->append(buf, -1);
+    buf[0] = '\n'; buf[1] = 0;
     S_app->buff->append(buf, -1);
 }
 
@@ -296,25 +313,6 @@ std::string repl_val_repr(struct val_rec* val) {
     return std::string("error");
 }
 
-void repl_init() {
-    // New state
-    S_State = (engine_state_rec_ptr)malloc(sizeof(struct engine_state_rec));
-    S_State->current_sign = (sign_rec_ptr)0;
-    S_State->agenda = (cell_rec_ptr)0;
-    // Set up DSL
-#ifdef ENGINE_DSL
-    engine_dsl_init();
-#endif
-}
-
-void repl_free() {
-#ifdef ENGINE_DSL
-    engine_dsl_free();
-#endif
-    loadkb_reset();
-    engine_free_state(S_State);
-}
-
 
 //----------------------------------------------------------------------
 // Callbacks from QuestionWin
@@ -342,7 +340,7 @@ void cb_qwok(Fl_Widget* but, void* userdata) {
 
         sign_set_default(sign, &val);
         engine_pushnew_signdata(repl_getState(), sign, &val);
-        repl_log("Volunteered %s = %s.\n", sign->str, resp->value());
+        repl_log("Volunteered %s = %s.", sign->str, resp->value());
         ((QuestionWin*)userdata)->hide();
         S_app->ency[0]->table->redraw();
     }
@@ -370,7 +368,7 @@ void cb_qwok_knowcess(Fl_Widget* but, void* userdata) {
         }
 
         sign_set_default(sign, &val);
-        repl_log("Answered %s = %s.\n", sign->str, resp->value());
+        repl_log("Answered %s = %s.", sign->str, resp->value());
         ((QuestionWin*)userdata)->hide();
         engine_resume_knowcess(S_State);
         _UPDATE_ENCYS(S_app);
@@ -401,11 +399,11 @@ void engine_dsl_getter_compound(compound_rec_ptr compound, int* suspend) {
         return;
     //
     int  err;
-    repl_log("Getter compound %s (%d)\n", compound->str, *suspend);
+    repl_log("Getter compound %s (%d)", compound->str, *suspend);
     //fprintf(stderr, "Getter for %s\n|%s|\n", compound->str, compound->dsl_expression);
     int r = engine_dsl_eval_async((const char*)compound->dsl_expression, &err, suspend);
-    repl_log("FORTH Res %d Err %d Susp %d\n", r, err, *suspend);
-    repl_log("Post-eval compound %s (%d)\n", compound->str, *suspend);
+    repl_log("FORTH Res %d Err %d Susp %d", r, err, *suspend);
+    repl_log("Post-eval compound %s (%d)", compound->str, *suspend);
     switch (err) {
     case 0:
         // Ignore DSL evaluation if a question is pending! Re-evaluation will happen later.
@@ -423,6 +421,71 @@ void engine_dsl_getter_compound(compound_rec_ptr compound, int* suspend) {
     }
 #endif
 }
+
+void cb_on_gate(sign_rec_ptr sign, short val) {
+    repl_log("Gating %s (%d) - %d", sign->str, sign->val.val_bool, val);
+    // IMPORTANT
+    engine_default_on_gate(sign, val);
+    //S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+}
+
+void cb_on_agenda_push(sign_rec_ptr sign, struct val_rec* val) {
+    repl_log("Push %s", sign->str);
+    //
+    //S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+    engine_default_on_agenda_push(sign, val);
+}
+
+void cb_on_agenda_pop(sign_rec_ptr sign, struct val_rec* val) {
+    repl_log("Pop %s", sign->str);
+
+    //S_main_dlg->EncyWindow[ENCY_AGND].ency->repopulate();
+    // S_main_dlg->Trace.scrolltext.clear();
+    engine_default_on_agenda_pop(sign, val);
+}
+
+void cb_on_set(sign_rec_ptr sign, struct val_rec* val) {
+    std::string valstr_old = repl_val_repr(&sign->val);
+    std::string valstr_new = repl_val_repr(val);
+    repl_log("Set %s from %s to %s.", sign->str, valstr_old.c_str(), valstr_new.c_str());
+
+    _UPDATE_ENCYS(S_app);
+}
+
+void cb_on_endsession(sign_rec_ptr sign, struct val_rec* val) {
+    repl_log("End of session.");
+    _UPDATE_ENCYS(S_app);
+}
+
+void repl_init() {
+	// New state
+	S_State = (engine_state_rec_ptr)malloc(sizeof(struct engine_state_rec));
+	S_State->current_sign = (sign_rec_ptr)0;
+	S_State->agenda = (cell_rec_ptr)0;
+	// Callbacks
+	engine_register_effects(&engine_default_on_get,
+		&cb_on_set,
+		&cb_on_gate,
+		&cb_on_agenda_push,
+		&cb_on_agenda_pop,
+		&cb_on_endsession
+	);
+
+	// Set up DSL
+#ifdef ENGINE_DSL
+	engine_dsl_init();
+#endif
+}
+
+void repl_free() {
+#ifdef ENGINE_DSL
+    engine_dsl_free();
+#endif
+    loadkb_reset();
+    engine_free_state(S_State);
+}
+
+
 
 int main(int argc, char* argv[]) {
     int res;
