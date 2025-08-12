@@ -77,14 +77,15 @@ struct val_rec{
 
 
 #define _SIGN_INTERNALS    sign_rec_ptr   next;      \
-  struct val_rec val;       \
-  unsigned short len_type;  \
-  char           str[_CHOP+1];    \
-  int            ngetters;  \
-  empty_ptr      *getters;  \
-  int            nsetters;  \
-  empty_ptr      *setters  \
-  
+  struct val_rec val;		\
+  unsigned short len_type;	\
+  char           str[_CHOP+1];  \
+  int            ngetters;	\
+  empty_ptr      *getters;	\
+  int            nsetters;	\
+  empty_ptr      *setters;	\
+  empty_ptr      client_data	\
+
 
 struct sign_rec {
   _SIGN_INTERNALS;
@@ -112,6 +113,9 @@ void sign_print			( sign_rec_ptr sign );
 void sign_iter			( sign_rec_ptr s0, sign_op );
 sign_rec_ptr sign_find          ( const char *str, sign_rec_ptr top );
 hypo_rec_ptr sign_tohypo        ( hypo_rec_ptr hypo, sign_rec_ptr top_sign, hypo_rec_ptr top_hypo );
+empty_ptr sign_get_client_data  ( sign_rec_ptr sign );
+void sign_set_client_data       ( sign_rec_ptr sign, empty_ptr client_data );
+
 
 compound_rec_ptr compound_pushnew( sign_rec_ptr top,
 				   const char *s, const int ngetters );

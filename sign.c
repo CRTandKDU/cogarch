@@ -225,3 +225,9 @@ hypo_rec_ptr sign_tohypo( hypo_rec_ptr hypo, sign_rec_ptr top_sign, hypo_rec_ptr
   return hypo;
 }
 
+empty_ptr sign_get_client_data  ( sign_rec_ptr sign ){
+  return sign->client_data;
+}
+void sign_set_client_data       ( sign_rec_ptr sign, empty_ptr client_data ){
+  sign->client_data = client_data;
+}

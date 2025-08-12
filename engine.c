@@ -61,11 +61,13 @@ void engine_default_on_gate(hypo_rec_ptr hypo, short val) {
 			new_cell->next = (cell_rec_ptr)0;
 			cell->next = new_cell;
 
-			//char buf[64];
-			//sprintf(buf, "Appending %s (%d)", hypo->str, (int)val);
-			//repl_log(buf);
+#ifdef FLTK
             repl_log("Appending %s (%d)", hypo->str, (int)val);
-
+#else
+	    char buf[64];
+	    sprintf(buf, "Appending %s (%d)", hypo->str, (int)val);
+	    repl_log(buf);
+#endif	    
 		}
 		else {
 			engine_pushnew_hypo(repl_getState(), hypo);

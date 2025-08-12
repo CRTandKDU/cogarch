@@ -1,9 +1,11 @@
 CC		= g++
 CPP		= g++
-CFLAGS		=  -I. -I../libforth -I../embed-master -I../libcsv
+CFLAGS		= -I. -I../libforth -I../embed-master -I../libcsv -I./tidy_tree/src
+FLTK_CFLAGS     = -isystem "C:/Users/chauv/Documents/fltk-1.4.4" -isystem "C:/Users/chauv/Documents/fltk-1.4.4/build"
 EXTRA_CFLAGS	= -O2 -Wall -Wextra -std=c99
 DSL_CFLAGS	= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
 DSL_LFLAGS      = ../libcsv/libcsv_la-libcsv.o ../embed-master/util.o -L../embed-master -lembed -lm
+FLTK_LFLAGS     = -L "C:/Users/chauv/Documents/fltk-1.4.4/build/lib/Debug" -lfltkd
 # DSL_CFLAGS	= 
 # DSL_LFLAGS      = 
 LFLAGS		=  -L../libforth -L../embed-master
@@ -19,6 +21,8 @@ repl: repl.cpp Textwindow.o Question.o Menu.o Listview.o nxpFListView.o $(APIS)
 agenda: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(DSL_CFLAGS) $(DSL_LFLAGS)
 
+# network: network.cpp
+# 	$(CPP) -o $@ $^ $(CFLAGS) $(FLTK_CFLAGS) -std=c++20 $(FLTK_LFLAGS)
 
 simple_guile: simple_guile.c
 	gcc -o simple_guile simple_guile.c `pkg-config --cflags --libs guile-3.0`
