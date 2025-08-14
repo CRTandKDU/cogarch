@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstdarg>
 #include <vector>
 #include <algorithm>
 #include <string>
@@ -28,7 +29,7 @@ const uint32_t _HOVER_COLORFG    = 0xFFFFFF00;
 const uint8_t  _TOP_LEFT = 1;
 const uint8_t  _BOT_LEFT = 2;
 
-
+//------------------------------------------------------------------------------------------------------
 struct Node {
     double x, y, w, h;
     double prelim = 0, mod = 0, shift = 0, change = 0;
@@ -37,8 +38,8 @@ struct Node {
     Node* tl = nullptr, * tr = nullptr, * el = nullptr, * er = nullptr;
     double msel = 0, mser = 0;
     // Clientdata
-    std::string text;
-    std::vector< std::vector<Node*> > groups;
+    std::string text = "";
+    std::vector< std::vector<Node*> > groups = {};
 };
 
 void render_str(Node* top, int level) {
@@ -48,6 +49,38 @@ void render_str(Node* top, int level) {
         render_str(child, level + 2);
     }
 }
+
+void build_node_plain(Node* top, std::string topname, int count, ...) {
+    va_list args;
+    va_start(args, count);
+    //
+    top->w = _W; top->h = _H; top->text = std::string(topname);
+    for (short i = 0; i < count; i++) {
+        Node* child = va_arg(args, Node*);
+        top->children.push_back(child);
+        child->parent = top;
+    }
+    va_end(args);
+}
+
+void build_node_group(Node* top, std::string topname, int count, ...) {
+    va_list args;
+    va_start(args, count);
+    //
+    top->w = _W * count; top->h = _H; top->text = std::string(topname);
+
+    for (short i = 0; i < count; i++) {
+        std::vector<Node*> group = va_arg(args, std::vector<Node*>);
+        top->groups.insert(top->groups.begin(), group);
+        for (Node* child : group) {
+            top->children.push_back(child);
+            child->parent = top;
+        }
+    }
+    va_end(args);
+}
+
+//------------------------------------------------------------------------------------------------------
 
 class DrawXEdge : public Fl_Widget {
     uint8_t direction;
@@ -74,13 +107,50 @@ public:
 
 };
 
+
+class DrawXNodeGroup : public Fl_Group {
+    Node* node;
+    DrawXNodeGroup* pw;
+    DrawXEdge* pedge;
+
+public:
+    DrawXNodeGroup(Node* n, int X, int Y, int W, int H, const char* L = 0) : Fl_Group(X, Y, W, H, L) {
+        align(FL_ALIGN_TOP);
+        box(FL_FLAT_BOX);
+        color(_COLORBG);
+        node = n;
+    }
+
+    virtual void draw() FL_OVERRIDE {
+        fl_color(color()); fl_rectf(x(), y(), w(), h());
+        draw_children();
+        //
+        int x0 = x();
+        int y0 = y();
+        for (short i = 1; i < node->groups.size(); i++) {
+            y0 += _W;
+            fl_color(color());
+            fl_rectf(x0+1, y0-1, w()-2, 2);
+            fl_color(FL_GRAY);
+            fl_line(x0, y0, x0 + w(), y0);
+        }
+    }
+
+    Node* get_node() { return node; }
+    void set_pw(DrawXNodeGroup* parent_wgt) { pw = parent_wgt; }
+    DrawXNodeGroup* get_pw() { return pw; }
+    void set_pedge(DrawXEdge* parent_edge) { pedge = parent_edge; }
+    DrawXEdge* get_pedge() { return pedge; }
+
+};
+
 class DrawXNode : public Fl_Widget {
     Node* node;
-    DrawXNode* pw;
+    DrawXNodeGroup* pw;
+    DrawXEdge* pedge;
     Fl_Color style_fg_color;
     Fl_Font style_font;
     const int style_font_size = _W - _TMARGIN - _TMARGIN;
-    short subdivision;
 
 public:
     DrawXNode(Node* n, int X, int Y, int W, int H, const char* L = 0) : Fl_Widget(X, Y, W, H, L) {
@@ -90,19 +160,13 @@ public:
         node = n;
         style_fg_color = _COLORFG;
         style_font = FL_COURIER;
-        subdivision = -1;
     }
 
     virtual void draw() FL_OVERRIDE {
-        double hsubs = h() / _W;
         // Draw background - a white filled rectangle
         fl_color(color()); fl_rectf(x(), y(), w(), h());
-        if (subdivision > 0) {
-            fl_color(_HOVER_COLORBG);
-            fl_rectf(x(), y()+_W*subdivision, w(), hsubs);
-        }
         // Draw node
-        if( node ){
+        if (node) {
             fl_color(FL_BLACK);
             fl_rect(x(), y(), w(), h());
             fl_color(style_fg_color);
@@ -112,19 +176,17 @@ public:
         }
     }
 
-    int handle(int event)  {
+    int handle(int event) {
         int ret = Fl_Widget::handle(event);
         switch (event) {
         case FL_ENTER:
             color(_HOVER_COLORBG);
-            set_subdivision(-1);
             set_fg_color(_HOVER_COLORFG);
             redraw();
             return 1;
             break;
         case FL_LEAVE:
             color(_COLORBG);
-            set_subdivision(-1);
             set_fg_color(_COLORFG);
             redraw();
             return 1;
@@ -133,13 +195,12 @@ public:
         return ret;
     }
 
-	void set_pw(DrawXNode* parent_wgt) { pw = parent_wgt; }
-    DrawXNode*  get_pw() { return pw; }
+    void set_pw(DrawXNodeGroup* parent_wgt) { pw = parent_wgt; }
+    DrawXNodeGroup* get_pw() { return pw; }
+    void set_pedge(DrawXEdge* parent_edge) { pedge = parent_edge; }
+    DrawXEdge* get_pedge() { return pedge; }
 
     Node* get_node() { return node; }
-
-    short get_subdivision() { return subdivision; }
-    void  set_subdivision(short n) { subdivision = n; }
 
     void set_fg_color(Fl_Color fgc) { style_fg_color = fgc; }
 };
@@ -147,22 +208,23 @@ public:
 
 class DrawX : public Fl_Group {
     Node* root = nullptr;
+    int xmax = 0;
 
-    void edge_attach(DrawXNode *wgt, double* x2ptr, double* y2ptr) {
-        double yinc = 0;
-        DrawXNode* pw = wgt->get_pw();
+    void edge_attach(DrawXNodeGroup *wgt, double* x2ptr, double* y2ptr) {
+        DrawXNodeGroup* pw = wgt->get_pw();
+        DrawXNode* swgt = nullptr;
+
         *x2ptr = pw->x() + pw->w();
-
-        if (0 == pw->get_node()->groups.size()) {
+        //
+        if (1 > pw->get_node()->groups.size()) {
             *y2ptr = pw->y() + pw->h() / 2.;
         }
         else {
-            for (short i = 0; i < pw->get_node()->groups.size(); i++) {
-                if (std::find(pw->get_node()->groups[i].begin(),
-                    pw->get_node()->groups[i].end(),
-                    wgt->get_node()) != pw->get_node()->groups[i].end()) {
-                    yinc = pw->h() / pw->get_node()->groups.size();
-                    *y2ptr = pw->y() + i * yinc + yinc / 2;
+            std::vector< std::vector<Node*> > gvec = pw->get_node()->groups;
+            for (short i = 0; i < gvec.size(); i++) {
+                if (std::find(gvec[i].begin(), gvec[i].end(), wgt->get_node()) != gvec[i].end()) {
+                    swgt = (DrawXNode * ) pw->child(i);
+                    *y2ptr = swgt->y() + swgt->h() / 2;
                     return;
                 }
             }
@@ -171,16 +233,44 @@ class DrawX : public Fl_Group {
         }
     }
 
-    void add_children_nodes(Node* node, DrawXNode *parent_wgt) {
+    void get_max_x(Node* node) {
+        if (node->x + node->w > xmax) xmax = node->x + node->w;
+        for (Node* child : node->children) {
+            get_max_x(child);
+        }
+    }
+
+    void add_children_nodes(Node* node, DrawXNodeGroup *parent_wgt) {
         double xnew, ynew, wnew, hnew;
+        short i;
         const int font_size = _W - _TMARGIN - _TMARGIN;
         // Transform coord.
-        xnew = node->y; ynew = node->x + node->w;
+        xnew = node->y; ynew = xmax - node->x - node->w;
         wnew = node->h; hnew = node->w;
         //
-        DrawXNode *wgt = new DrawXNode(node, x() + xnew, y() + ynew, wnew, hnew);
-        wgt->set_pw(parent_wgt);
+        DrawXNodeGroup* wgt = nullptr;
+        DrawXNode *swgt = nullptr;
+        if (node->groups.size() > 0) {
+            // Node is a compact
+			wgt = new DrawXNodeGroup(node, x() + xnew, y() + ynew, wnew, hnew);
+			for (i = 0; i < node->groups.size(); i++) {
+				swgt = new DrawXNode(node, x() + xnew, y() + ynew + i * _W, wnew, _W);
+				swgt->set_pw(wgt);
+				wgt->add(swgt);
+			}
+            wgt->set_pw(parent_wgt);
+        }
+        else {
+            // Leaf represented as a single compact
+            wgt = new DrawXNodeGroup(node, x() + xnew, y() + ynew, wnew, hnew);
+            swgt = new DrawXNode(node, x() + xnew, y() + ynew , wnew, hnew);
+            swgt->set_pw(wgt);
+            wgt->add(swgt);
+            wgt->set_pw(parent_wgt);
+        }
+        
         add(wgt);
+
         if (parent_wgt) {
             DrawXEdge* edge;
             double x1 = wgt->x();
@@ -195,6 +285,7 @@ class DrawX : public Fl_Group {
                 edge = new DrawXEdge(_TOP_LEFT, x2, y2, x1 - x2, y1 - y2);
             }
             add(edge);
+            wgt->set_pedge(edge);
         }
         for (Node* child : node->children) {
             add_children_nodes(child, wgt);
@@ -210,8 +301,11 @@ public:
         box(FL_FLAT_BOX);
         color(FL_WHITE);
         root = r;
+        xmax = 0;
+        get_max_x(root);
         // Build depth-first traversal list of children node-widgets
         add_children_nodes(root, nullptr);
+        std::cout << "Xmax: " << xmax << std::endl;
     }
     
     virtual void draw() FL_OVERRIDE {
@@ -227,28 +321,35 @@ public:
 
 int main() {
     // Build your tree
-    Node root{ .w = _W, .h = _H, .text = "root" }, 
-        child1{ .w = _W, .h = _H, .text = "C1" }, 
-        child2{ .w = _W, .h = _H, .text = "C2" };
-    root.children = { &child1, &child2 };
-    child1.parent = &root;
-    child2.parent = &root;
+    Node root, child1, child2;
+    build_node_group(&root, "ROOT", 1, std::vector({&child1, &child2}) );
 
     Node child1_1{ .w = _W, .h = _H, .text = "C1_1" },
         child1_2{ .w = _W, .h = _H, .text = "C1_2" },
         child1_3{ .w = _W, .h = _H, .text = "C1_3" },
-        child1_4{ .w = _W, .h = _H, .text = "C1_4" };
-    child1.children = { &child1_1, &child1_2 , &child1_3 , &child1_4 };
-    child1.groups = { {&child1_1, &child1_2}, {&child1_3 , &child1_4} };
-    child1.w = child1.groups.size() * _W;
-    child1_1.parent = &child1;
-    child1_2.parent = &child1;
-    child1_3.parent = &child1;
-    child1_4.parent = &child1;
+        child1_4{ .w = _W, .h = _H, .text = "C1_4" },
+        child1_5{ .w = _W, .h = _H, .text = "C1_5" };
+    build_node_group(&child1, "R1", 2, 
+        std::vector({ &child1_1, &child1_2, &child1_5 }), 
+        std::vector({ &child1_3 , &child1_4 }));
  
+    Node child2_1 {.w = _W, .h = _H, .text = "C2_1" };
+    build_node_group(&child2, "R2", 1, std::vector({ &child2_1 }));
+
+    Node child1_3_1{ .w = _W, .h = _H, .text = "C1_3_1" },
+        child1_3_2{ .w = _W, .h = _H, .text = "C1_3_2" },
+        child1_3_3{ .w = _W, .h = _H, .text = "C1_3_3" };
+    build_node_group(&child1_4, "C1_3", 3,
+        std::vector({ &child1_3_1 }),
+        std::vector({ &child1_3_2 }),
+        std::vector({ &child1_3_3 })
+    );
+
 
     // Compute layout
     layout::layout(&root);
+    render_str(&root, 0);
+    std::cout << "ER x:" << root.er->x << std::endl;
 
     // Node positions are now in `node.x` and `node.y`
     // Render or process as needed…
