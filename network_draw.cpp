@@ -105,3 +105,10 @@ void DrawX::reset() {
 }
 
 Node* DrawX::get_root() { return root; };
+Fl_Scroll* DrawX::scroll() {
+    return _scroll;
+};
+void DrawX::scroll(Fl_Scroll* sc) {
+    _scroll = sc;
+}
+

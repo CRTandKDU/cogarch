@@ -31,9 +31,13 @@ struct Node {
     // Clientdata
     std::string text = "";
     std::vector< std::vector<Node*> > groups = {};
+    Node* refnode = nullptr;
+    std::vector< bool > expanded = {};
+    bool _expanded = false;
 };
 
 
 void expand_collapse(Node* root, Node* current, int groupid);
 void reset_layout(Node* root);
+void post_event(int evt_t, void* data);
 

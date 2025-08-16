@@ -14,7 +14,7 @@ class DrawXNode : public Fl_Widget {
 	DrawXEdge *pedge = nullptr;
 
 	DrawX* g_draw_x = nullptr;
-	bool expanded = false;
+	bool _expanded = false;
 	Fl_Color style_fg_color;
 	Fl_Font style_font;
 	const int style_font_size = _W - _TMARGIN - _TMARGIN;
@@ -46,4 +46,7 @@ public:
 	Node* get_node();
 	
 	void set_fg_color(Fl_Color fgc);
+
+	bool expanded();
+	void expanded(bool exp);
 };

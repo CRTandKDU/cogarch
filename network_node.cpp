@@ -45,8 +45,7 @@ int DrawXNode::handle(int event) {
             Node* r = g_draw_x->get_root();
             expand_collapse(r, get_node(), get_groupid());
             reset_layout(r);
-			g_draw_x->reset();
-			//g_draw_x->redraw();
+            post_event(1, (void*)g_draw_x);
         }
         return 1;
         break;
@@ -67,3 +66,5 @@ Node* DrawXNode::get_node() { return node; }
 
 void DrawXNode::set_fg_color(Fl_Color fgc) { style_fg_color = fgc; }
 
+bool DrawXNode::expanded() { return _expanded;  }
+void DrawXNode::expanded(bool exp) { _expanded = exp; }
