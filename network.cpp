@@ -40,10 +40,11 @@ void add_node_group(Node* top, std::vector<Node*> group) {
     top->expanded.insert(top->expanded.begin(), false);
     top->groups.insert(top->groups.begin(), group);
     for (Node* child : group) {
-        top->children.push_back(child);
+        // top->children.push_back(child);
         child->parent = top;
     }
 }
+
 
 void build_node_group(Node* top, std::string topname, int count, ...) {
     va_list args;
@@ -71,42 +72,72 @@ Node* S_root;
 std::mt19937 S_gen;
 std::uniform_int_distribution<> S_distr;
 
+int search_insertion_index(Node* current, int groupid) {
+    int pos = 0, idg = 0;
+    for (pos = 0; pos < current->children.size(); pos++) {
+        for (idg = 0; idg < current->groups.size(); idg++) {
+            if (current->groups[idg].end() !=
+                std::find(current->groups[idg].begin(), current->groups[idg].end(), current->children[pos])) {
+                if (idg <= groupid) return pos;
+            }
+        }
+    }
+    return current->children.size();
+}
+
+void delete_node_group(Node* top) {
+    for (std::vector<Node*> g : top->groups) {
+        for (Node* n : g) {
+            delete_node_group(n);
+            n->children.clear();
+        }
+        g.clear();
+    }
+    top->groups.clear();
+    top->children.clear();
+}
+
 void expand_collapse(Node* root, Node* current, int groupid) {
 	int ngroups ;
 	std::vector<Node*> group, ggroup;
 	int i, j, ngchildren;
-	Node *nnode, *gnode;
-    bool b = current->children.size() > 0;
+	Node *nnode;
+    bool b = current->groups.size() > 0 ? current->expanded[groupid] : current->_expanded;
 	std::cout << "Expand or collapse. Root: '" << root->text << "' Exp: " << b << ", Current: " << current->text << " in group " << groupid << std::endl;
-
+    if (current->groups.size() > 0) current->expanded[groupid] = !b;
+    else current->_expanded = !b;
+    //
+    group = current->groups[groupid];
     if (!b) {
-        // First Group
-        ngchildren = S_distr(S_gen);
-        group = std::vector<Node*>{};
-        for (i = 0; i < ngchildren; i++) {
-            nnode = new Node{ .w = _W, .h = _H, .text = std::format("NG-{}", i) };
-            group.push_back(nnode);
-            //
-            ngroups = S_distr(S_gen);
-            ggroup = std::vector<Node*>{};
-            gnode = new Node{ .w = _W, .h = _H, .text = std::format("NG0-{}", i) };
-            ggroup.push_back(gnode);
-            build_node_group(nnode, std::format("NG-{}", i), 1, ggroup);
-            for (j = 1; j < ngroups; j++) {
+        int pos = search_insertion_index(current, groupid);
+        //
+        for (Node* gnode : group) {
+            ngchildren = S_distr(S_gen);
+            for (i = 0; i < ngchildren; i++) {
                 ggroup = std::vector<Node*>{};
-                gnode = new Node{ .w = _W, .h = _H, .text = std::format("NG0-{}", i) };
-                ggroup.push_back(gnode);
-                add_node_group(nnode, ggroup);
+                ngroups = S_distr(S_gen);
+                for (j = 0; j < ngroups; j++) {
+                    ggroup.push_back(new Node{ .w = _W, .h = _H, 
+                        .text = std::format("{}{}-{}", gnode->text, i, j) });
+                }
+                if (0 == i) {
+                    build_node_group(gnode, gnode->text, 1, ggroup);
+                }
+                else {
+                    add_node_group(gnode, ggroup);
+                }
             }
+            current->children.insert(current->children.begin() + pos, gnode);
+            //current->children.push_back(gnode);
         }
-        build_node_group(current, std::string(std::format("G{}", "0")), 1, group);
     }
     else {
-        // Review!
-		current->groups.clear();
-		for (Node* n : current->children) delete n;
-		current->children.clear();
-		current->expanded.clear();
+        std::vector<Node*> vec = current->children;
+        for (Node* gnode : group) {
+            delete_node_group(gnode);
+            vec.erase(std::remove(vec.begin(), vec.end(), gnode), vec.end());
+        }
+        current->children = vec;
     }
 }
 
@@ -174,7 +205,8 @@ int main() {
     S_gen = gen;
     S_distr = distr;
 
-    Node *init_root = new Node{ .w = _W, .h = _H, .text = "ROOT", .refnode=root };
+    Node *init_root = new Node{ .w = _W, .h = _H };
+    build_node_group(init_root, "ROOT", 1, std::vector({ new Node{.w = _W, .h = _H, .text = "root" } }));
 
     // Node positions are now in `node.x` and `node.y`
     // Render or process as needed…

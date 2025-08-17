@@ -31,7 +31,6 @@ struct Node {
     // Clientdata
     std::string text = "";
     std::vector< std::vector<Node*> > groups = {};
-    Node* refnode = nullptr;
     std::vector< bool > expanded = {};
     bool _expanded = false;
 };
