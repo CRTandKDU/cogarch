@@ -1,4 +1,7 @@
-#pragma once
+// #pragma once
+#ifndef NETWORK_NODE_STRUCT_H
+#define NETWORK_NODE_STRUCT_H
+
 #include <cstdint>
 #include <cstdarg>
 #include <string>
@@ -20,6 +23,10 @@ const uint32_t _SELECTION_COLOR = 0x9575CD00;
 const uint32_t _HOVER_COLORBG = 0x18549E00;
 const uint32_t _HOVER_COLORFG = 0xFFFFFF00;
 
+
+// Forward declarations
+class Network;
+
 //------------------------------------------------------------------------------------------------------
 struct Node {
     double x, y, w, h;
@@ -35,8 +42,14 @@ struct Node {
     bool _expanded = false;
 };
 
+typedef struct {
+    int event_type;
+    void* event_data;
+} event_t, * event_ptr;
+static event_ptr S_event = nullptr;
 
-void expand_collapse(Node* root, Node* current, int groupid);
-void reset_layout(Node* root);
+
+
 void post_event(int evt_t, void* data);
 
+#endif

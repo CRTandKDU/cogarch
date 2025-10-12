@@ -47,7 +47,7 @@ void DrawX::add_children_nodes(Node* node, DrawXNodeGroup* parent_wgt) {
         // Node is a compact
         wgt = new DrawXNodeGroup(node, x() + xnew, y() + ynew, wnew, hnew);
         for (i = 0; i < node->groups.size(); i++) {
-            swgt = new DrawXNode(this, node, x() + xnew, y() + ynew + i * _W, wnew, _W);
+            swgt = new DrawXNode(this, node, net, x() + xnew, y() + ynew + i * _W, wnew, _W);
             swgt->set_groupid(i);
             swgt->set_pw(wgt);
             wgt->add(swgt);
@@ -57,7 +57,7 @@ void DrawX::add_children_nodes(Node* node, DrawXNodeGroup* parent_wgt) {
     else {
         // Leaf represented as a single compact
         wgt = new DrawXNodeGroup(node, x() + xnew, y() + ynew, wnew, hnew);
-        swgt = new DrawXNode(this, node, x() + xnew, y() + ynew, wnew, hnew);
+        swgt = new DrawXNode(this, node, net, x() + xnew, y() + ynew, wnew, hnew);
         swgt->set_groupid(0);
         swgt->set_pw(wgt);
         wgt->add(swgt);

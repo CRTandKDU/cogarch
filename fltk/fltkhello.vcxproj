@@ -86,7 +86,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\chauv\Documents\fltk-1.4.4\zlib;C:\Users\chauv\Documents\fltk-1.4.4\png;C:\Users\chauv\Documents\fltk-1.4.4\jpeg;C:\Users\chauv\Documents\fltk-1.4.4\build\test;C:\Users\chauv\Documents\fltk-1.4.4\test;C:\Users\chauv\Documents\fltk-1.4.4\build\src\..;C:\Users\chauv\Documents\fltk-1.4.4\src\..;C:\cygwin64\home\Moria\nxp;C:\cygwin64\home\Moria\embed-master;C:\cygwin64\home\Moria\libcsv;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\cygwin64\home\Moria\nxp\tidy_tree\src;C:\Users\chauv\Documents\fltk-1.4.4\zlib;C:\Users\chauv\Documents\fltk-1.4.4\png;C:\Users\chauv\Documents\fltk-1.4.4\jpeg;C:\Users\chauv\Documents\fltk-1.4.4\build\test;C:\Users\chauv\Documents\fltk-1.4.4\test;C:\Users\chauv\Documents\fltk-1.4.4\build\src\..;C:\Users\chauv\Documents\fltk-1.4.4\src\..;C:\cygwin64\home\Moria\nxp;C:\cygwin64\home\Moria\embed-master;C:\cygwin64\home\Moria\libcsv;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /utf-8</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -322,6 +322,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="..\engine_dsl_vs.c" />
     <ClCompile Include="..\hypo.c" />
     <ClCompile Include="..\loadkb_vs.c" />
+    <ClCompile Include="..\Network.cpp" />
+    <ClCompile Include="..\network_draw.cpp" />
+    <ClCompile Include="..\network_edge.cpp" />
+    <ClCompile Include="..\network_node.cpp" />
+    <ClCompile Include="..\network_node_group.cpp" />
     <ClCompile Include="..\rule.c" />
     <ClCompile Include="..\sign.c" />
     <ClCompile Include="Ency.cpp" />
@@ -340,6 +345,12 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Network.hpp" />
+    <ClInclude Include="..\network_draw.hpp" />
+    <ClInclude Include="..\network_edge.hpp" />
+    <ClInclude Include="..\network_node.hpp" />
+    <ClInclude Include="..\network_node_group.hpp" />
+    <ClInclude Include="..\network_node_struct.h" />
     <ClInclude Include="Ency.hpp" />
     <ClInclude Include="hello.h" />
     <ClInclude Include="QuestionWin.hpp" />

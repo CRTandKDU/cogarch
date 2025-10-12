@@ -13,9 +13,10 @@ LFLAGS		=  -L../libforth -L../embed-master
 DEPS		= agenda.h Makefile
 OBJ		= agenda.o sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
 APIS		= sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
-REPL_DEPS       = Textwindow.hpp Question.hpp Menu.hpp Listview.hpp nxpFListView.hpp
+NETAPIS         = network_draw.o network_edge.o network_node.o network_node_group.o
+REPL_DEPS       = Textwindow.hpp Question.hpp Menu.hpp Listview.hpp nxpFListView.hpp Network.hpp
 
-repl: repl.cpp Textwindow.o Question.o Menu.o Listview.o nxpFListView.o $(APIS) 
+repl: repl.cpp Textwindow.o Question.o Menu.o Listview.o nxpFListView.o $(APIS)
 	$(CPP) -o $@ $^ $(CFLAGS) -O3  $(DSL_CFLAGS) $(DSL_LFLAGS) -lfinal
 
 agenda: $(OBJ)
@@ -37,4 +38,4 @@ simple_howerjforth: simple_howerjforth.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(DSL_CFLAGS)
 
 %.o: %.cpp $(REPL_DEPS) $(DEPS)
-	$(CPP) -c -o $@ $< $(CFLAGS) -O3 $(DSL_CFLAGS)
+	$(CPP) -c -o $@ $< $(CFLAGS) -O3 $(DSL_CFLAGS) 

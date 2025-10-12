@@ -8,6 +8,7 @@
 #include "network_draw.hpp"
 
 class DrawXNode : public Fl_Widget {
+	Network* net;
 	Node* node;
 	DrawXNodeGroup *pw = nullptr ;
 	int groupid = -1;
@@ -20,11 +21,12 @@ class DrawXNode : public Fl_Widget {
 	const int style_font_size = _W - _TMARGIN - _TMARGIN;
 
 public:
-	DrawXNode(DrawX* g, Node* n, int X, int Y, int W, int H, const char* L = 0) : Fl_Widget(X, Y, W, H, L) {
+	DrawXNode(DrawX* g, Node* n, Network* netw, int X, int Y, int W, int H, const char* L = 0) : Fl_Widget(X, Y, W, H, L) {
 		align(FL_ALIGN_TOP);
 		box(FL_FLAT_BOX);
 		color(_COLORBG);
 		node = n;
+		net = netw;
 		g_draw_x = g;
 		style_fg_color = _COLORFG;
 		style_font = FL_COURIER;

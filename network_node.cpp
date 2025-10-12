@@ -1,6 +1,8 @@
 // The NXP Network Project -- network_node
 #include "network_node_group.hpp"
 #include "network_node.hpp"
+#include "Network.hpp"
+
 
 void DrawXNode::draw()  {
     // Draw background - a white filled rectangle
@@ -43,8 +45,8 @@ int DrawXNode::handle(int event) {
         //
         if (1 == mouse_click && 1 == mouse_but) {
             Node* r = g_draw_x->get_root();
-            expand_collapse(r, get_node(), get_groupid());
-            reset_layout(r);
+            net->expand_collapse(r, get_node(), get_groupid());
+            net->reset_layout(r);
             post_event(1, (void*)g_draw_x);
         }
         return 1;

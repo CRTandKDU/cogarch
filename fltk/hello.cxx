@@ -34,6 +34,7 @@
 #include "agenda.h"
 #include "Ency.hpp"
 #include "QuestionWin.hpp"
+#include "Network.hpp"
 #include "hello.h"
 
 #define _UPDATE_ENCYS(a)       (a)->ency[0]->table->redraw(); \
@@ -109,6 +110,16 @@ class Application : public Fl_Window {
       Application* app = (Application*)v;
       if (app->ency[1]->visible()) { app->ency[1]->hide(); }
       else { app->ency[1]->show(); }
+  }
+
+  static void rule_cb(Fl_Widget* w, void* v) {
+      Application* app = (Application*)v;
+  }
+
+  static void network_cb(Fl_Widget* w, void* v) {
+      Application* app = (Application*)v;
+      if (app->netwin->visible()) { app->netwin->hide(); }
+      else { app->netwin->show(); }
   }
 
   static void suggest_cb(Fl_Widget* w, void* v) {
@@ -206,9 +217,9 @@ class Application : public Fl_Window {
 public:
     Fl_Text_Buffer* buff;
 
-    EncyWin *ency[2];
+    EncyWin *ency[3];
     QuestionWin* qwin;
-
+    Network* netwin;
 
   // CTOR
   Application()
@@ -228,7 +239,8 @@ public:
     //
     menu->add("&Encylopedia/&Sign", FL_COMMAND + 'd', sign_cb, (void*)this);    
     menu->add("&Encylopedia/&Hypotheses", FL_COMMAND + 'y', hypo_cb, (void*)this);
-    menu->add("&Encylopedia/&Rules", FL_COMMAND + 'y', hypo_cb, (void*)this);
+    menu->add("&Encylopedia/&Rules", FL_COMMAND + 'r', rule_cb, (void*)this, FL_MENU_DIVIDER);
+    menu->add("&Encylopedia/&Network", FL_COMMAND + 'n', network_cb, (void*)this);
 
     buff = new Fl_Text_Buffer();
     Fl_Text_Display* disp = new Fl_Text_Display(10, 10+25, 380, 180-25);
@@ -245,6 +257,12 @@ public:
     // Encyclopedia
     ency[1] = new EncyWin((sign_rec_ptr)loadkb_get_allhypos(), EncyTable::item::HYPO);
     ency[0] = new EncyWin((sign_rec_ptr)loadkb_get_allsigns(), EncyTable::item::SIGN);
+    ency[2] = nullptr;
+    // Network
+    netwin = new Network(3, "Network");
+    netwin->repopulate();
+    netwin->update();
+    netwin->end();
     // Question window
     qwin = new QuestionWin(NULL,false);
 
