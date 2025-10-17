@@ -122,16 +122,30 @@ class Application : public Fl_Window {
       else { app->netwin->show(); }
   }
 
+  static hypo_rec_ptr ency_hypo_selected(Application* app) {
+      int rt, cl, rb, cr;
+      EncyTable* table = app->ency[1]->table;
+      table->get_selection(rt, cl, rb, cr);
+      return -1 == rt ? nullptr : (hypo_rec_ptr)table->get_sign_at(rt);
+  }
+
   static void suggest_cb(Fl_Widget* w, void* v) {
 	  Application* app = (Application*)v;
-      int rt, cl, rb, cr;
-      hypo_rec_ptr hypo;
-      EncyTable *table = app->ency[1]->table;
-      table->get_selection(rt, cl, rb, cr );
-      hypo = (hypo_rec_ptr) table->get_sign_at(rt);
+      hypo_rec_ptr hypo = ency_hypo_selected(app);
       //
-      engine_pushnew_hypo(S_State, hypo);
+      if( hypo ) engine_pushnew_hypo(S_State, hypo);
   }
+
+  static void focus_hypo_cb(Fl_Widget* w, void* v) {
+      Application* app = (Application*)v;
+      hypo_rec_ptr hypo = ency_hypo_selected(app);
+      //
+      if (hypo) {
+          app->netwin->repopulate(hypo);
+          app->netwin->update();
+      }
+  }
+
 
   static void volunteer_cb(Fl_Widget* w, void* v) {
       Application* app = (Application*)v;
@@ -237,8 +251,10 @@ public:
     menu->add("&Expert/&Agenda", FL_COMMAND + 'a', quit_cb, (void*)this);
     menu->add("&Expert/&Knowcess", FL_COMMAND + 'k', knowcess_cb, (void*)this);
     //
+    menu->add("&Network/&Focus Hypo", FL_COMMAND + 'f', focus_hypo_cb, (void*)this);
+    //
     menu->add("&Encylopedia/&Sign", FL_COMMAND + 'd', sign_cb, (void*)this);    
-    menu->add("&Encylopedia/&Hypotheses", FL_COMMAND + 'y', hypo_cb, (void*)this);
+    menu->add("&Encylopedia/H&ypotheses", FL_COMMAND + 'y', hypo_cb, (void*)this);
     menu->add("&Encylopedia/&Rules", FL_COMMAND + 'r', rule_cb, (void*)this, FL_MENU_DIVIDER);
     menu->add("&Encylopedia/&Network", FL_COMMAND + 'n', network_cb, (void*)this);
 
@@ -260,9 +276,8 @@ public:
     ency[2] = nullptr;
     // Network
     netwin = new Network(3, "Network");
-    netwin->repopulate();
-    netwin->update();
-    netwin->end();
+    //netwin->repopulate();
+    //netwin->update();
     // Question window
     qwin = new QuestionWin(NULL,false);
 

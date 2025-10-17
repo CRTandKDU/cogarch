@@ -11,6 +11,7 @@
 #include <format>
 
 #include "layout.hpp"
+#include "agenda.h"
 
 constexpr auto _W = 20.;
 constexpr auto _H = 100.;
@@ -40,6 +41,7 @@ struct Node {
     std::vector< std::vector<Node*> > groups = {};
     std::vector< bool > expanded = {};
     bool _expanded = false;
+    sign_rec_ptr sign;
 };
 
 typedef struct {
@@ -47,8 +49,6 @@ typedef struct {
     void* event_data;
 } event_t, * event_ptr;
 static event_ptr S_event = nullptr;
-
-
 
 void post_event(int evt_t, void* data);
 

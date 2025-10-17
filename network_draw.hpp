@@ -29,7 +29,7 @@ public:
         root = r;
         net = netw;
         _scroll = sc;
-        reset();
+        // reset();
     }
 
     virtual void draw() FL_OVERRIDE;
@@ -37,6 +37,7 @@ public:
     void reset();
 
     Node* get_root();
+    void  set_root( Node* r);
 
     Fl_Scroll* scroll();
     void scroll(Fl_Scroll* sc);

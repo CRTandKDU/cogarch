@@ -5,6 +5,7 @@
 
 
 void DrawXNode::draw()  {
+    //int dx, dy, wo, ho;
     // Draw background - a white filled rectangle
     fl_color(color()); fl_rectf(x(), y(), w(), h());
     // Draw node
@@ -13,8 +14,7 @@ void DrawXNode::draw()  {
         fl_rect(x(), y(), w(), h());
         fl_color(style_fg_color);
         fl_font(style_font, style_font_size);
-        fl_draw(node->text.c_str(), _LMARGIN + x(), y(), w(), h(),
-            FL_ALIGN_TOP_LEFT, nullptr, 1, 0);
+        fl_draw( node->text.c_str(), _LMARGIN + x(), y(), w(), h(), FL_ALIGN_TOP_LEFT, nullptr, 0, 0);
     }
 }
 

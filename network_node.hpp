@@ -18,10 +18,11 @@ class DrawXNode : public Fl_Widget {
 	bool _expanded = false;
 	Fl_Color style_fg_color;
 	Fl_Font style_font;
-	const int style_font_size = _W - _TMARGIN - _TMARGIN;
+	const int style_font_size = 12; // _W - _TMARGIN - _TMARGIN;
 
 public:
-	DrawXNode(DrawX* g, Node* n, Network* netw, int X, int Y, int W, int H, const char* L = 0) : Fl_Widget(X, Y, W, H, L) {
+	DrawXNode(DrawX* g, Node* n, Network* netw, int X, int Y, int W, int H, const char* L = 0) : 
+		Fl_Widget(X, Y, W, H, L) {
 		align(FL_ALIGN_TOP);
 		box(FL_FLAT_BOX);
 		color(_COLORBG);
