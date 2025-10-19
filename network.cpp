@@ -46,154 +46,148 @@ void Network::expand_collapse(Node* root, Node* current, int groupid) {
     rule_rec_ptr rule = nullptr;
     hypo_rec_ptr hypo = nullptr;
     bwrd_rec_ptr bwrd = nullptr;
-    Node *node = nullptr;
-    std::vector<Node*> group, ggroup;
-    int pos, i, j = 0;
+    Node *node = nullptr, *cnode = nullptr;
+    std::vector<Node*> group;
+    int i, idx=0;
     bool b;
+    std::string lbl;
     //
-    //bool b = current->groups.size() > 0 ? current->expanded[groupid] : current->_expanded;
-    //std::cout << "Expand or collapse. Root: '" << root->text << "' Exp: " << b << ", Current: " << current->text << " in group " << groupid << std::endl;
-    //if (current->groups.size() > 0) current->expanded[groupid] = !b; else current->_expanded = !b;
+    b = current->groups.size() > 0 ? current->expanded[groupid] : current->_expanded;
+    std::cout << "Expand or collapse. Root: '" << root->text << "' Exp: " << b << ", Current: " << current->text << " in group " << groupid << std::endl;
+    if (current->groups.size() > 0) current->expanded[groupid] = !b; else current->_expanded = !b;
     //
     switch (current->sign->len_type & TYPE_MASK) {
     case RULE_MASK:
         rule = (rule_rec_ptr)current->sign;
-        // if (0 == current->groups.size()) build_rule(rule, current);
 
-        std::cout << std::format("RULE. expand/collapse [in]:\n\t{}\n\t{} #groups\n\t{} # group 0\n\t{} #children",
-            current->text, current->groups.size(), current->groups[0].size(), current->children.size()) <<
+        std::cout << std::format("RULE. expand/collapse [in]:\n\t{}\n\t{} #groups\n\t{} #children",
+            current->text, current->groups.size(), current->children.size()) <<
             std::endl;
 
-        b = current->expanded[groupid];
-        current->expanded[groupid] = !b;
-        group = current->groups[groupid];
-        if (!b) {
-            pos = search_insertion_index(current, groupid);
-            int nchildren;
-            std::string lbl;
-            cond_rec_ptr cond;
-            //j = 0;
-            for (Node* gnode : group) {
-                nchildren = 1;
-                for (i = 0; i < nchildren; i++) {
-                    ggroup.clear();
-                    for (j = 0; j < rule->ngetters; j++) {
-
-                        cond = (cond_rec_ptr)rule->getters[j];
-                        switch (cond->sign->len_type & TYPE_MASK) {
-                        case SIGN_MASK:
-                            lbl = std::string(cond->sign->str);
-                            break;
-                        case HYPO_MASK:
-                            if (0 == cond->in)
-                                lbl = std::format("NO {}", std::string(cond->sign->str));
-                            else
-                                lbl = std::format("YES {}", std::string(cond->sign->str));
-                            break;
-                        case COMPOUND_MASK:
-                            lbl = std::string(((compound_rec_ptr)cond->sign)->dsl_expression);
-                            lbl.pop_back();
-                            break;
-                        default:
-                            lbl = std::string("ERROR: wrong type");
-                            break;
-                        }
-                        node = new Node{
-                            .w = _W,
-                            .h = adjustlength(lbl),
-                            .text = lbl,
-                            .sign = (sign_rec_ptr)cond->sign };
-                        if (HYPO_MASK == (cond->sign->len_type & TYPE_MASK)) {
-                            build_hypo((hypo_rec_ptr)cond->sign, node);
-                        }
-                        ggroup.push_back(node);
-                    }
-                    if (0 == i)
-                        build_node_group(gnode, 1, ggroup);
+        if( !b ){
+            current->children.clear();
+            current->groups.clear();
+            group.clear();
+            node = new Node{ .w = _W, .h = _H, .parent = current, .text = CONTAINER, .sign = (sign_rec_ptr)rule };
+            for (i = 0; i < rule->ngetters; i++){
+                cond_rec_ptr cond = (cond_rec_ptr)rule->getters[i];
+                switch (cond->sign->len_type & TYPE_MASK) {
+                case SIGN_MASK:
+                    lbl = std::string(cond->sign->str);
+                    break;
+                case HYPO_MASK:
+                    if (0 == cond->in)
+                        lbl = std::format("NO {}", std::string(cond->sign->str));
                     else
-                        add_node_group(gnode, ggroup);
-                    gnode->text = CONTAINER;
-                    gnode->w = rule->ngetters * _W;
-                    gnode->expanded = std::vector(rule->ngetters, false);
-                    current->children.push_back(gnode); // insert at pos 0 instead
+                        lbl = std::format("YES {}", std::string(cond->sign->str));
+                    break;
+                case COMPOUND_MASK:
+                    lbl = std::string(((compound_rec_ptr)cond->sign)->dsl_expression);
+                    lbl.pop_back();
+                    break;
+                default:
+                    lbl = std::string("ERROR: wrong type");
+                    break;
                 }
+                cnode = new Node{
+                    .w = _W,
+                    .h = adjustlength(lbl),
+                    .text = lbl,
+                    .sign = (sign_rec_ptr)cond->sign };
+                group.push_back(cnode);
+                
             }
-
-
+            build_node_group(node, 1, group);
+            current->children.push_back(node);
         }
         else {
-            std::vector<Node*> vec = current->children;
-            for (Node* gnode : group) {
-                delete_node_group(gnode);
-                vec.erase(std::remove(vec.begin(), vec.end(), gnode), vec.end());
-            }
-            current->children = vec;
+            //std::vector<Node*> vec = current->children;
+            //for (Node* gnode : group) {
+            //    delete_node_group(gnode);
+            //    vec.erase(std::remove(vec.begin(), vec.end(), gnode), vec.end());
+            //}
+            current->children.clear();
         }
-        std::cout << std::format("RULE. expand/collapse [out]:\n\t{}\n\t{} #groups\n\t{} # group 0\n\t{} #children",
-            current->text, current->groups.size(), current->groups[0].size(), current->children.size()) <<
+        std::cout << std::format("RULE. expand/collapse [out]:\n\t{}\n\t{} #groups\n\t{} #children",
+            current->text, current->groups.size(), current->children.size()) <<
             std::endl;
 
         break;
-        //
+    //
     case HYPO_MASK:
         // Expanding either the root hypothesis in g_draw_x or a boolean condition
         hypo = (hypo_rec_ptr)current->sign;
-        if (0 == current->groups.size()) build_hypo(hypo, current);
+        if (current->parent) {
+            auto it = std::find(current->parent->groups[0].begin(),
+                current->parent->groups[0].end(),
+                current);
+            if (it != current->parent->groups[0].end())
+                idx = it - current->parent->groups[0].begin();
+        }
 
-        std::cout << std::format("HYPO. expand/collapse [in]:\n\t{}\n\t{} #groups\n\t{} # group 0\n\t{} #children",
-            current->text, current->groups.size(), current->groups[0].size(), current->children.size()) <<
+
+        std::cout << std::format("HYPO. expand/collapse [in]:\n\t{}\n\t{} #groups\n\t{} #children",
+            current->text, current->groups.size(),  current->children.size()) <<
             std::endl;
 
-        //if (current->parent && 0 == current->parent->text.size()) {
-        if( false ){
-            node = current->parent;
-            group = current->groups[0];
-            pos = 0;
-        }
-        else {
-            node = current;
-            pos = search_insertion_index(node, groupid);
-            group = current->groups[groupid];
-        }
-        b = node->expanded[groupid];
-        node->expanded[groupid] = !b;
-		if (!b) {
-			j = 0;
-			std::string lbl;
-			for (Node* gnode : group) {
-				ggroup.clear();
-				bwrd_rec_ptr bwrd = (bwrd_rec_ptr)hypo->getters[j];
-				switch (bwrd->rule->len_type & TYPE_MASK) {
-				case RULE_MASK:
-					lbl = std::string(bwrd->rule->str);
-					break;
-				default:
-					lbl = std::string("ERROR: wrong type");
-					break;
-				}
-				ggroup.push_back(new Node{
-							.w = _W,
-							.h = adjustlength(lbl),
-							.text = lbl,
-							.sign = (sign_rec_ptr)bwrd->rule
-					});
-				build_node_group(gnode, 1, ggroup);
-				j += 1;
-				node->children.insert(node->children.begin() + pos, gnode);
-			}
+		if( !b ){
+            current->children.clear();
+            for (i = 0; i < hypo->ngetters; i++) {
+                bwrd_rec_ptr bwrd = (bwrd_rec_ptr)hypo->getters[i];
+                switch (bwrd->rule->len_type & TYPE_MASK) {
+                case RULE_MASK:
+                    lbl = std::string(bwrd->rule->str);
+                    break;
+                default:
+                    lbl = std::string("ERROR: wrong type");
+                    break;
+                }
+                cnode = new Node{
+                    .w = _W,
+                    .h = adjustlength(lbl),
+                    .text = lbl,
+                    .groupid = idx,
+                    .sign = (sign_rec_ptr)bwrd->rule
+                };
+                // Is `hypo' in LHS?
+                if (current->parent) {
+                    // Parent rule node at current's parent (LHS "container" node)
+                    cnode->parent = current->parent;
+                    current->parent->children.push_back(cnode);
+                }
+                else {
+                    // Root (in this design): parent rule node at current node
+                    cnode->parent = current;
+                    current->children.push_back(cnode);
+                }
+            }	
+            // Is `hypo' in LHS? Sort the parented rule nodes on their rank in LHS
+            if (current->parent) {
+                std::sort(current->parent->children.begin(),
+                    current->parent->children.end(),
+                    [](Node* a, Node* b) { return a->groupid > b->groupid; }
+                );
+            }
 		}
 		else {
-			std::vector<Node*> vec = current->children;
-			for (Node* gnode : group) {
-				delete_node_group(gnode);
-				vec.erase(std::remove(vec.begin(), vec.end(), gnode), vec.end());
-			}
-			current->children = vec;
+            // Is `hypo' in LHS?
+            if (current->parent) {
+                std::vector<int> bad_ids = { idx };
+                current->parent->children.erase(
+                    std::remove_if(
+                        current->parent->children.begin(),
+                        current->parent->children.end(),
+                        [&bad_ids](const Node *item) { return std::find(bad_ids.begin(), bad_ids.end(), item->groupid) != bad_ids.end(); }),
+                    current->parent->children.end());
+            }
+            else {
+                current->children.clear();
+            }
 		}
 
-		std::cout << std::format("HYPO. expand/collapse [out]:\n\t{}\n\t{} #groups\n\t{} # group 0\n\t{} #children",
+		std::cout << std::format("HYPO. expand/collapse [out]:\n\t{}\n\t{} #groups\n\t{} #children",
 			current->text, current->groups.size(), 
-            (0== current->groups.size()) ? current->groups[0].size() : 0, current->children.size()) <<
+            current->children.size()) <<
 			std::endl;
 
 		break;
@@ -232,7 +226,7 @@ void Network::build_node_plain(Node* top, std::string topname, int count, ...) {
 
 void Network::add_node_group(Node* top, std::vector<Node*> group) {
     int lcur = 0;
-    top->w += _W;
+    //top->w += _W;
     top->expanded.insert(top->expanded.begin(), false);
     top->groups.insert(top->groups.begin(), group);
     for (Node* child : group) {
@@ -241,6 +235,7 @@ void Network::add_node_group(Node* top, std::vector<Node*> group) {
         if (lcur > top->h)
             top->h = lcur;
         child->parent = top;
+        top->w += _W;
     }
 }
 
@@ -269,7 +264,7 @@ void Network::build_node_group(Node* top, int count, ...) {
     double len = 0, lcur = 0;
     va_list args;
     va_start(args, count);
-    //
+    // Reduced to count == 1 
     top->w = 0; top->h = _H;
     top->_expanded = false;
 
@@ -364,8 +359,9 @@ Node* Network::build_rule(rule_rec_ptr rule, Node* top) {
 }
 
 void Network::repopulate(hypo_rec_ptr hypo) {
-    Node* root = new Node{ .w = _W, .h = _H, .text = hypo->str, .sign = hypo };
-    init_root = _root = root; // build_hypo(hypo, root);
+    Node* root = new Node{ .w = _W, .h = adjustlength(hypo->str), .text = hypo->str, .sign = hypo };
+    init_root = _root = root;
+    update();
     post_event(1, g_draw_x);
 }
 
@@ -428,8 +424,8 @@ void Network::repopulate() {
 }
 
 void Network::update() {
-    reset_layout(init_root);
-    g_draw_x->set_root(init_root);
+    reset_layout(_root);
+    g_draw_x->set_root(_root);
 }
 
 // Constructor

@@ -4,13 +4,13 @@
 #include <FL/fl_draw.H>
 
 #include "network_node_struct.h"
-#include "network_edge.hpp"
-#include "network_draw.hpp"
+
+class DrawX;
 
 class DrawXNode : public Fl_Widget {
 	Network* net;
 	Node* node;
-	DrawXNodeGroup *pw = nullptr ;
+	Fl_Widget* pw = nullptr ;
 	int groupid = -1;
 	DrawXEdge *pedge = nullptr;
 
@@ -37,8 +37,8 @@ public:
 
 	int handle(int event);
 
-	void set_pw(DrawXNodeGroup* parent_wgt);
-	DrawXNodeGroup* get_pw();
+	void set_pw(Fl_Widget* parent_wgt);
+	Fl_Widget* get_pw();
 	
 	void set_pedge(DrawXEdge* parent_edge);
 	DrawXEdge* get_pedge();

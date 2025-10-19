@@ -142,7 +142,6 @@ class Application : public Fl_Window {
       //
       if (hypo) {
           app->netwin->repopulate(hypo);
-          app->netwin->update();
       }
   }
 
@@ -164,6 +163,7 @@ class Application : public Fl_Window {
       Application* app = (Application*)v;
       engine_resume_knowcess(S_State);
       _UPDATE_ENCYS(app);
+      post_event(1, (void*)(app->netwin->g_draw_x));
   }
 
 
@@ -419,6 +419,7 @@ void getter_sign(sign_rec_ptr sign, int* suspend) {
     if (S_app->qwin) delete S_app->qwin;
     S_app->qwin = new QuestionWin(sign, false);
     *suspend = _TRUE;
+    post_event(1, (void*)(S_app->netwin->g_draw_x));
 
     S_app->qwin->show();
 }

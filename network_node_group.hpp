@@ -8,7 +8,7 @@
 
 class DrawXNodeGroup : public Fl_Group {
     Node* node;
-    DrawXNodeGroup* pw = nullptr;
+    Fl_Widget* pw = nullptr;
     DrawXEdge* pedge=nullptr;
 
 public:
@@ -23,8 +23,8 @@ public:
 
     Node* get_node();
     
-    void set_pw(DrawXNodeGroup* parent_wgt);
-    DrawXNodeGroup* get_pw();
+    void set_pw(Fl_Widget* parent_wgt);
+    Fl_Widget* get_pw();
     
     void set_pedge(DrawXEdge* parent_edge);
     DrawXEdge* get_pedge();

@@ -5,6 +5,7 @@
 #include <FL/Fl_Scroll.H>
 
 #include "network_node_struct.h"
+#include "network_node.hpp"
 
 
 class DrawX : public Fl_Group {
@@ -15,10 +16,10 @@ class DrawX : public Fl_Group {
     double ymax = 0;
 
     void edge_attach(DrawXNodeGroup* wgt, double* x2ptr, double* y2ptr);
-
+    void edge_attach(DrawXNode* wgt, double* x2ptr, double* y2ptr);
     void get_max_xy(Node* node);
-
     void add_children_nodes(Node* node, DrawXNodeGroup* parent_wgt);
+    void add_children_nodes(Node* node, DrawXNode* parent_wgt);
 
 public:
 

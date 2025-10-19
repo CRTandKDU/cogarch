@@ -17,12 +17,16 @@ constexpr auto _W = 20.;
 constexpr auto _H = 100.;
 constexpr auto _LMARGIN = 2;
 constexpr auto _TMARGIN = 1;
+constexpr auto _EDGE = 100.;
 
 const uint32_t _COLORBG = 0xFFFFFF00;
 const uint32_t _COLORFG = 0x00000000;
 const uint32_t _SELECTION_COLOR = 0x9575CD00;
 const uint32_t _HOVER_COLORBG = 0x18549E00;
 const uint32_t _HOVER_COLORFG = 0xFFFFFF00;
+const uint32_t _COLORFALSE = 0xfa484800;
+const uint32_t _COLORTRUE = 0xa2fa7300;
+
 
 
 // Forward declarations
@@ -41,6 +45,7 @@ struct Node {
     std::vector< std::vector<Node*> > groups = {};
     std::vector< bool > expanded = {};
     bool _expanded = false;
+    int groupid = 0;
     sign_rec_ptr sign;
 };
 

@@ -6,7 +6,7 @@
     //
     int x0 = x();
     int y0 = y();
-    for (short i = 1; i < node->groups.size(); i++) {
+    for (short i = 1; i < node->groups[0].size(); i++) {
         y0 += _W;
         fl_color(color());
         fl_rectf(x0 + 1, y0 - 1, w() - 2, 2);
@@ -17,8 +17,8 @@
 
 Node* DrawXNodeGroup::get_node() { return node; }
 
-void DrawXNodeGroup::set_pw(DrawXNodeGroup* parent_wgt) { pw = parent_wgt; }
-DrawXNodeGroup* DrawXNodeGroup::get_pw() { return pw; }
+void DrawXNodeGroup::set_pw(Fl_Widget* parent_wgt) { pw = (Fl_Widget*)parent_wgt; }
+Fl_Widget* DrawXNodeGroup::get_pw() { return pw; }
 
 void DrawXNodeGroup::set_pedge(DrawXEdge* parent_edge) { pedge = parent_edge; }
 DrawXEdge* DrawXNodeGroup::get_pedge() { return pedge; }

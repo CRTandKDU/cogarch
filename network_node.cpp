@@ -6,12 +6,23 @@
 
 void DrawXNode::draw()  {
     //int dx, dy, wo, ho;
-    // Draw background - a white filled rectangle
-    fl_color(color()); fl_rectf(x(), y(), w(), h());
+    // Draw background color dependent on truth value
+    Fl_Color bg = color();
+    if (_KNOWN == node->sign->val.status) {
+        switch (node->sign->val.val_bool) {
+        case _TRUE:
+            bg = _COLORTRUE;
+            break;
+        case _FALSE:
+            bg = _COLORFALSE;
+            break;
+        }
+    }
+    fl_color(bg); fl_rectf(x(), y(), w(), h());
     // Draw node
     if (node) {
         fl_color(FL_BLACK);
-        fl_rect(x(), y(), w(), h());
+        // fl_rect(x(), y(), w(), h());
         fl_color(style_fg_color);
         fl_font(style_font, style_font_size);
         fl_draw( node->text.c_str(), _LMARGIN + x(), y(), w(), h(), FL_ALIGN_TOP_LEFT, nullptr, 0, 0);
@@ -55,8 +66,8 @@ int DrawXNode::handle(int event) {
     return ret;
 }
 
-void DrawXNode::set_pw(DrawXNodeGroup* parent_wgt) { pw = parent_wgt; }
-DrawXNodeGroup* DrawXNode::get_pw() { return pw; }
+void DrawXNode::set_pw(Fl_Widget* parent_wgt) { pw = parent_wgt; }
+Fl_Widget* DrawXNode::get_pw() { return pw; }
 
 void DrawXNode::set_pedge(DrawXEdge* parent_edge) { pedge = parent_edge; }
 DrawXEdge* DrawXNode::get_pedge() { return pedge; }
