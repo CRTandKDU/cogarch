@@ -1,41 +1,26 @@
-CC		= g++
-CPP		= g++
-CFLAGS		= -I. -I../libforth -I../embed-master -I../libcsv -I./tidy_tree/src
-FLTK_CFLAGS     = -isystem "C:/Users/chauv/Documents/fltk-1.4.4" -isystem "C:/Users/chauv/Documents/fltk-1.4.4/build"
-EXTRA_CFLAGS	= -O2 -Wall -Wextra -std=c99
+CPP 		= g++
+
+CFLAGS		= -I./include -I./include/cd -I./include/im
+LFLAGS		= -I./lib
+LIBS_DIR	= ./lib
+LIBS_CD		=  $(LIBS_DIR)/cdcontextplus.dll   $(LIBS_DIR)/cd.dll # $(LIBS_DIR)/cdcairo.dll   $(LIBS_DIR)/cddirect2d.dll  $(LIBS_DIR)/cdgl.dll  $(LIBS_DIR)/cdim.dll  $(LIBS_DIR)/cdlua54.dll  $(LIBS_DIR)/cdluacairo54.dll  $(LIBS_DIR)/cdluacontextplus54.dll  $(LIBS_DIR)/cdluadirect2d54.dll  $(LIBS_DIR)/cdluagl54.dll  $(LIBS_DIR)/cdluaim54.dll  $(LIBS_DIR)/cdluapdf54.dll  $(LIBS_DIR)/cdpdf.dll
+LIBS_IUP	= $(LIBS_DIR)/iup.dll $(LIBS_DIR)/iupcd.dll 
+LIBS		=  $(LIBS_DIR)/cdcontextplus.dll $(LIBS_DIR)/iupcd.dll $(LIBS_DIR)/iup.dll $(LIBS_DIR)/cd.dll # ./lib/gdi32.dll ./lib/comdlg32.dll ./lib/comctl32.dll ./lib/uuid.dll ./lib/oleaut32.dll ./lib/ole32.dll
+
+APIS_DIR	= C:/cygwin64/home/Moria/nxp
+APIS_NXP	= $(APIS_DIR)/sign.o $(APIS_DIR)/rule.o $(APIS_DIR)/hypo.o $(APIS_DIR)/compound.o $(APIS_DIR)/engine.o $(APIS_DIR)/engine_dsl.o $(APIS_DIR)/loadkb.o
+
+DSL_DIR		= C:/cygwin64/home/Moria
 DSL_CFLAGS	= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
-DSL_LFLAGS      = ../libcsv/libcsv_la-libcsv.o ../embed-master/util.o -L../embed-master -lembed -lm
-FLTK_LFLAGS     = -L "C:/Users/chauv/Documents/fltk-1.4.4/build/lib/Debug" -lfltkd
-# DSL_CFLAGS	= 
-# DSL_LFLAGS      = 
-LFLAGS		=  -L../libforth -L../embed-master
+DSL_LFLAGS      = $(DSL_DIR)/libcsv/libcsv_la-libcsv.o $(DSL_DIR)/embed-master/util.o -L$(DSL_DIR)/embed-master -lembed # -lm
 
-DEPS		= agenda.h Makefile
-OBJ		= agenda.o sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
-APIS		= sign.o rule.o hypo.o compound.o engine.o engine_dsl.o loadkb.o
-NETAPIS         = network_draw.o network_edge.o network_node.o network_node_group.o
-REPL_DEPS       = Textwindow.hpp Question.hpp Menu.hpp Listview.hpp nxpFListView.hpp Network.hpp
+CFLAGS_NXP	= -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv
 
-repl: repl.cpp Textwindow.o Question.o Menu.o Listview.o nxpFListView.o $(APIS)
-	$(CPP) -o $@ $^ $(CFLAGS) -O3  $(DSL_CFLAGS) $(DSL_LFLAGS) -lfinal
+canvas3: canvas3.c netw.c
+	$(CPP) $^ -o canvas3.exe $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(APIS_NXP)
 
-agenda: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(DSL_CFLAGS) $(DSL_LFLAGS)
+canvas2: canvas2.c
+	gcc canvas2.c -o canvas2.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
-# network: network.cpp
-# 	$(CPP) -o $@ $^ $(CFLAGS) $(FLTK_CFLAGS) -std=c++20 $(FLTK_LFLAGS)
-
-simple_guile: simple_guile.c
-	gcc -o simple_guile simple_guile.c `pkg-config --cflags --libs guile-3.0`
-
-simple_rjhforth: simple_rjhforth.c
-	gcc $(CFLAGS) -o simple_rjhforth simple_rjhforth.c $(LFLAGS) -lforth
-
-simple_howerjforth: simple_howerjforth.c
-	gcc $(CFLAGS) $(EXTRA_CFLAGS) -o $@ $^ ../embed-master/util.o $(LFLAGS) -lembed -lm
-
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) $(DSL_CFLAGS)
-
-%.o: %.cpp $(REPL_DEPS) $(DEPS)
-	$(CPP) -c -o $@ $< $(CFLAGS) -O3 $(DSL_CFLAGS) 
+canvas1: canvas1.c
+	gcc canvas1.c -o canvas1.exe $(CFLAGS) $(LFLAGS) $(LIBS)

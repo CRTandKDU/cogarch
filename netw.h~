@@ -1,0 +1,6 @@
+#ifndef NETW_H
+#define NETW_H
+
+static void netw_redrawkb( cdCanvas *canvas, double WORLD_W, double WORLD_H );
+
+#endif
