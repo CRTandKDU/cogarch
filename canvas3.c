@@ -171,12 +171,17 @@ static int map_cb(Ihandle *ih)
   IupSetfAttribute(ih, "XMAX", "%d", WORLD_W);
   IupSetfAttribute(ih, "YMAX", "%d", WORLD_H);
 
+  netw_initfill_all( canvas );
+
   return IUP_DEFAULT;
 }
 
 static int unmap_cb(Ihandle *ih)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
+
+  netw_free( canvas );
+  
   cdKillCanvas(canvas);
   return IUP_DEFAULT;
 }
@@ -196,9 +201,10 @@ void CanvasScrollbarTest(void)
   IupSetCallback(cnv, "UNMAP_CB",  (Icallback)unmap_cb);
   IupSetCallback(cnv, "WHEEL_CB",  (Icallback)wheel_cb);
   IupSetCallback(cnv, "SCROLL_CB",  (Icallback)scroll_cb);
+
                    
   dlg = IupDialog(IupVbox(cnv, NULL));
-  IupSetAttribute(dlg, "TITLE", "Scrollbar Test");
+  IupSetAttribute(dlg, "TITLE", "Rule Network");
   IupSetAttribute(dlg, "MARGIN", "10x10");
 
   IupMap(dlg);
@@ -377,9 +383,11 @@ int main(int argc, char* argv[])
 
   IupOpen(&argc, &argv);
 
-  CanvasScrollbarTest();
+  CanvasScrollbarTest(); 
 
   IupMainLoop();
+
+  
 
   IupClose();
 
