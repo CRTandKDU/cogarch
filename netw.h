@@ -15,21 +15,36 @@ struct col_rec {
 
 #define _NEW_COL ((col_rec_ptr) malloc(sizeof( struct col_rec )))
 
+#define _NETW_STR_T  1
+#define _NETW_SIGN_T 2
+
 struct netw_cell_rec {
   short y;
   col_rec_ptr  head;
   netw_cell_rec_ptr next;
+  //
+  unsigned short expanded;
+  unsigned short client_data_t;
   void *client_data;
 };
 
 #define _NEW_CELL ((netw_cell_rec_ptr) malloc(sizeof( struct netw_cell_rec )))
 
-
-#define CELL_W 60
+#define CELL_W 200
 #define CELL_H 20
 
+int  netw_click( cdCanvas *, int, int, int, int, double, double, unsigned short );
 void netw_initfill_all( cdCanvas * );
 void netw_free( cdCanvas * );
-void netw_redrawkb( cdCanvas *,double, double  );
+void netw_redrawkb( cdCanvas *, double, double );
+
+#define NETW_LR ((unsigned short) 1)
+#define NETW_RL ((unsigned short) 2)
+#define _EXP_RL_P(cell) (((cell)->expanded) & NETW_RL)
+#define _EXP_LR_P(cell) (((cell)->expanded) & NETW_LR)
+#define _EXP_RL_SET(cell) ((cell)->expanded) |= NETW_RL
+#define _EXP_LR_SET(cell) ((cell)->expanded) |= NETW_LR
+#define _EXP_RL_RESET(cell) ((cell)->expanded) &= ~ NETW_RL
+#define _EXP_LR_RESET(cell) ((cell)->expanded) &= ~ NETW_LR
 
 #endif

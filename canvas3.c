@@ -17,7 +17,7 @@
    Remember that:
    XMIN<=POSX<=XMAX-DX
 */
-#define WORLD_W 600
+#define WORLD_W 6000
 #define WORLD_H 400
 static int scale = 1;
 
@@ -82,7 +82,7 @@ static int action(Ihandle *ih)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
 
-printf("ACTION\n");
+  /* printf("ACTION\n"); */
   cdCanvasActivate(canvas);
   cdCanvasClear(canvas);
 
@@ -123,7 +123,7 @@ printf("                                DRAWSIZE=%s \n", IupGetAttribute(ih, "DR
 static int scroll_cb(Ihandle *ih, int op, float posx, float posy)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
-printf("SCROLL_CB(%g, %g)\n", posx, posy);
+  /* printf("SCROLL_CB(%g, %g)\n", posx, posy); */
   cdCanvasActivate(canvas);
   update_viewport(ih, canvas, posx, posy);
   IupRedraw(ih, 0);
@@ -173,6 +173,7 @@ static int map_cb(Ihandle *ih)
 
   netw_initfill_all( canvas );
 
+ 
   return IUP_DEFAULT;
 }
 
@@ -186,6 +187,40 @@ static int unmap_cb(Ihandle *ih)
   return IUP_DEFAULT;
 }
 
+int button_cb(Ihandle* self, int but, int press, int x, int y)
+{
+  /* if (but == IUP_BUTTON1 && press) */
+  /* { */
+  /*   cdCanvasUpdateYAxis(cdcanvas, &y); */
+  /*   cdCanvasPixel(cdcanvas, x, y, CD_BLUE); */
+  /*   draw = 1; */
+  /* } */
+  /* else */
+  /* { */
+  /*   cdCanvasClear(cdcanvas); */
+  /*   draw = 0; */
+  /* } */
+  /* return IUP_DEFAULT; */
+  cdCanvas *canvas = (cdCanvas*)IupGetAttribute( self, "_CD_CANVAS" );
+  int needredraw = 0;
+  if( IUP_BUTTON1 == but ){
+    cdCanvasUpdateYAxis( canvas, &y );
+    printf( "Click at x=%d, y=%d\n", x, y );
+    // Left button DOWN and UP in the same cell trigger event
+    needredraw = netw_click( canvas, but, press, x, y,
+			     WORLD_W, WORLD_H, NETW_LR );
+    if( needredraw ) IupUpdate( self );
+  }
+	
+  return IUP_DEFAULT;	
+}
+
+int motion_cb(Ihandle* self, int x, int y)
+{
+
+  return IUP_DEFAULT;
+}
+
 void CanvasScrollbarTest(void)
 {
   Ihandle *dlg, *cnv;
@@ -195,12 +230,14 @@ void CanvasScrollbarTest(void)
   IupSetAttribute(cnv, "SCROLLBAR", "YES");
 //  IupSetAttribute(cnv, "EXPAND", "NO");
 
-  IupSetCallback(cnv, "RESIZE_CB",  (Icallback)resize_cb);
-  IupSetCallback(cnv, "ACTION",  (Icallback)action);
-  IupSetCallback(cnv, "MAP_CB",  (Icallback)map_cb);
-  IupSetCallback(cnv, "UNMAP_CB",  (Icallback)unmap_cb);
-  IupSetCallback(cnv, "WHEEL_CB",  (Icallback)wheel_cb);
-  IupSetCallback(cnv, "SCROLL_CB",  (Icallback)scroll_cb);
+  IupSetCallback(cnv, "RESIZE_CB",	(Icallback)resize_cb);
+  IupSetCallback(cnv, "ACTION",		(Icallback)action);
+  IupSetCallback(cnv, "MAP_CB",		(Icallback)map_cb);
+  IupSetCallback(cnv, "UNMAP_CB",	(Icallback)unmap_cb);
+  IupSetCallback(cnv, "WHEEL_CB",	(Icallback)wheel_cb);
+  IupSetCallback(cnv, "SCROLL_CB",	(Icallback)scroll_cb);
+  IupSetCallback(cnv, "BUTTON_CB",	(Icallback)button_cb);
+  IupSetCallback(cnv, "MOTION_CB",	(Icallback)motion_cb);
 
                    
   dlg = IupDialog(IupVbox(cnv, NULL));
