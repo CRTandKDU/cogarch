@@ -86,7 +86,7 @@ static int action(Ihandle *ih)
   cdCanvasActivate(canvas);
   cdCanvasClear(canvas);
 
-  netw_redrawkb( canvas, WORLD_W, WORLD_H );
+  netw_redrawkb( canvas, scale, WORLD_W, WORLD_H, NETW_RL );
 
   /* cdCanvasForeground(canvas, CD_RED); */
   /* wdCanvasLine(canvas, 0, 0, WORLD_W, WORLD_H); */
@@ -105,10 +105,10 @@ static int resize_cb(Ihandle *ih, int canvas_w, int canvas_h)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
 
-printf("RESIZE_CB(%d, %d) RASTERSIZE=%s DRAWSIZE=%s \n", canvas_w, canvas_h, IupGetAttribute(ih, "RASTERSIZE"), IupGetAttribute(ih, "DRAWSIZE"));
+  /* printf("RESIZE_CB(%d, %d) RASTERSIZE=%s DRAWSIZE=%s \n", canvas_w, canvas_h, IupGetAttribute(ih, "RASTERSIZE"), IupGetAttribute(ih, "DRAWSIZE")); */
   /* When *AUTOHIDE=Yes, this can hide a scrollbar and so change the canvas drawsize */
   update_scrollbar(ih, canvas_w, canvas_h);  
-printf("                                DRAWSIZE=%s \n", IupGetAttribute(ih, "DRAWSIZE"));
+  /* printf("                                DRAWSIZE=%s \n", IupGetAttribute(ih, "DRAWSIZE")); */
   /* update the canvas size */
   IupGetIntInt(ih, "DRAWSIZE", &canvas_w, &canvas_h);
   update_scrollbar(ih, canvas_w, canvas_h);  
@@ -171,9 +171,8 @@ static int map_cb(Ihandle *ih)
   IupSetfAttribute(ih, "XMAX", "%d", WORLD_W);
   IupSetfAttribute(ih, "YMAX", "%d", WORLD_H);
 
-  netw_initfill_all( canvas );
+  netw_initfill_all( canvas, WORLD_W, WORLD_H );
 
- 
   return IUP_DEFAULT;
 }
 
@@ -226,7 +225,7 @@ void CanvasScrollbarTest(void)
   Ihandle *dlg, *cnv;
 
   cnv = IupCanvas(NULL);
-  IupSetAttribute(cnv, "RASTERSIZE", "300x200"); /* initial size */
+  IupSetAttribute(cnv, "RASTERSIZE", "600x400"); /* initial size */
   IupSetAttribute(cnv, "SCROLLBAR", "YES");
 //  IupSetAttribute(cnv, "EXPAND", "NO");
 

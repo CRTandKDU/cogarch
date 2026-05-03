@@ -17,6 +17,7 @@ struct col_rec {
 
 #define _NETW_STR_T  1
 #define _NETW_SIGN_T 2
+#define _NETW_RULE_T 4
 
 struct netw_cell_rec {
   short y;
@@ -26,6 +27,10 @@ struct netw_cell_rec {
   unsigned short expanded;
   unsigned short client_data_t;
   void *client_data;
+  short nleft;
+  netw_cell_rec_ptr *left;
+  short nright;
+  netw_cell_rec_ptr *right;
 };
 
 #define _NEW_CELL ((netw_cell_rec_ptr) malloc(sizeof( struct netw_cell_rec )))
@@ -34,9 +39,9 @@ struct netw_cell_rec {
 #define CELL_H 20
 
 int  netw_click( cdCanvas *, int, int, int, int, double, double, unsigned short );
-void netw_initfill_all( cdCanvas * );
+void netw_initfill_all( cdCanvas *, double, double );
 void netw_free( cdCanvas * );
-void netw_redrawkb( cdCanvas *, double, double );
+void netw_redrawkb( cdCanvas *, int, double, double, unsigned short );
 
 #define NETW_LR ((unsigned short) 1)
 #define NETW_RL ((unsigned short) 2)
