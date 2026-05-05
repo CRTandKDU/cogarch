@@ -19,8 +19,8 @@
 */
 #define WORLD_W 6000
 #define WORLD_H 400
-static int scale = 1;
 
+static int scale = 1;
 
 //----------------------------------------------------------------------
 // IUP GUI logic
@@ -186,7 +186,7 @@ static int unmap_cb(Ihandle *ih)
   return IUP_DEFAULT;
 }
 
-int button_cb(Ihandle* self, int but, int press, int x, int y)
+int button_cb(Ihandle* self, int but, int press, int x, int y, char *status)
 {
   /* if (but == IUP_BUTTON1 && press) */
   /* { */
@@ -206,7 +206,7 @@ int button_cb(Ihandle* self, int but, int press, int x, int y)
     cdCanvasUpdateYAxis( canvas, &y );
     printf( "Click at x=%d, y=%d\n", x, y );
     // Left button DOWN and UP in the same cell trigger event
-    needredraw = netw_click( canvas, but, press, x, y,
+    needredraw = netw_click( canvas, but, press, x, y, iup_isshift(status),
 			     WORLD_W, WORLD_H, NETW_LR );
     if( needredraw ) IupUpdate( self );
   }
@@ -432,10 +432,14 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------
 
 #ifdef ENGINE_DSL
+  printf( "Shutdown -- Freeing DSL engine\n" );
   engine_dsl_free();
 #endif
+  printf( "Shutdown -- Freeing Knowledbe Base\n" );
   loadkb_reset();
+  printf( "Shutdown -- Freeing NXP engine\n" );
   engine_free_state( S_State );
+  printf( "Shutdown -- Complete\n" );
 
   return EXIT_SUCCESS;
 }

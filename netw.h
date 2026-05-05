@@ -18,6 +18,9 @@ struct col_rec {
 #define _NETW_STR_T  1
 #define _NETW_SIGN_T 2
 #define _NETW_RULE_T 4
+#define _NETW_JUNCTION_T 8
+#define _NETW_SIGN_YES_T 16
+#define _NETW_SIGN_NO_T 32
 
 struct netw_cell_rec {
   short y;
@@ -38,7 +41,7 @@ struct netw_cell_rec {
 #define CELL_W 200
 #define CELL_H 20
 
-int  netw_click( cdCanvas *, int, int, int, int, double, double, unsigned short );
+int  netw_click( cdCanvas *, int, int, int, int, int, double, double, unsigned short );
 void netw_initfill_all( cdCanvas *, double, double );
 void netw_free( cdCanvas * );
 void netw_redrawkb( cdCanvas *, int, double, double, unsigned short );

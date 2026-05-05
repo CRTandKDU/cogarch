@@ -1,0 +1,127 @@
+/**
+ * netw_redraw.c -- Redrawing the Rule Network at scale 1
+ *
+ * Written on 2026-05-05.
+ */
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <iup.h>
+#include <cd.h>
+#include <cdiup.h>
+#include <wd.h>
+
+#include "agenda.h"
+
+#include "netw.h"
+#include "netw_internals.h"
+
+void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H, unsigned short orientation ){
+  col_rec_ptr  col;
+  netw_cell_rec_ptr cell;
+  int xv, yv, p = 0;
+  int x0, y0, p0 = 0;
+  char buf[_NETW_TEMP_BUFSIZE]={0};
+  int font_height, line_style;
+  long int line_color;
+  short i;
+
+  cdCanvasGetFontDim( canvas, NULL, &font_height, NULL, NULL );
+  col = (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
+  // Draw nodes. Iterate on cols then on cells.
+  while( col ){
+    cell = col->first;
+    while( cell ){
+      // What to write
+      netw__text( canvas, cell, buf, &p );
+      // Where to write it
+      switch( cell->client_data_t ){
+      case _NETW_SIGN_T:
+      case _NETW_SIGN_YES_T:
+      case _NETW_SIGN_NO_T:
+      case _NETW_STR_T:
+	// Right-aligned in LR
+	wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x), (double) (CELL_H*cell->y), &xv, &yv);
+	break;
+      case _NETW_RULE_T:
+	// Centered
+	wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - (CELL_W - p)/2), (double) (CELL_H*cell->y), &xv, &yv);
+	break;
+      }
+      // Write it
+      if( _NETW_JUNCTION_T != cell->client_data_t )
+	cdCanvasText( canvas, xv, yv, buf );
+
+      // Draw right links
+      if( cell->nright ){
+	switch( cell->client_data_t ){
+	case _NETW_JUNCTION_T:
+	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - CELL_W/2), (double) (CELL_H*cell->y + CELL_H/2), &xv, &yv );
+	  break;
+	default:
+	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x), (double) (CELL_H*cell->y + font_height/2), &xv, &yv );
+	  break;
+	}
+	// Right-link Destinations
+	for( i=0; i<cell->nright; i++ ){
+	  switch( cell->right[i]->client_data_t ){
+	  case _NETW_JUNCTION_T:
+	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->right[i]->head->x - CELL_W/2), (double) (CELL_H*cell->right[i]->y + CELL_H/2), &x0, &y0 );
+	    break;
+	  default:
+	    netw__text( canvas, cell->right[i], buf, &p0 );
+	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->right[i]->head->x - p0), (double) (CELL_H*cell->right[i]->y + font_height/2), &x0, &y0 );
+	    break;
+	  }
+	  line_color = cdCanvasForeground( canvas, _NETW_LINE_COLOR_FWRD );
+	  line_style = cdCanvasLineStyle( canvas, _NETW_LINE_STYLE_FWRD );
+	  cdCanvasLine( canvas, xv, yv, x0, y0 );
+	  line_style = cdCanvasLineStyle( canvas, line_style );
+	  line_color = cdCanvasForeground( canvas, line_color );
+	}
+      }
+  
+      // Draw left links
+      if( cell->nleft ){
+	// Find origin point
+	switch( cell->client_data_t ){
+	case _NETW_SIGN_T:
+	case _NETW_SIGN_YES_T:
+	case _NETW_SIGN_NO_T:
+	case _NETW_STR_T:
+	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - p), (double) (CELL_H*cell->y + font_height/2), &xv, &yv );
+	  break;
+	case _NETW_RULE_T:
+	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - (CELL_W + p)/2), (double) (CELL_H*cell->y + font_height/2), &xv, &yv );
+	  break;
+	}
+	// Find all destination points
+	for( i=0; i<cell->nleft; i++ ){
+	  // Recomputes the text dims?
+	  netw__text( canvas, cell->left[i], buf, &p0 );
+	  switch( cell->left[i]->client_data_t ){
+	  case _NETW_SIGN_T:
+	  case _NETW_SIGN_YES_T:
+	  case _NETW_SIGN_NO_T:
+	  case _NETW_STR_T:
+	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->left[i]->head->x),
+				  (double) (CELL_H*cell->left[i]->y + font_height/2), &x0, &y0);
+	    break;
+	  case _NETW_RULE_T:
+	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->left[i]->head->x - (CELL_W - p0)/2 ),
+				  (double) (CELL_H*cell->left[i]->y + font_height/2), &x0, &y0);
+	    break;
+	  }
+	  // Draw line
+	  line_color = cdCanvasForeground( canvas, _NETW_LINE_COLOR_FWRD );
+	  line_style = cdCanvasLineStyle( canvas, _NETW_LINE_STYLE_BWRD );
+	  cdCanvasLine( canvas, xv, yv, x0, y0 );
+	  line_style = cdCanvasLineStyle( canvas, line_style );
+	  line_color = cdCanvasForeground( canvas, line_color );
+	}
+      }
+      cell = cell->next;
+    }
+    col = col->next;
+  }
+}

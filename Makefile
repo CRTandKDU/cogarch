@@ -16,8 +16,10 @@ DSL_LFLAGS      = $(DSL_DIR)/libcsv/libcsv_la-libcsv.o $(DSL_DIR)/embed-master/u
 
 CFLAGS_NXP	= -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv
 
-canvas3: canvas3.c netw.c
-	$(CPP) $^ -o canvas3.exe -mwindows $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(APIS_NXP)
+CSOURCES_3      = netw.c netw_internals.c netw_expansion.c netw_redraw.c
+
+canvas3: canvas3.c $(CSOURCES_3)
+	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(APIS_NXP)
 
 canvas2: canvas2.c
 	gcc canvas2.c -o canvas2.exe $(CFLAGS) $(LFLAGS) $(LIBS)
