@@ -22,6 +22,9 @@
 
 static int scale = 1;
 
+static int DEFAULT_W = 600 - 19;
+static int DEFAULT_H = 400 - 19;
+
 //----------------------------------------------------------------------
 // IUP GUI logic
 //----------------------------------------------------------------------
@@ -105,13 +108,24 @@ static int resize_cb(Ihandle *ih, int canvas_w, int canvas_h)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
 
-  /* printf("RESIZE_CB(%d, %d) RASTERSIZE=%s DRAWSIZE=%s \n", canvas_w, canvas_h, IupGetAttribute(ih, "RASTERSIZE"), IupGetAttribute(ih, "DRAWSIZE")); */
+  printf("RESIZE_CB(%d, %d) RASTERSIZE=%s DRAWSIZE=%s \n", canvas_w, canvas_h, IupGetAttribute(ih, "RASTERSIZE"), IupGetAttribute(ih, "DRAWSIZE"));
   /* When *AUTOHIDE=Yes, this can hide a scrollbar and so change the canvas drawsize */
   update_scrollbar(ih, canvas_w, canvas_h);  
   /* printf("                                DRAWSIZE=%s \n", IupGetAttribute(ih, "DRAWSIZE")); */
   /* update the canvas size */
   IupGetIntInt(ih, "DRAWSIZE", &canvas_w, &canvas_h);
-  update_scrollbar(ih, canvas_w, canvas_h);  
+  update_scrollbar(ih, canvas_w, canvas_h);
+
+  /* Reposition network display vertically */
+  if( canvas_h - DEFAULT_H >= 2*20 ){
+    DEFAULT_H += 2*20;
+    netw_adjust_vert( canvas, 1 );
+  }
+  else if( canvas_h - DEFAULT_H <= -20*2 ){
+    DEFAULT_H -= 2*20;
+    netw_adjust_vert( canvas, -1 );
+  }
+
 
   /* update the application */
   cdCanvasActivate(canvas);

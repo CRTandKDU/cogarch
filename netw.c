@@ -68,11 +68,18 @@ int netw_click( cdCanvas *canvas, int but, int press, int x, int y, int shifted,
   return needredraw;	
 }
 
+void netw_adjust_vert( cdCanvas *canvas, int inc ){
+  col_rec_ptr col = (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
+  while( col ){
+    netw__adjust_col_vert( col->first, inc );
+    col = col->next;
+  }
+}
 
 void netw_initfill_all( cdCanvas *canvas, double WORLD_W, double WORLD_H ){
   sign_rec_ptr s, top = (sign_rec_ptr) loadkb_get_allhypos();
   col_rec_ptr col = _NEW_COL;
-  col->x	= 1;
+  col->x	= WORLD_W/CELL_W - 3;
   col->next	= NULL;
   netw_cell_rec_ptr cptr;
   short i;
@@ -91,7 +98,8 @@ void netw_initfill_all( cdCanvas *canvas, double WORLD_W, double WORLD_H ){
   // Second pass to adjust height of cells
   int inc = (WORLD_H/CELL_H - i)/2;
   printf("INITFILLALL i=%d, inc=%d\n", i, inc );
-  for( cptr=col->first; cptr; cptr=cptr->next ){ cptr->y += inc; }
+  netw__adjust_col_vert( col->first, inc );
+  /* for( cptr=col->first; cptr; cptr=cptr->next ){ cptr->y += inc; } */
   //
   cdCanvasSetAttribute( canvas, "USERDATA", (char *) col);
 }

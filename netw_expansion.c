@@ -279,12 +279,18 @@ void netw__toggle_expand( cdCanvas *canvas, netw_cell_rec_ptr cell, int shifted,
     if( 0 == shifted ){
       // Backward chaining
       if( _EXP_RL_P(cell) ){
-	if( NETW_BOOLEAN_SIGN( cell ) )
+	if( NETW_BOOLEAN_SIGN( cell ) ){
 	  netw__recursive_remove_backward( canvas, cell, orientation );
+	}
       }
       else{
-	if( NETW_BOOLEAN_SIGN( cell ) )
+	if( NETW_BOOLEAN_SIGN( cell ) ){
 	  netw__expand_backward( canvas, cell, WORLD_W, WORLD_H, orientation );
+	  // Expand DRAWSIZE left as needed, by shifting colums right
+	  /* printf( "EXPANDED cell at x=%d, y=%d, max=%d\n", cell->head->x, cell->y, WORLD_W/CELL_W ); */
+	  if( (cell->head->x) > (WORLD_W/CELL_W - 2) )
+	    netw_adjust_horz( (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ), -2 );
+	}
       }
     }
     else{

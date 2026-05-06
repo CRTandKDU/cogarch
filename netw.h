@@ -41,6 +41,10 @@ struct netw_cell_rec {
 #define CELL_W 200
 #define CELL_H 20
 
+void netw_adjust_horz( col_rec_ptr, int );
+void netw_adjust_vert( cdCanvas *, int );
+void netw_get_cell_size( int *, int * );
+
 int  netw_click( cdCanvas *, int, int, int, int, int, double, double, unsigned short );
 void netw_initfill_all( cdCanvas *, double, double );
 void netw_free( cdCanvas * );

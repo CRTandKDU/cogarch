@@ -211,3 +211,19 @@ char * netw__client_text( netw_cell_rec_ptr cell ){
   }
   return ret;
 }
+
+void netw__adjust_col_vert( netw_cell_rec_ptr cell, int inc ){
+  netw_cell_rec_ptr c = cell;
+  while( c ){ c->y += inc; c = c->next; }
+}
+
+//
+
+void netw_adjust_horz( col_rec_ptr col, int inc ){
+  col_rec_ptr c = col;
+  while( c ){ c->x += inc; c = c->next; }
+}
+
+void netw_get_cell_size( int *w, int *h ){
+  *w = CELL_W; *h = CELL_H;
+}

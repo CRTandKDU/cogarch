@@ -31,6 +31,7 @@ int		netw__col_ymin_cell( col_rec_ptr );
 col_rec_ptr	netw__col_get_create( cdCanvas *, int );
 void		netw__text( cdCanvas *, netw_cell_rec_ptr, char *, int * );
 char *          netw__client_text( netw_cell_rec_ptr );
+void            netw__adjust_col_vert( netw_cell_rec_ptr, int );
 
 // Expanding backward and forward
 void netw__expand_forward(  cdCanvas *, netw_cell_rec_ptr,
