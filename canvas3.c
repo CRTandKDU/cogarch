@@ -7,6 +7,7 @@
 
 #include "agenda.h"
 #include "netw.h"
+#include "nxpiup.h"
 
 /* World:
    The canvas will be a window into that space.
@@ -234,6 +235,15 @@ int motion_cb(Ihandle* self, int x, int y)
   return IUP_DEFAULT;
 }
 
+int close_cb( Ihandle *ih ){
+  printf( "Closing network\n" );
+  Ihandle *ih_item = IupGetHandle( "item_browse" );
+  IupSetAttribute( ih_item, "ACTIVE", "YES" );
+  IupDestroy( ih );
+  
+  return IUP_IGNORE;
+}
+
 void CanvasScrollbarTest(void)
 {
   Ihandle *dlg, *cnv;
@@ -256,6 +266,7 @@ void CanvasScrollbarTest(void)
   dlg = IupDialog(IupVbox(cnv, NULL));
   IupSetAttribute(dlg, "TITLE", "Rule Network");
   IupSetAttribute(dlg, "MARGIN", "10x10");
+  IupSetCallback( dlg, "CLOSE_CB",	(Icallback)close_cb);
 
   IupMap(dlg);
   IupSetAttribute(cnv, "RASTERSIZE", NULL);  /* release the minimum limitation */
@@ -433,11 +444,10 @@ int main(int argc, char* argv[])
 
   IupOpen(&argc, &argv);
 
-  CanvasScrollbarTest(); 
-
-  IupMainLoop();
-
+  /* CanvasScrollbarTest();  */
+  nxpiup_dlgmenu();
   
+  IupMainLoop();
 
   IupClose();
 

@@ -50,6 +50,8 @@ void netw_initfill_all( cdCanvas *, double, double );
 void netw_free( cdCanvas * );
 void netw_redrawkb( cdCanvas *, int, double, double, unsigned short );
 
+void CanvasScrollbarTest( void );
+
 #define NETW_LR ((unsigned short) 1)
 #define NETW_RL ((unsigned short) 2)
 #define _EXP_RL_P(cell) (((cell)->expanded) & NETW_RL)
