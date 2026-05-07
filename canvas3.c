@@ -332,6 +332,13 @@ char *S_val_color( unsigned short val ){
 
 void getter_sign( sign_rec_ptr sign, int *suspend ){
   printf( "Question %s\n", sign->str );
+  cell_rec_ptr cell = repl_getState()->agenda;
+  while( cell ){
+    printf( "\t%s\n", cell->sign_or_hypo->str );
+    cell = cell->next;
+  }
+  //
+  nxpiup_dlgquestion( sign );
   *suspend = _TRUE;
 }
 
@@ -381,23 +388,27 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 }
 
 void  repl_log( const char *s ){
+  Ihandle *log = IupGetHandle( "ih_log" );
+  if( log ){
+    IupSetAttribute( log, "APPEND", s );
+  }
   printf( "Log: %s\n", s );
 }
 
 void cb_on_gate( sign_rec_ptr sign, short val ){
-  printf( "Gating %s (%d) - %d", sign->str, sign->val.val_bool, val );
+  printf( "Gating %s (%d) - %d\n", sign->str, sign->val.val_bool, val );
   //
   engine_default_on_gate( sign, val );
 }
 
 void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
-  printf( "Push %s", sign->str );
+  printf( "Push %s\n", sign->str );
   //
   engine_default_on_agenda_push( sign, val );
 }
 
 void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
-  printf( "Pop %s", sign->str );
+  printf( "Pop %s\n", sign->str );
   //
   engine_default_on_agenda_pop( sign, val );
 }
@@ -409,9 +420,23 @@ void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
 }
 
 void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
-  printf( "End of session." );
+  //
+  Ihandle *ih_item = IupGetHandle( "item_knowcess" );
+  IupSetAttribute( ih_item, "ACTIVE", "YES" );
+  printf( "End of session.\n" );
 }
 
+//----------------------------------------------------------------------
+// NXP utilities
+//----------------------------------------------------------------------
+int  nxpiup_inagendap( sign_rec_ptr sign ){
+  cell_rec_ptr cell = repl_getState()->agenda;
+  while( cell ){
+    if( cell->sign_or_hypo == sign ) return 1;
+    cell = cell->next;
+  }
+  return 0;
+}
 
 int main(int argc, char* argv[])
 {
@@ -435,8 +460,8 @@ int main(int argc, char* argv[])
   engine_dsl_init();
 #endif
 
-  int err = loadkb_file( "satfault.org" );
-  printf( "Loaded KB: %d\n", err );
+  /* int err = loadkb_file( "satfault.org" ); */
+  /* printf( "Loaded KB: %d\n", err ); */
 
   //----------------------------------------------------------------------
   // IUP application
@@ -459,7 +484,7 @@ int main(int argc, char* argv[])
   printf( "Shutdown -- Freeing DSL engine\n" );
   engine_dsl_free();
 #endif
-  printf( "Shutdown -- Freeing Knowledbe Base\n" );
+  printf( "Shutdown -- Freeing Knowledge Base\n" );
   loadkb_reset();
   printf( "Shutdown -- Freeing NXP engine\n" );
   engine_free_state( S_State );

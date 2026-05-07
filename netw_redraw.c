@@ -16,6 +16,8 @@
 #include "netw.h"
 #include "netw_internals.h"
 
+#include "nxpiup.h"
+
 void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H, unsigned short orientation ){
   col_rec_ptr  col;
   netw_cell_rec_ptr cell;
@@ -49,8 +51,11 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
 	break;
       }
       // Write it
-      if( _NETW_JUNCTION_T != cell->client_data_t )
+      if( _NETW_JUNCTION_T != cell->client_data_t ){
+	cdCanvasFont( canvas, NULL, nxpiup_inagendap( (sign_rec_ptr) cell->client_data ) ? CD_BOLD : CD_PLAIN, 0 );
 	cdCanvasText( canvas, xv, yv, buf );
+	cdCanvasFont( canvas, NULL, CD_PLAIN, 0 );
+      }
 
       // Draw right links
       if( cell->nright ){
