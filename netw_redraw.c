@@ -25,8 +25,8 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
   int x0, y0, p0 = 0;
   char buf[_NETW_TEMP_BUFSIZE]={0};
   int font_height, line_style;
-  long int line_color;
-  short i;
+  long int line_color, text_color;
+  short current = 0, i;
 
   cdCanvasGetFontDim( canvas, NULL, &font_height, NULL, NULL );
   col = (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
@@ -52,9 +52,27 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
       }
       // Write it
       if( _NETW_JUNCTION_T != cell->client_data_t ){
-	cdCanvasFont( canvas, NULL, nxpiup_inagendap( (sign_rec_ptr) cell->client_data ) ? CD_BOLD : CD_PLAIN, 0 );
+	current =  ( _NETW_RULE_T == cell->client_data_t ) ?
+	  nxpiup_inagendap( (sign_rec_ptr) (((rule_rec_ptr) cell->client_data)->setters) ) :
+	  nxpiup_inagendap( (sign_rec_ptr) cell->client_data );
+	cdCanvasFont( canvas, NULL,  current ? CD_BOLD : CD_PLAIN, 0 );
+	if( !current &&
+	    _KNOWN      == ((sign_rec_ptr) cell->client_data)->val.status &&
+	    _VAL_T_BOOL == ((sign_rec_ptr) cell->client_data)->val.type ) {
+	  text_color = cdCanvasForeground( canvas,
+					   _FALSE == ((sign_rec_ptr) cell->client_data)->val.val_bool ?
+					   CD_RED :
+					   CD_GREEN );
+	}
+
 	cdCanvasText( canvas, xv, yv, buf );
+	if( !current &&
+	   _KNOWN      == ((sign_rec_ptr) cell->client_data)->val.status &&
+	    _VAL_T_BOOL == ((sign_rec_ptr) cell->client_data)->val.type ){
+	  text_color = cdCanvasForeground( canvas, text_color );
+	}
 	cdCanvasFont( canvas, NULL, CD_PLAIN, 0 );
+	current = 0;
       }
 
       // Draw right links

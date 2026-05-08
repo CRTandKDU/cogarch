@@ -62,17 +62,31 @@ void nxpiup_dlgquestion( sign_rec_ptr sign ){
   else{
     qlabel = IupLabel( buf );
     IupSetHandle( "question_label", qlabel );
+    IupSetAttribute( qlabel, "ALIGNMENT", "ACENTER:ACENTER" );
+    //
     Ihandle *qtext  = IupText( NULL );
     IupSetHandle( "question_text", qtext );
+    IupSetAttribute( qtext, "VISIBLECOLUMNS", "16" );
     Ihandle *qbut   = IupButton( "OK", "qbut" );
-    IupSetCallback( qbut, "ACTION", (Icallback) qbut_cb );     
-    dlg = IupDialog( IupVbox( qlabel, qtext, IupHbox( qbut, NULL ), NULL ) );
+    IupSetCallback( qbut, "ACTION", (Icallback) qbut_cb );
+    Ihandle *qtext_box = IupHbox( qtext, qbut, NULL );
+    IupSetAttribute( qtext_box, "ALIGNMENT", "ACENTER" );
+    IupSetAttribute( qtext_box, "GAP", "20" );
+    IupSetAttribute( qtext_box, "MARGIN", "20x20" );
+    //
+    Ihandle *qvbox = IupVbox( qlabel, qtext_box, NULL );
+    IupSetAttribute( qvbox, "EXPANDCHILDREN", "YES" );
+
+    dlg = IupDialog( qvbox  );
     IupSetAttributes( dlg, "EXPAND = YES, TITLE = Question, RESIZE = NO" );
     IupSetAttributes( dlg, "MENUBOX = NO, MAXBOX = NO, MINBOX = NO" );
     IupSetAttribute( dlg, "SIZE", "QUARTERxQUARTER" );
     IupSetHandle( "question", dlg );
   }
   //
+  Ihandle *netw = IupGetHandle( "rule_network" );
+  if( netw ) IupUpdate( netw );
+
   /* Shows dialog on the center of the screen */
   IupShowXY( dlg, IUP_CENTER, IUP_CENTER );
 }
@@ -195,11 +209,13 @@ void nxpiup_dlgmenu( void ){
   sprintf( log_version, VERSION_LOG, __DATE__, VERSION_GUI, VERSION_DSL, VERSION_NXP );
   Ihandle *log = IupMultiLine( NULL );
   IupSetAttribute( log, "READONLY", "YES" );
-  IupSetAttribute( log, "VISIBLELINES", "10" );
+  IupSetAttribute( log, "VISIBLELINES", "20" );
   IupSetAttribute( log, "VISIBLECOLUMNS", "32" );
+  IupSetAttribute( log, "EXPAND", "VERTICAL" );
   IupSetAttribute( log, "VALUE", log_version );
   IupSetHandle( "ih_log", log );
   Ihandle *vbox_log = IupVbox( log, NULL );
+  IupSetAttribute( vbox_log, "EXPANDCHILDREN", "YES" ); 
 
   Ihandle *dlg = IupDialog( vbox_log );
   IupSetAttribute( dlg, "MENU", "mymenu" );

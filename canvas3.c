@@ -249,6 +249,7 @@ void CanvasScrollbarTest(void)
   Ihandle *dlg, *cnv;
 
   cnv = IupCanvas(NULL);
+  IupSetHandle( "rule_network", cnv );
   IupSetAttribute(cnv, "RASTERSIZE", "600x400"); /* initial size */
   IupSetAttribute(cnv, "SCROLLBAR", "YES");
 //  IupSetAttribute(cnv, "EXPAND", "NO");
@@ -403,12 +404,14 @@ void cb_on_gate( sign_rec_ptr sign, short val ){
 
 void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
   printf( "Push %s\n", sign->str );
+  IupLoopStep();
   //
   engine_default_on_agenda_push( sign, val );
 }
 
 void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
   printf( "Pop %s\n", sign->str );
+  IupLoopStep();
   //
   engine_default_on_agenda_pop( sign, val );
 }
@@ -417,13 +420,22 @@ void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
   printf( "Set %s:\t", sign->str );
   print_local_val_repr( &sign->val ); printf("\t");
   print_local_val_repr( val ); printf("\n");
+  //
+  Ihandle *netw = IupGetHandle( "rule_network" );
+  if( netw ) IupUpdate( netw );
+  IupLoopStep();
 }
 
 void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
+  printf( "End of session.\n" );
+  repl_log( "End of session\n" );
   //
   Ihandle *ih_item = IupGetHandle( "item_knowcess" );
   IupSetAttribute( ih_item, "ACTIVE", "YES" );
-  printf( "End of session.\n" );
+  //
+  Ihandle *netw = IupGetHandle( "rule_network" );
+  if( netw ) IupUpdate( netw );
+  IupLoopStep();
 }
 
 //----------------------------------------------------------------------

@@ -16,6 +16,8 @@
 #include "netw.h"
 #include "netw_internals.h"
 
+#include "nxpiup.h"
+
 static netw_cell_rec_ptr S_cellclicked = NULL;
 
 int netw__findcell( col_rec_ptr head, double xw, double yw, double WORLD_W, double WORLD_H,
@@ -125,10 +127,11 @@ void netw_free( cdCanvas *canvas ){
 void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H, unsigned short orientation ){
   col_rec_ptr  col;
   netw_cell_rec_ptr cell;
-  short i;
+  short i, current = 0;
   int xv, yv;
   int x0, y0;
   int xmin, xmax, ymin, ymax, xw, yh;
+  long int text_color;
 
   cdCanvasFont( canvas, "Times", CD_PLAIN, 10 );
   cdCanvasTextAlignment( canvas, CD_SOUTH_EAST );
@@ -148,7 +151,27 @@ void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H,
 	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x),
 				(double) (CELL_H*cell->y + CELL_H), &xmax, &ymax );
 	  xw = (xmax - xmin)/4; yh = (ymax - ymin)/4;
-	  cdCanvasRect(canvas, xmin + xw, xmax - xw, ymin + yh , ymax - yh );
+	  current =  ( _NETW_RULE_T == cell->client_data_t ) ?
+	    nxpiup_inagendap( (sign_rec_ptr) (((rule_rec_ptr) cell->client_data)->setters) ) :
+	    nxpiup_inagendap( (sign_rec_ptr) cell->client_data );
+	  if( current ){
+	    cdCanvasBox(canvas, xmin + xw, xmax - xw, ymin + yh , ymax - yh );
+	  }
+	  else{
+	    if( _KNOWN      == ((sign_rec_ptr) cell->client_data)->val.status &&
+		_VAL_T_BOOL == ((sign_rec_ptr) cell->client_data)->val.type ) {
+	      text_color = cdCanvasForeground( canvas,
+					       _FALSE == ((sign_rec_ptr) cell->client_data)->val.val_bool ?
+					       CD_RED :
+					       CD_GREEN );
+	      cdCanvasBox(canvas, xmin + xw, xmax - xw, ymin + yh , ymax - yh );
+	      text_color = cdCanvasForeground( canvas, text_color );
+	    }
+	    else{
+	      cdCanvasRect(canvas, xmin + xw, xmax - xw, ymin + yh , ymax - yh );
+	    }
+	  }
+	  current = 0;
 	}
 	// Draw right links
 	if( cell->nright ){
