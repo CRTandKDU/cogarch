@@ -18,4 +18,15 @@ void nxpiup_dlgmenu( void );
 int  nxpiup_dlgloadkb( void );
 void nxpiup_dlgquestion( sign_rec_ptr );
 
+void nxpiup_dlgency_hypos();
+
+
+#define NXPIUP_UPDATES   Ihandle *netw = IupGetHandle( "rule_network" ); \
+  if( netw ) IupUpdate( netw );						\
+  Ihandle *ency = IupGetHandle( "ency_hypos_view" ); \
+  if( ency ) IupSetAttribute( ency, "REDRAW", "ALL" );	\
+  IupLoopStep();
+
+
+
 #endif

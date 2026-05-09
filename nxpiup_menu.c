@@ -19,6 +19,7 @@
 sign_rec_ptr S_current_sign = NULL;
 
 int qbut_cb( Ihandle *ih ){
+  char buf[NXPIUP_TEMP_BUFSIZE];
   Ihandle *qtext = IupGetHandle( "question_text" );
   printf( "Answer: %s for %s\n", IupGetAttribute( qtext, "VALUE" ), S_current_sign->str );
   IupHide( IupGetHandle( "question" ) );
@@ -35,12 +36,13 @@ int qbut_cb( Ihandle *ih ){
       val.valptr = (char *)malloc( strlen( IupGetAttribute( qtext, "VALUE" ) ) );
       strcpy( val.valptr, IupGetAttribute( qtext, "VALUE" ) );
       //
-      char buf[80];
-      sprintf( buf, "Answer (%s): %s %d", sign->str, val.valptr, sign->val.val_forth );
+      sprintf( buf, "[SESSION] Answer (%s): %s DSL: %d", sign->str, val.valptr, sign->val.val_forth );
       repl_log( buf );
       break;
     case _VAL_T_INT:
       val.val_int = atoi( IupGetAttribute( qtext, "VALUE" ) );
+      sprintf( buf, "[SESSION] Answer (%s): %d DSL: %d", sign->str, val.val_int, sign->val.val_forth );
+      repl_log( buf );
       break;
     }
     sign_set_default( sign, &val );
@@ -84,9 +86,7 @@ void nxpiup_dlgquestion( sign_rec_ptr sign ){
     IupSetHandle( "question", dlg );
   }
   //
-  Ihandle *netw = IupGetHandle( "rule_network" );
-  if( netw ) IupUpdate( netw );
-
+  NXPIUP_UPDATES
   /* Shows dialog on the center of the screen */
   IupShowXY( dlg, IUP_CENTER, IUP_CENTER );
 }
@@ -109,7 +109,7 @@ int nxpiup_dlgloadkb( void ){
       printf("  VALUE(%s)\n", IupGetAttribute(dlg, "VALUE"));
       res = loadkb_file( IupGetAttribute(dlg, "VALUE") );
       char buf[64];
-      sprintf( buf, "Loaded KB: %s - %s", IupGetAttribute(dlg, "VALUE"), res ? "Failed" : "OK" );
+      sprintf( buf, "[KB] Loaded KB: %s - %s", IupGetAttribute(dlg, "VALUE"), res ? "Failed" : "OK" );
       repl_log( buf );
     }
   else
@@ -142,7 +142,7 @@ int item_knowcess_cb( void ){
   hypo_rec_ptr h = (hypo_rec_ptr)sign_find( "POSSIBLE_LEAK", loadkb_get_allhypos() );
   engine_pushnew_hypo( repl_getState(), h );
   char buf[64];
-  sprintf( buf, "Suggested %s.\n", h->str );
+  sprintf( buf, "[SESSION] Suggested %s.\n", h->str );
   repl_log( buf );
   //
   engine_resume_knowcess( repl_getState() );
@@ -150,10 +150,15 @@ int item_knowcess_cb( void ){
   return IUP_DEFAULT;
 }
 
+int item_hypos_cb( void ){
+  nxpiup_dlgency_hypos();
+  return IUP_DEFAULT;
+}
+
 void nxpiup_dlgmenu( void ){
   Ihandle *item_open, *item_exit,
     *item_suggest, *item_volunteer, *item_reset, *item_agenda, *item_knowcess,
-    *item_signs, *item_hypos,
+    *item_rules, *item_signs, *item_hypos,
     *item_browse;
   Ihandle *file_menu, *edit_menu, *expert_menu, *ency_menu, *netw_menu;
   Ihandle *menu, *sub1, *sub3, *sub4, *sub5;
@@ -161,7 +166,7 @@ void nxpiup_dlgmenu( void ){
   item_open = IupItem ("Open...", NULL);
   IupSetAttribute(item_open, "KEY", "O");
   IupSetCallback(item_open, "ACTION", (Icallback)item_open_cb);
-  item_exit = IupItem ("Quit", NULL);
+ item_exit = IupItem ("Quit", NULL);
   IupSetAttribute(item_exit, "KEY", "Q");
   IupSetCallback(item_exit, "ACTION", (Icallback)exit_cb);
   //
@@ -173,7 +178,7 @@ void nxpiup_dlgmenu( void ){
   item_volunteer	= IupItem ("Volunteer", NULL);
   IupSetAttribute(item_volunteer, "KEY", "V");
   item_reset		= IupItem ("Reset", NULL);
-  IupSetAttribute(item_reset, "KEY", "R");
+  IupSetAttribute(item_reset, "KEY", "Z");
   item_agenda		= IupItem ("Agenda", NULL);
   IupSetAttribute(item_agenda, "KEY", "A");
   item_knowcess		= IupItem ("Knowcess", NULL);
@@ -184,12 +189,15 @@ void nxpiup_dlgmenu( void ){
   expert_menu = IupMenu( item_suggest, item_volunteer, item_reset,
 			 IupSeparator(), item_agenda, item_knowcess, NULL );
   //
+  item_rules = IupItem ("Rules", NULL);
+  IupSetAttribute(item_rules, "KEY", "R");
   item_signs = IupItem ("Signs", NULL);
   IupSetAttribute(item_signs, "KEY", "G");
   item_hypos = IupItem ("Hypotheses", NULL);
   IupSetAttribute(item_hypos, "KEY", "H");
+  IupSetCallback(item_hypos, "ACTION", (Icallback)item_hypos_cb);
   //
-  ency_menu = IupMenu( item_signs, item_hypos, NULL );
+  ency_menu = IupMenu( item_rules, item_signs, item_hypos, NULL );
   //
   item_browse = IupItem ("Browse", NULL);
   IupSetAttribute(item_browse, "KEY", "B");
@@ -211,13 +219,13 @@ void nxpiup_dlgmenu( void ){
   IupSetAttribute( log, "READONLY", "YES" );
   IupSetAttribute( log, "VISIBLELINES", "20" );
   IupSetAttribute( log, "VISIBLECOLUMNS", "32" );
-  IupSetAttribute( log, "EXPAND", "VERTICAL" );
+  IupSetAttribute( log, "EXPAND", "YES" );
   IupSetAttribute( log, "VALUE", log_version );
   IupSetHandle( "ih_log", log );
-  Ihandle *vbox_log = IupVbox( log, NULL );
-  IupSetAttribute( vbox_log, "EXPANDCHILDREN", "YES" ); 
+  /* Ihandle *vbox_log = IupVbox( log, NULL ); */
+  /* IupSetAttribute( vbox_log, "EXPANDCHILDREN", "YES" );  */
 
-  Ihandle *dlg = IupDialog( vbox_log );
+  Ihandle *dlg = IupDialog( log );
   IupSetAttribute( dlg, "MENU", "mymenu" );
   IupSetAttribute( dlg, "TITLE", "NXPIUP");
   IupSetAttribute( dlg, "EXPAND", "YES");

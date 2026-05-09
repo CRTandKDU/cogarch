@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iup.h>
+#include <iupcontrols.h>
 #include <cd.h>
 #include <cdiup.h>
 #include <wd.h>
@@ -421,9 +422,7 @@ void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
   print_local_val_repr( &sign->val ); printf("\t");
   print_local_val_repr( val ); printf("\n");
   //
-  Ihandle *netw = IupGetHandle( "rule_network" );
-  if( netw ) IupUpdate( netw );
-  IupLoopStep();
+  NXPIUP_UPDATES
 }
 
 void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
@@ -433,9 +432,7 @@ void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
   Ihandle *ih_item = IupGetHandle( "item_knowcess" );
   IupSetAttribute( ih_item, "ACTIVE", "YES" );
   //
-  Ihandle *netw = IupGetHandle( "rule_network" );
-  if( netw ) IupUpdate( netw );
-  IupLoopStep();
+  NXPIUP_UPDATES
 }
 
 //----------------------------------------------------------------------
@@ -480,6 +477,7 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------
 
   IupOpen(&argc, &argv);
+  IupControlsOpen();
 
   /* CanvasScrollbarTest();  */
   nxpiup_dlgmenu();
