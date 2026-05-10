@@ -26,6 +26,32 @@
 #define NXPIUP_KNOWNINT		"%d"
 #define NXPIUP_KNOWNSTR		"%s"
 
+#define NXPIUP_ENCY_WIDTH  200
+#define NXPIUP_ENCY_HEIGHT  20
+
+// USERDATA struct for encyclopediae
+struct ency_rec{
+  int size;
+  sign_rec_ptr *seq;
+  int selected;
+};
+typedef struct ency_rec *ency_rec_ptr;
+
+int S_LineClicked = -1;
+
+ency_rec_ptr nxpiup_ency__newrec( int size ){
+  ency_rec_ptr userdata = (ency_rec_ptr) malloc( sizeof( struct ency_rec ) );
+  userdata->size	= size;
+  userdata->selected	= -1;
+  userdata->seq		= (sign_rec_ptr *) malloc( size * sizeof( sign_rec_ptr ) );
+  return userdata;
+}
+
+void nxpiup_ency__freerec( ency_rec_ptr userdata ){
+  // Voids argument `userdata'
+  if( userdata->seq ) free( (void *)userdata->seq );
+  free( userdata );
+}
 
 void nxpiup_ency__fgcolor( sign_rec_ptr sign, char *scolor ){
   struct val_rec val = sign->val;
@@ -106,136 +132,90 @@ void nxpiup_ency__valuestr( sign_rec_ptr sign, char *svalue ){
   return;
 }
 
-
-int ency_nlines_cb(Ihandle* h) {
-  int item = 0;
-  sign_rec_ptr sign = (sign_rec_ptr) IupGetAttribute( h, "USERDATA" );
-  while( sign ){
-    item += 1;
-    sign = sign->next;
-  }
-  return item;
+int nxpiup_ency__compare( const void *arg1, const void *arg2 ){
+  return strcmp( (* ((sign_rec_ptr *) arg1))->str, (* ((sign_rec_ptr *) arg2))->str );
 }
 
-int ency_ncols_cb(Ihandle* h) {return 2;}
-
-int ency_height_cb(Ihandle* h, int i) {return 20;}
-
-int ency_width_cb(Ihandle* h, int j) { return 200; }
-
-int ency_draw_cb(Ihandle* h, int i, int j, int xmin, int xmax, int ymin, int ymax, cdCanvas* canvas) 
-{
-  /* int xm = (xmax + xmin) / 2; */
-  /* int ym = (ymax + ymin) / 2; */
-  /* char buffer[64]; */
-
-  /* cdCanvasForeground(canvas, cdEncodeColor( */
-  /*   (unsigned char)(i*20),  */
-  /*   (unsigned char)(j*100),  */
-  /*   (unsigned char)(i+100) */
-  /* )); */
-
-  /* cdCanvasBox(canvas, xmin, xmax, ymin, ymax); */
-  /* cdCanvasTextAlignment(canvas, CD_CENTER); */
-  /* cdCanvasForeground(canvas, CD_BLACK); */
-  /* sprintf(buffer, "(%02d, %02d)", i, j); */
-  /* cdCanvasText(canvas, xm, ym, buffer); */
+void nxpiup_ency_update( Ihandle * ih ){
   char buf[NXPIUP_TEMP_BUFSIZE] = {0};
   char val[NXPIUP_TEMP_BUFSIZE] = {0};
-  int  item;
-  sign_rec_ptr sign = (sign_rec_ptr) IupGetAttribute( h, "USERDATA" );
-
-  cdCanvasFont( canvas, "Times", CD_PLAIN, 10 );
-  for( item=0; item<i; item++ ){ sign = sign->next; }
-  if( sign ){
-    cdCanvasTextAlignment(canvas, CD_BASE_LEFT);
-    cdCanvasForeground(canvas, nxpiup_ency__textcolor( sign ));
-    switch(j){
-    case 1:
-      sprintf( buf, "%.32s", sign->str );
-      break;
-    case 2:
-      nxpiup_ency__valuestr( sign, val );
-      sprintf( buf, "%.16s", val );
-      break;
-    }
-    cdCanvasText(canvas, xmin, ymin + 3, buf);
-    cdCanvasForeground(canvas, CD_BLACK);
+  sign_rec_ptr sign;
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  for( short i=0; i<userdata->size; i++ ){
+    sign = (sign_rec_ptr) userdata->seq[i];
+    nxpiup_ency__valuestr( sign, val );
+    sprintf( buf, "%-32.32s  %16s", sign->str, val );
+    sprintf( val, "%d", i+1 );
+    IupSetAttribute( ih, val, buf );
+    *buf = 0x00;
+    sprintf( buf, "ITEMFGCOLOR%d", i+1 );
+    nxpiup_ency__fgcolor( sign, val );
+    IupSetAttribute( ih, buf, val );
   }
-  return IUP_DEFAULT;
 }
 
-
-void nxpiup_dlgency_hypos(){
-  Ihandle *dlg = IupGetHandle( "ency_hypos" );
+void nxpiup_dlgency( const char *ency_title, const char *ency_handle, sign_rec_ptr top ){
+  // IupListbox implementation
+  Ihandle *dlg = IupGetHandle( ency_handle );
   if( !dlg ){
-    sign_rec_ptr sign = (sign_rec_ptr) loadkb_get_allhypos();
-    if( !sign ) return;
+    if( !top ) return;
     //
-    short item = 1;
+    sign_rec_ptr sign;
+    short item = 0;
+    sign = top;
+    while( sign ){
+      item += 1;
+      sign = sign->next;
+    }
+    ency_rec_ptr userdata = nxpiup_ency__newrec( item );
+    item = 0;
+    sign = top;
+    while( sign ){
+      userdata->seq[ item++ ] = sign;
+      sign = sign->next;
+    }
+    /* printf( "QSORT pre\n" ); */
+    /* for( short i=0; i<userdata->size; i++ ){ printf( "\t%s\n", userdata->seq[i]->str ); } */
+    qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(sign_rec_ptr), nxpiup_ency__compare );
+    /* printf( "QSORT post\n" ); */
+    /* for( short i=0; i<userdata->size; i++ ){ printf( "\t%s\n", userdata->seq[i]->str ); } */
+    //
     char buf[NXPIUP_TEMP_BUFSIZE] = {0};
     char val[NXPIUP_TEMP_BUFSIZE] = {0};
 
-    Ihandle *encyh = IupCells();
-    IupSetAttribute( encyh, "USERDATA", (char *)sign );
-    IupSetAttribute( encyh, "BOXED", "FALSE" );
-    /* IupSetCallback(cells, "MOUSECLICK_CB", (Icallback)mouseclick_cb); */
-    IupSetCallback(encyh, "DRAW_CB", (Icallback)ency_draw_cb);
-    IupSetCallback(encyh, "WIDTH_CB", (Icallback)ency_width_cb);
-    IupSetCallback(encyh, "HEIGHT_CB", (Icallback)ency_height_cb);
-    IupSetCallback(encyh, "NLINES_CB", (Icallback)ency_nlines_cb);
-    IupSetCallback(encyh, "NCOLS_CB", (Icallback)ency_ncols_cb);
-    IupSetHandle( "ency_hypos_view", encyh );
+    Ihandle *encyh = IupFlatList();
+    IupSetAttribute( encyh, "USERDATA", (char *)userdata );
+    IupSetAttribute( encyh, "SIZE", "420*400" );
+    IupSetAttribute( encyh, "FLATSCROLLBAR", "VERTICAL" );
+    IupSetAttribute( encyh, "ALIGNMENT", "ALEFT:ACENTER" );
+    IupSetAttribute( encyh, "EXPAND", "YES" );
+    sprintf( buf, "%s_view", ency_handle );
+    IupSetHandle( buf, encyh );
     //
-    dlg = IupDialog( IupFrame( encyh ) );
-    IupSetAttribute( dlg, "TITLE", "Encyclopedia Hypos");
-    IupSetAttribute( dlg,"RASTERSIZE","400x400" );
-    IupSetAttribute( dlg,"MARGIN","10x10" );
-    /* IupSetAttribute( dlg, "EXPANDCHILDREN", "YES"); */
-    IupSetHandle( "ency_hypos", dlg );
+    for( short i=0; i<userdata->size; i++ ){
+      sign = (sign_rec_ptr) userdata->seq[i];
+      nxpiup_ency__valuestr( sign, val );
+      sprintf( buf, "%-32.32s  %16s", sign->str, val );
+      IupSetAttribute( encyh, "APPENDITEM", buf );
+      *buf = 0x00;
+      sprintf( buf, "ITEMFGCOLOR%d", i+1 );
+      nxpiup_ency__fgcolor( sign, val );
+      IupSetAttribute( encyh, buf, val );
+      sprintf( buf, "ITEMFONT%d", i+1 );
+      IupSetAttribute( encyh, buf, "Courier, 12" );
+    }
+    //
+    Ihandle *ency_vbox = IupVbox( IupFrame( encyh ), NULL );
+    IupSetAttribute( ency_vbox, "MARGIN","10x10" );
+    
+    dlg = IupDialog( ency_vbox );
+    sprintf( buf, "Encyclopedia %s", ency_title );
+    IupSetAttribute( dlg, "TITLE", buf );
+    IupSetAttribute( dlg, "EXPANDCHILDREN", "YES" );
+    IupSetHandle( ency_handle, dlg );
   }
   IupShow( dlg );
 }
-
-
-/* void nxpiup_dlgency_hypos(){ */
-/*   // IupListbox implementation */
-/*   Ihandle *dlg = IupGetHandle( "ency_hypos" ); */
-/*   if( !dlg ){ */
-/*     sign_rec_ptr sign = (sign_rec_ptr) loadkb_get_allhypos(); */
-/*     if( !sign ) return; */
-/*     // */
-/*     short item = 1; */
-/*     char buf[NXPIUP_TEMP_BUFSIZE] = {0}; */
-/*     char val[NXPIUP_TEMP_BUFSIZE] = {0}; */
-
-/*     Ihandle *encyh = IupFlatList(); */
-/*     IupSetAttribute( encyh, "RASTERSIZE", "HALFxHALF" ); */
-/*     IupSetAttribute( encyh, "FLATSCROLLBAR", "VERTICAL" ); */
-/*     IupSetAttribute( encyh, "ALIGNMENT", "ALEFT:ACENTER" ); */
-/*     IupSetHandle( "ency_hypos_view", encyh ); */
-/*     while( sign ){ */
-
-/*       nxpiup_ency__valuestr( sign, val ); */
-/*       sprintf( buf, "%-32s  %16s", sgn->str, val ); */
-/*       IupSetAttribute( encyh, "APPENDITEM", buf ); */
-/*       *buf = 0x00; */
-/*       sprintf( buf, "ITEMFGCOLOR%d", item ); */
-/*       nxpiup_ency__fgcolor( sign, val ); */
-/*       IupSetAttribute( encyh, buf, val ); */
-/*       item += 1; */
-/*       sign = sign->next; */
-/*     } */
-/*     // */
-/*     dlg = IupDialog( encyh ); */
-/*     IupSetAttribute( dlg, "TITLE", "Encyclopedia Hypos"); */
-/*     IupSetAttribute( dlg, "EXPANDCHILDREN", "YES"); */
-/*     IupSetHandle( "ency_hypos", dlg ); */
-/*     IupMap(dlg); */
-/*     IupSetAttribute(encyh, "RASTERSIZE", NULL);  /\* release the minimum limitation *\/ */
-/*   } */
-/*   IupShow( dlg ); */
-/* } */
 
 /* void nxpiup_dlgency_hypos(){ */
 /*   // IupGridbox implementation */

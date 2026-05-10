@@ -389,10 +389,20 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #endif  
 }
 
+int repl_filter( const char *s, const char *prefix ){
+  char *c = (char *) s, *p = (char *) prefix;
+  while( *p ){
+    if( *c != *p ) return 1;
+    c++; p++;
+  }
+  return 0;
+}
+
 void  repl_log( const char *s ){
   Ihandle *log = IupGetHandle( "ih_log" );
   if( log ){
-    IupSetAttribute( log, "APPEND", s );
+    if( (*s != '<') && repl_filter( s, "Appending" ) )
+      IupSetAttribute( log, "APPEND", s );
   }
   printf( "Log: %s\n", s );
 }
@@ -427,7 +437,7 @@ void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
 
 void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
   printf( "End of session.\n" );
-  repl_log( "End of session\n" );
+  repl_log( "[SESSION] End of session\n" );
   //
   Ihandle *ih_item = IupGetHandle( "item_knowcess" );
   IupSetAttribute( ih_item, "ACTIVE", "YES" );
@@ -463,14 +473,10 @@ int main(int argc, char* argv[])
 			   &cb_on_agenda_pop,
 			   &cb_on_endsession
 			   );
-
   // Set up DSL
 #ifdef ENGINE_DSL
   engine_dsl_init();
 #endif
-
-  /* int err = loadkb_file( "satfault.org" ); */
-  /* printf( "Loaded KB: %d\n", err ); */
 
   //----------------------------------------------------------------------
   // IUP application

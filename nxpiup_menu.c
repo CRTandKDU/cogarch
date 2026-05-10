@@ -151,7 +151,12 @@ int item_knowcess_cb( void ){
 }
 
 int item_hypos_cb( void ){
-  nxpiup_dlgency_hypos();
+  nxpiup_dlgency( NXPIUP_ENCY_HYPOS_TITLE, NXPIUP_ENCY_HYPOS, (sign_rec_ptr) loadkb_get_allhypos() );
+  return IUP_DEFAULT;
+}
+
+int item_signs_cb( void ){
+  nxpiup_dlgency( NXPIUP_ENCY_SIGNS_TITLE, NXPIUP_ENCY_SIGNS, (sign_rec_ptr) loadkb_get_allsigns() );
   return IUP_DEFAULT;
 }
 
@@ -193,6 +198,7 @@ void nxpiup_dlgmenu( void ){
   IupSetAttribute(item_rules, "KEY", "R");
   item_signs = IupItem ("Signs", NULL);
   IupSetAttribute(item_signs, "KEY", "G");
+  IupSetCallback(item_signs, "ACTION", (Icallback)item_signs_cb);
   item_hypos = IupItem ("Hypotheses", NULL);
   IupSetAttribute(item_hypos, "KEY", "H");
   IupSetCallback(item_hypos, "ACTION", (Icallback)item_hypos_cb);
