@@ -141,9 +141,7 @@ int item_knowcess_cb( void ){
   // For tests
   hypo_rec_ptr h = (hypo_rec_ptr)sign_find( "POSSIBLE_LEAK", loadkb_get_allhypos() );
   engine_pushnew_hypo( repl_getState(), h );
-  char buf[64];
-  sprintf( buf, "[SESSION] Suggested %s.\n", h->str );
-  repl_log( buf );
+  repl_msg( "[SESSION] Suggest %s", h->str );
   //
   engine_resume_knowcess( repl_getState() );
   
@@ -157,6 +155,11 @@ int item_hypos_cb( void ){
 
 int item_signs_cb( void ){
   nxpiup_dlgency( NXPIUP_ENCY_SIGNS_TITLE, NXPIUP_ENCY_SIGNS, (sign_rec_ptr) loadkb_get_allsigns() );
+  return IUP_DEFAULT;
+}
+
+int item_rules_cb( void ){
+  nxpiup_dlgency_rules( NXPIUP_ENCY_RULES_TITLE, NXPIUP_ENCY_RULES, (rule_rec_ptr) loadkb_get_allrules() );
   return IUP_DEFAULT;
 }
 
@@ -196,6 +199,7 @@ void nxpiup_dlgmenu( void ){
   //
   item_rules = IupItem ("Rules", NULL);
   IupSetAttribute(item_rules, "KEY", "R");
+  IupSetCallback(item_rules, "ACTION", (Icallback)item_rules_cb);
   item_signs = IupItem ("Signs", NULL);
   IupSetAttribute(item_signs, "KEY", "G");
   IupSetCallback(item_signs, "ACTION", (Icallback)item_signs_cb);

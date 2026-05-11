@@ -62,11 +62,11 @@ void engine_default_on_gate(hypo_rec_ptr hypo, short val) {
 			cell->next = new_cell;
 
 #ifdef FLTK
-            repl_log("Appending %s (%d)", hypo->str, (int)val);
+            /* repl_log("Appending %s (%d)", hypo->str, (int)val); */
 #else
-	    char buf[64];
-	    sprintf(buf, "Appending %s (%d)", hypo->str, (int)val);
-	    repl_log(buf);
+	    /* char buf[64]; */
+	    /* sprintf(buf, "Appending %s (%d)", hypo->str, (int)val); */
+	    /* repl_log(buf); */
 #endif	    
 		}
 		else {

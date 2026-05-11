@@ -132,6 +132,12 @@ void nxpiup_ency__valuestr( sign_rec_ptr sign, char *svalue ){
   return;
 }
 
+int ency_destroy_cb( Ihandle *ih ){
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  if( userdata ) nxpiup_ency__freerec( userdata );
+  return IUP_DEFAULT;
+}
+
 int nxpiup_ency__compare( const void *arg1, const void *arg2 ){
   return strcmp( (* ((sign_rec_ptr *) arg1))->str, (* ((sign_rec_ptr *) arg2))->str );
 }
@@ -185,6 +191,7 @@ void nxpiup_dlgency( const char *ency_title, const char *ency_handle, sign_rec_p
 
     Ihandle *encyh = IupFlatList();
     IupSetAttribute( encyh, "USERDATA", (char *)userdata );
+    IupSetCallback( encyh, "DESTROY_CB", (Icallback) ency_destroy_cb );
     IupSetAttribute( encyh, "SIZE", "420*400" );
     IupSetAttribute( encyh, "FLATSCROLLBAR", "VERTICAL" );
     IupSetAttribute( encyh, "ALIGNMENT", "ALEFT:ACENTER" );
@@ -213,6 +220,119 @@ void nxpiup_dlgency( const char *ency_title, const char *ency_handle, sign_rec_p
     IupSetAttribute( dlg, "TITLE", buf );
     IupSetAttribute( dlg, "EXPANDCHILDREN", "YES" );
     IupSetHandle( ency_handle, dlg );
+  }
+  IupShow( dlg );
+}
+
+void nxpiup_ency__logcond( rule_rec_ptr r, int i, char *val ){
+  cond_rec_ptr cond = (cond_rec_ptr) r->getters[i];
+  if( COMPOUND_MASK == (cond->sign->len_type & TYPE_MASK) ){
+    char *c = ((compound_rec_ptr) cond->sign)->dsl_expression;
+    for( i=0; i<NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE - 4; i++ ){
+      val[i]=c[i];
+      if( 0 == c[i] || '\n' == c[i] ){
+	val[i] = 0x00;
+	break;
+      }
+    }
+  }
+  else{
+    sprintf( val, "%s %s", cond->out ? "Yes" : "No", cond->sign->str );
+  }
+}
+
+void nxpiup_ency__logrule( Ihandle *ih, int id ){
+  // ih is an IupMultiline w. userdata
+  char buf[NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE] = {0};
+  char val[NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE] = {0};
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  short i;
+  if( id < 1 || id >= userdata->size ) return;
+  
+  // Title line
+  IupSetAttribute( ih, "VALUE", "" );
+  sprintf( buf, "Rule #%d: %s", id, userdata->seq[ id-1 ]->str );
+  IupSetAttribute( ih, "APPEND", buf );
+  // LHS
+  IupSetAttribute( ih, "APPEND", "IF" );
+  for( i=0; i<userdata->seq[ id-1 ]->ngetters; i++ ){
+    nxpiup_ency__logcond( (rule_rec_ptr) userdata->seq[ id-1 ], i, val );
+    if( i>0 ){
+      sprintf( buf, "AND %s", val );
+      IupSetAttribute( ih, "APPEND", buf );
+    }
+    else{
+      IupSetAttribute( ih, "APPEND", val );
+    }
+  }
+  
+}
+
+int ency_rules_valuechanged_cb( Ihandle *ih ){
+  printf( "ENCY RULES %s\n", IupGetAttribute( ih, "VALUE" ) );
+  Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+  int id = atoi( IupGetAttribute( ih, "VALUE" ) );
+  nxpiup_ency__logrule( view, id );
+  return IUP_DEFAULT;
+}
+
+void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule_rec_ptr top ){
+  Ihandle *dlg = IupGetHandle( ency_handle );
+  if( !dlg ){
+    if( !top ) return;
+    //
+    rule_rec_ptr rule;
+    short item = 0;
+    rule = (rule_rec_ptr) top;
+    while( rule ){
+      item += 1;
+      rule = (rule_rec_ptr) rule->next;
+    }
+    ency_rec_ptr userdata = nxpiup_ency__newrec( item );
+    item = 0;
+    rule = top;
+    while( rule ){
+      userdata->seq[ item++ ] = (sign_rec_ptr) rule;
+      rule = (rule_rec_ptr) rule->next;
+    }
+    /* printf( "QSORT pre\n" ); */
+    /* for( short i=0; i<userdata->size; i++ ){ printf( "\t%s\n", userdata->seq[i]->str ); } */
+    qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(rule_rec_ptr), nxpiup_ency__compare );
+    /* printf( "QSORT post\n" ); */
+    /* for( short i=0; i<userdata->size; i++ ){ printf( "\t%s\n", userdata->seq[i]->str ); } */
+    //
+    char buf[NXPIUP_TEMP_BUFSIZE] = {0};
+
+    Ihandle *rule_text = IupMultiLine( NULL ); // read-only
+    IupSetAttribute( rule_text, "READONLY", "YES" );
+    IupSetAttribute( rule_text, "SCROLLBAR", "YES" );
+    IupSetAttribute( rule_text, "VISIBLELINES", "16" );
+    IupSetAttribute( rule_text, "VISIBLECOLUMNS", "48" );
+    IupSetAttribute( rule_text, "EXPAND", "YES" );
+    IupSetAttribute( rule_text, "USERDATA", (char *) userdata );
+    IupSetCallback( rule_text, "DESTROY_CB", (Icallback) ency_destroy_cb );
+    sprintf( buf, "%s_view", ency_handle );
+    IupSetHandle( buf, rule_text );
+    
+    Ihandle *rule_page = IupVal( "HORIZONTAL" );
+    IupSetAttribute( rule_page, "MIN", "1" );
+    sprintf( buf, "%d", userdata->size );
+    IupSetAttribute( rule_page, "MAX", buf );
+    IupSetAttribute( rule_page, "STEP", "1.0" );
+    IupSetAttribute( rule_page, "PAGESSTEP", "1.0" );
+    IupSetAttribute( rule_page, "VALUE", "1.0" );
+    IupSetCallback( rule_page, "VALUECHANGED_CB", (Icallback) ency_rules_valuechanged_cb );
+    
+    Ihandle *ency_vbox = IupVbox( rule_text, rule_page, NULL );
+    IupSetAttribute( ency_vbox, "MARGIN","10x10" );
+    
+    dlg = IupDialog( ency_vbox );
+    sprintf( buf, "Encyclopedia %s", ency_title );
+    IupSetAttribute( dlg, "TITLE", buf );
+    IupSetAttribute( dlg, "EXPANDCHILDREN", "YES" );
+    IupSetHandle( ency_handle, dlg );
+    IupMap( dlg );
+    nxpiup_ency__logrule( rule_text, 1 );
   }
   IupShow( dlg );
 }

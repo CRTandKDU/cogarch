@@ -1,5 +1,6 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include <iup.h>
 #include <iupcontrols.h>
 #include <cd.h>
@@ -389,23 +390,34 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #endif  
 }
 
-int repl_filter( const char *s, const char *prefix ){
-  char *c = (char *) s, *p = (char *) prefix;
-  while( *p ){
-    if( *c != *p ) return 1;
-    c++; p++;
-  }
-  return 0;
-}
+/* int repl_filter( const char *s, const char *prefix ){ */
+/*   char *c = (char *) s, *p = (char *) prefix; */
+/*   while( *p ){ */
+/*     if( *c != *p ) return 1; */
+/*     c++; p++; */
+/*   } */
+/*   return 0; */
+/* } */
+
 
 void  repl_log( const char *s ){
   Ihandle *log = IupGetHandle( "ih_log" );
   if( log ){
-    if( (*s != '<') && repl_filter( s, "Appending" ) )
+    if( *s != '<' )
       IupSetAttribute( log, "APPEND", s );
   }
   printf( "Log: %s\n", s );
 }
+
+void repl_msg( const char *fmt, ... ){
+  char buffer[NXPIUP_TEMP_BUFSIZE] = {0};
+  va_list args;
+  va_start (args, fmt);
+  vsprintf (buffer,fmt, args);
+  repl_log( buffer );
+  va_end (args);  
+}
+
 
 void cb_on_gate( sign_rec_ptr sign, short val ){
   printf( "Gating %s (%d) - %d\n", sign->str, sign->val.val_bool, val );
@@ -414,6 +426,7 @@ void cb_on_gate( sign_rec_ptr sign, short val ){
 }
 
 void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
+  repl_msg( "[AGENDA] push %s", sign->str );
   printf( "Push %s\n", sign->str );
   IupLoopStep();
   //
@@ -421,6 +434,7 @@ void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
 }
 
 void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
+  repl_msg( "[AGENDA]  pop %s", sign->str );
   printf( "Pop %s\n", sign->str );
   IupLoopStep();
   //

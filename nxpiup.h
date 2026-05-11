@@ -23,6 +23,7 @@
 #define NXPIUP_TEMP_BUFSIZE 64
 
 void			repl_log( const char* );
+void			repl_msg( const char *, ... );
 engine_state_rec_ptr	repl_getState();
 int  nxpiup_inagendap( sign_rec_ptr sign );
 
@@ -30,7 +31,7 @@ void nxpiup_dlgmenu( void );
 int  nxpiup_dlgloadkb( void );
 void nxpiup_dlgquestion( sign_rec_ptr );
 void nxpiup_dlgency( const char *, const char *, sign_rec_ptr );
-
+void nxpiup_dlgency_rules( const char *, const char *, rule_rec_ptr );
 void nxpiup_ency_update( Ihandle * );
 
 #define NXPIUP_UPDATES   Ihandle *netw = IupGetHandle( "rule_network" ); \
