@@ -5,6 +5,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <cstring>
 #include <iup.h>
 #include <iupcontrols.h>
@@ -230,7 +231,7 @@ void nxpiup_ency__logcond( rule_rec_ptr r, int i, char *val ){
     char *c = ((compound_rec_ptr) cond->sign)->dsl_expression;
     for( i=0; i<NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE - 4; i++ ){
       val[i]=c[i];
-      if( 0 == c[i] || '\n' == c[i] ){
+      if( 0 == c[i] || '\r' == c[i] || '\n' == c[i] ){
 	val[i] = 0x00;
 	break;
       }
@@ -246,8 +247,9 @@ void nxpiup_ency__logrule( Ihandle *ih, int id ){
   char buf[NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE] = {0};
   char val[NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE] = {0};
   ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
-  short i;
-  if( id < 1 || id >= userdata->size ) return;
+  short i, j;
+  char *c;
+  if( id < 1 || id > userdata->size ) return;
   
   // Title line
   IupSetAttribute( ih, "VALUE", "" );
@@ -265,22 +267,84 @@ void nxpiup_ency__logrule( Ihandle *ih, int id ){
       IupSetAttribute( ih, "APPEND", val );
     }
   }
-  
+  // Hypo
+  sprintf( buf, "THEN %s", (char *) ((sign_rec_ptr) ((rule_rec_ptr) userdata->seq[ id-1 ])->setters)->str );
+  IupSetAttribute( ih, "APPEND", buf );
+  // RHS
+  for( i=0; i<((rule_rec_ptr) userdata->seq[ id-1 ])->nrhs; i++ ){
+    c = (char *) ((rule_rec_ptr) userdata->seq[ id-1 ])->rhs[i];
+    for( j=0; j<NXPIUP_TEMP_BUFSIZE+NXPIUP_TEMP_BUFSIZE - 4; j++ ){
+      val[j]=c[j];
+      if( 0 == c[j] || '\r' == c[j] || '\n' == c[j] ){
+	val[j] = 0x00;
+	break;
+      }
+    }
+    sprintf( buf, "=> %s", val );
+    IupSetAttribute( ih, "APPEND", buf );
+  }
 }
 
-int ency_rules_valuechanged_cb( Ihandle *ih ){
-  printf( "ENCY RULES %s\n", IupGetAttribute( ih, "VALUE" ) );
+/* int ency_rules_valuechanged_cb( Ihandle *ih ){ */
+/*   printf( "ENCY RULES %s\n", IupGetAttribute( ih, "VALUE" ) ); */
+/*   Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW ); */
+/*   ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" ); */
+/*   int id = (int) round( atof( IupGetAttribute( ih, "VALUE" ) ) * userdata->size ); */
+/*   nxpiup_ency__logrule( view, id ); */
+/*   return IUP_DEFAULT; */
+/* } */
+
+int ency_rules_first_cb( Ihandle *ih ){
   Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
-  int id = atoi( IupGetAttribute( ih, "VALUE" ) );
-  nxpiup_ency__logrule( view, id );
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+  printf( "ENCY RULES %d\n", userdata->selected );
+  if( userdata->selected ){
+    userdata->selected = 0;
+    nxpiup_ency__logrule( view, 1 );
+  }
   return IUP_DEFAULT;
 }
+
+int ency_rules_last_cb( Ihandle *ih ){
+  Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+  printf( "ENCY RULES %d\n", userdata->selected );
+  if( userdata->selected < (userdata->size - 1) ){
+    userdata->selected = (userdata->size - 1);
+    nxpiup_ency__logrule( view, userdata->size );
+  }
+  return IUP_DEFAULT;
+}
+
+int ency_rules_next_cb( Ihandle *ih ){
+  Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+  printf( "ENCY RULES %d\n", userdata->selected );
+  if( userdata->selected < (userdata->size - 1) ){
+    userdata->selected += 1;
+    nxpiup_ency__logrule( view, userdata->selected + 1 );
+  }
+  return IUP_DEFAULT;
+}
+
+int ency_rules_prev_cb( Ihandle *ih ){
+  Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+  printf( "ENCY RULES %d\n", userdata->selected );
+  if( userdata->selected > 0 ){
+    userdata->selected -= 1;
+    nxpiup_ency__logrule( view, userdata->selected + 1 );
+  }
+  return IUP_DEFAULT;
+}
+
 
 void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule_rec_ptr top ){
   Ihandle *dlg = IupGetHandle( ency_handle );
   if( !dlg ){
     if( !top ) return;
     //
+    float f;
     rule_rec_ptr rule;
     short item = 0;
     rule = (rule_rec_ptr) top;
@@ -289,6 +353,7 @@ void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule
       rule = (rule_rec_ptr) rule->next;
     }
     ency_rec_ptr userdata = nxpiup_ency__newrec( item );
+    userdata->selected = 0;
     item = 0;
     rule = top;
     while( rule ){
@@ -314,15 +379,38 @@ void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule
     sprintf( buf, "%s_view", ency_handle );
     IupSetHandle( buf, rule_text );
     
-    Ihandle *rule_page = IupVal( "HORIZONTAL" );
-    IupSetAttribute( rule_page, "MIN", "1" );
-    sprintf( buf, "%d", userdata->size );
-    IupSetAttribute( rule_page, "MAX", buf );
-    IupSetAttribute( rule_page, "STEP", "1.0" );
-    IupSetAttribute( rule_page, "PAGESSTEP", "1.0" );
-    IupSetAttribute( rule_page, "VALUE", "1.0" );
-    IupSetCallback( rule_page, "VALUECHANGED_CB", (Icallback) ency_rules_valuechanged_cb );
+    /* Ihandle *rule_page = IupVal( "HORIZONTAL" ); */
+    /* IupSetAttribute( rule_page, "MIN", "0" ); */
+    /* IupSetAttribute( rule_page, "MAX", "1" ); */
+    /* f = (double) 1./userdata->size ; */
+    /* sprintf( buf, "%f", f ); */
+    /* printf( "ENCY Rules %s\n", buf ); */
+    /* IupSetAttribute( rule_page, "STEP", buf ); */
+    /* IupSetAttribute( rule_page, "PAGESTEP", buf ); */
+    /* IupSetAttribute( rule_page, "VALUE", "0" ); */
+    /* IupSetCallback( rule_page, "VALUECHANGED_CB", (Icallback) ency_rules_valuechanged_cb ); */
+
+    Ihandle *first = IupButton( "First", "" ),
+      *prev = IupButton( "Prev", "" ),
+      *next = IupButton( "Next", "" ),
+      *last = IupButton( "Last", "" );
+    IupSetAttribute( first, "EXPAND", "HORIZONTAL" );
+    IupSetAttribute( prev, "EXPAND", "HORIZONTAL" );
+    IupSetAttribute( next, "EXPAND", "HORIZONTAL" );
+    IupSetAttribute( last, "EXPAND", "HORIZONTAL" );
+    /* Registers callbacks */  
+    IupSetCallback( first, "ACTION", (Icallback) ency_rules_first_cb );
+    IupSetCallback( prev,  "ACTION", (Icallback) ency_rules_prev_cb  );     
+    IupSetCallback( next,  "ACTION", (Icallback) ency_rules_next_cb  );
+    IupSetCallback( last,  "ACTION", (Icallback) ency_rules_last_cb  );
     
+    Ihandle *rule_page = IupHbox( first, prev, next, last, NULL );
+    IupSetAttribute( rule_page, "HOMOGENEOUS", "YES" );
+    IupSetAttribute( rule_page, "NORMALIZESIZE", "HORIZONTAL" );
+    IupSetAttribute( rule_page, "EXPAND", "HORIZONTAL" );
+    IupSetAttribute( rule_page, "GAP", "20" );
+    
+      
     Ihandle *ency_vbox = IupVbox( rule_text, rule_page, NULL );
     IupSetAttribute( ency_vbox, "MARGIN","10x10" );
     
