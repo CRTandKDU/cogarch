@@ -11,6 +11,8 @@
 #include <iupcontrols.h>
 #include <cd.h>
 #include <cdiup.h>
+#include <im.h>
+#include <iupim.h>
 #include <wd.h>
 
 #include "agenda.h"
@@ -30,7 +32,15 @@
 #define NXPIUP_ENCY_WIDTH  200
 #define NXPIUP_ENCY_HEIGHT  20
 
-// USERDATA struct for encyclopediae
+static Ihandle *S_ImgFirst  = NULL,
+  *S_ImgNext  = NULL,
+  *S_ImgPrev  = NULL,
+  *S_ImgLast  = NULL;
+
+// -------------------------------------------------------------------------------
+// View Widgets of Encyclopediae have USERDATA attached keeping track of selection
+// and a sorted array of signs/hypos/rules.
+
 struct ency_rec{
   int size;
   sign_rec_ptr *seq;
@@ -38,7 +48,7 @@ struct ency_rec{
 };
 typedef struct ency_rec *ency_rec_ptr;
 
-int S_LineClicked = -1;
+int S_LineClicked	= -1;
 
 ency_rec_ptr nxpiup_ency__newrec( int size ){
   ency_rec_ptr userdata = (ency_rec_ptr) malloc( sizeof( struct ency_rec ) );
@@ -52,6 +62,25 @@ void nxpiup_ency__freerec( ency_rec_ptr userdata ){
   // Voids argument `userdata'
   if( userdata->seq ) free( (void *)userdata->seq );
   free( userdata );
+}
+
+// -------------------------------------------------------------------------------
+// Formatting (for IUP) tries to enforce a convention based on value and state:
+//   - Known TRUE (boolean): green
+//   - Known FALSE (boolean): red
+//   - Known (non-boolean): blue
+//   - Unknown, in Agenda: bold style
+//   - Unknown: IUP default
+
+Ihandle *nxpiup_ency__newtags( const char *fgcolor, const char *weight ){
+  Ihandle *ftag = IupUser();
+  IupSetAttribute(ftag, "ALIGNMENT", "CENTER");
+  IupSetAttribute(ftag, "SPACEAFTER", "10");
+  IupSetAttribute(ftag, "FONTSIZE", "12");
+  IupSetAttribute(ftag, "SELECTION", "1,1:1,48");
+  if( fgcolor ) IupSetAttribute(ftag, "FGCOLOR", fgcolor );
+  if( weight  ) IupSetAttribute(ftag, "WEIGHT", weight );
+  return ftag;
 }
 
 void nxpiup_ency__fgcolor( sign_rec_ptr sign, char *scolor ){
@@ -133,34 +162,28 @@ void nxpiup_ency__valuestr( sign_rec_ptr sign, char *svalue ){
   return;
 }
 
+// -------------------------------------------------------------------------------
+// Signs and Hypos Encyclopediae share a dialog template.
+// The Rules Encyclopedia has additional features and a separate dialog.
+
 int ency_destroy_cb( Ihandle *ih ){
   ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
   if( userdata ) nxpiup_ency__freerec( userdata );
   return IUP_DEFAULT;
 }
 
+// Used for the `qsort' calls when sorting the USERDATA array of strings
 int nxpiup_ency__compare( const void *arg1, const void *arg2 ){
   return strcmp( (* ((sign_rec_ptr *) arg1))->str, (* ((sign_rec_ptr *) arg2))->str );
 }
 
-void nxpiup_ency_update( Ihandle * ih ){
-  char buf[NXPIUP_TEMP_BUFSIZE] = {0};
-  char val[NXPIUP_TEMP_BUFSIZE] = {0};
-  sign_rec_ptr sign;
-  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
-  for( short i=0; i<userdata->size; i++ ){
-    sign = (sign_rec_ptr) userdata->seq[i];
-    nxpiup_ency__valuestr( sign, val );
-    sprintf( buf, "%-32.32s  %16s", sign->str, val );
-    sprintf( val, "%d", i+1 );
-    IupSetAttribute( ih, val, buf );
-    *buf = 0x00;
-    sprintf( buf, "ITEMFGCOLOR%d", i+1 );
-    nxpiup_ency__fgcolor( sign, val );
-    IupSetAttribute( ih, buf, val );
-  }
+int nxpiup_ency__compare_hypos( const void *arg1, const void *arg2 ){
+  rule_rec_ptr *r1 = (rule_rec_ptr *) arg1;
+  rule_rec_ptr *r2 = (rule_rec_ptr *) arg2;
+  return strcmp( ((sign_rec_ptr) (*r1)->setters)->str, ((sign_rec_ptr) (*r2)->setters)->str );
 }
 
+// Signs/Hypos Encyclopedia dialog template
 void nxpiup_dlgency( const char *ency_title, const char *ency_handle, sign_rec_ptr top ){
   // IupListbox implementation
   Ihandle *dlg = IupGetHandle( ency_handle );
@@ -225,6 +248,9 @@ void nxpiup_dlgency( const char *ency_title, const char *ency_handle, sign_rec_p
   IupShow( dlg );
 }
 
+// Rules Encyclopedia dialog with additional features
+
+// Displaying rules as text with formats and value marks in the left margin
 void nxpiup_ency__logcond( rule_rec_ptr r, int i, char *val ){
   cond_rec_ptr cond = (cond_rec_ptr) r->getters[i];
   if( COMPOUND_MASK == (cond->sign->len_type & TYPE_MASK) ){
@@ -251,21 +277,21 @@ void nxpiup_ency__logrule( Ihandle *ih, int id ){
   char *c;
   if( id < 1 || id > userdata->size ) return;
   
-  // Title line
   IupSetAttribute( ih, "VALUE", "" );
+  // Title line
   sprintf( buf, "Rule #%d: %s", id, userdata->seq[ id-1 ]->str );
-  IupSetAttribute( ih, "APPEND", buf );
+  IupSetAttribute( ih, "VALUE", buf );
   // LHS
   IupSetAttribute( ih, "APPEND", "IF" );
   for( i=0; i<userdata->seq[ id-1 ]->ngetters; i++ ){
     nxpiup_ency__logcond( (rule_rec_ptr) userdata->seq[ id-1 ], i, val );
     if( i>0 ){
-      sprintf( buf, "AND %s", val );
-      IupSetAttribute( ih, "APPEND", buf );
+      sprintf( buf, "[*] AND %s", val );
     }
     else{
-      IupSetAttribute( ih, "APPEND", val );
+      sprintf( buf, "[*] %s", val );
     }
+    IupSetAttribute( ih, "APPEND", buf );
   }
   // Hypo
   sprintf( buf, "THEN %s", (char *) ((sign_rec_ptr) ((rule_rec_ptr) userdata->seq[ id-1 ])->setters)->str );
@@ -280,19 +306,50 @@ void nxpiup_ency__logrule( Ihandle *ih, int id ){
 	break;
       }
     }
-    sprintf( buf, "=> %s", val );
+    sprintf( buf, "[*] %s", val );
     IupSetAttribute( ih, "APPEND", buf );
   }
+  // Formatting Title
+  if( _KNOWN == userdata->seq[ id-1 ]->val.status  &&
+      _VAL_T_BOOL == userdata->seq[ id-1 ]->val.type ){
+    Ihandle *ftag = nxpiup_ency__newtags((_FALSE == userdata->seq[ id-1 ]->val.val_bool) ?
+					 (char *) NXPIUP_RED : (char *) NXPIUP_GREEN,
+					 NULL );
+    IupSetAttribute( ih, "ADDFORMATTAG_HANDLE", (char *) ftag );
+  }
+  else if ( nxpiup_inagendap( (sign_rec_ptr) userdata->seq[ id-1 ]->setters ) ){
+    Ihandle *ftag = nxpiup_ency__newtags(NULL, "BOLD" );
+    IupSetAttribute( ih, "ADDFORMATTAG_HANDLE", (char *) ftag );
+  }
+  else{
+    Ihandle *ftag = nxpiup_ency__newtags(NULL, NULL );
+    IupSetAttribute( ih, "ADDFORMATTAG_HANDLE", (char *) ftag );
+  }
+  // Formatting conditions
+  cond_rec_ptr cond;
+  Ihandle *ftag;
+  for( i=0; i<userdata->seq[ id-1 ]->ngetters; i++ ){
+    cond = (cond_rec_ptr) userdata->seq[ id-1 ]->getters[i];
+    if( _TRUE == cond->val || _FALSE == cond->val ){
+      ftag = IupUser();
+      sprintf( buf, "%d,1:%d,4", 3+i, 3+i );
+      IupSetAttribute(ftag, "SELECTION", buf);
+      IupSetAttribute(ftag, "FGCOLOR", _FALSE == cond->val ? NXPIUP_RED : NXPIUP_GREEN );
+      IupSetAttribute( ih, "ADDFORMATTAG_HANDLE", (char *) ftag );
+    }
+  }  
 }
 
-/* int ency_rules_valuechanged_cb( Ihandle *ih ){ */
-/*   printf( "ENCY RULES %s\n", IupGetAttribute( ih, "VALUE" ) ); */
-/*   Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW ); */
-/*   ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" ); */
-/*   int id = (int) round( atof( IupGetAttribute( ih, "VALUE" ) ) * userdata->size ); */
-/*   nxpiup_ency__logrule( view, id ); */
-/*   return IUP_DEFAULT; */
-/* } */
+// Bottom-side control panel to navigate the sorted list of rules
+
+// Simplistic MVC: `ency_rules__update' is called whenever the selection changes
+void ency_rules__update( int selection ){
+  Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+  Ihandle *rule = IupGetHandle( "ency_current_rule" );
+  nxpiup_ency__logrule( view, selection );
+  IupSetAttribute( rule, "VALUE",
+		   ((ency_rec_ptr) IupGetAttribute( view, "USERDATA" ))->seq[selection-1]->str );
+}
 
 int ency_rules_first_cb( Ihandle *ih ){
   Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
@@ -300,7 +357,7 @@ int ency_rules_first_cb( Ihandle *ih ){
   printf( "ENCY RULES %d\n", userdata->selected );
   if( userdata->selected ){
     userdata->selected = 0;
-    nxpiup_ency__logrule( view, 1 );
+    ency_rules__update( 1 );
   }
   return IUP_DEFAULT;
 }
@@ -311,7 +368,7 @@ int ency_rules_last_cb( Ihandle *ih ){
   printf( "ENCY RULES %d\n", userdata->selected );
   if( userdata->selected < (userdata->size - 1) ){
     userdata->selected = (userdata->size - 1);
-    nxpiup_ency__logrule( view, userdata->size );
+    ency_rules__update( userdata->size );
   }
   return IUP_DEFAULT;
 }
@@ -322,7 +379,7 @@ int ency_rules_next_cb( Ihandle *ih ){
   printf( "ENCY RULES %d\n", userdata->selected );
   if( userdata->selected < (userdata->size - 1) ){
     userdata->selected += 1;
-    nxpiup_ency__logrule( view, userdata->selected + 1 );
+    ency_rules__update( userdata->selected + 1 );
   }
   return IUP_DEFAULT;
 }
@@ -333,12 +390,53 @@ int ency_rules_prev_cb( Ihandle *ih ){
   printf( "ENCY RULES %d\n", userdata->selected );
   if( userdata->selected > 0 ){
     userdata->selected -= 1;
-    nxpiup_ency__logrule( view, userdata->selected + 1 );
+    ency_rules__update( userdata->selected + 1 );
   }
   return IUP_DEFAULT;
 }
 
+int ency_rules_current_valuechanged_cb( Ihandle *ih ){
+  /* printf( "ENCY rules, current=%s\n", IupGetAttribute( ih, "VALUE" ) ); */
+  short i;
+  Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+  char *val = IupGetAttribute( ih, "VALUE" );
+  for( i=0; i<userdata->size; i++ ){
+    if( 0 == strcmp( val, userdata->seq[i]->str ) ){
+      userdata->selected = i;
+      ency_rules__update( i + 1 );
+      break;
+    }
+  }
+  return IUP_DEFAULT;
+}
 
+// Top control panel to sort the list of rules by name or by their hypothesis
+int ency_rules_byname_cb( Ihandle *ih, int state ){
+  /* printf( "ENCY rules: sort by name\n" ); */
+  if( 1 == state ){
+    Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+    ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+    qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(rule_rec_ptr), nxpiup_ency__compare );
+    userdata->selected = 0;
+    ency_rules__update( 1 );
+  }
+  return IUP_DEFAULT;
+}
+
+int ency_rules_byhypo_cb( Ihandle *ih, int state ){
+  /* printf( "ENCY rules: sort by hypo\n" ); */
+  if( 1 == state ){
+    Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );
+    ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" );
+    qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(rule_rec_ptr), nxpiup_ency__compare_hypos );
+    userdata->selected = 0;
+    ency_rules__update( 1 );
+  }
+  return IUP_DEFAULT;
+}
+
+// Rules Encyclopedia dialog with sorting, navigation and formatted text display
 void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule_rec_ptr top ){
   Ihandle *dlg = IupGetHandle( ency_handle );
   if( !dlg ){
@@ -365,7 +463,26 @@ void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule
     qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(rule_rec_ptr), nxpiup_ency__compare );
     /* printf( "QSORT post\n" ); */
     /* for( short i=0; i<userdata->size; i++ ){ printf( "\t%s\n", userdata->seq[i]->str ); } */
-    //
+    // Top control panel: Sorting
+    Ihandle *byhypo = IupToggle( "By Hypothesis", NULL );
+    Ihandle *byname = IupToggle( "By Name", NULL );
+    IupSetHandle( "sort_byhypo", byhypo );
+    IupSetAttribute( byhypo, "EXPAND", "HORIZONTAL" );
+    IupSetCallback( byhypo,  "ACTION", (Icallback) ency_rules_byhypo_cb  );
+
+    IupSetHandle( "sort_byname", byname );
+    IupSetAttribute( byname, "EXPAND", "HORIZONTAL" );
+    IupSetCallback( byname,  "ACTION", (Icallback) ency_rules_byname_cb  );
+
+    Ihandle *ihframe = IupFrame( IupHbox( byname, byhypo, NULL ) );
+    IupSetAttribute( ihframe, "MARGIN", "5x5" );
+    IupSetAttribute( ihframe, "TITLE", "Sort" );
+    
+    Ihandle *ihsort = IupRadio( ihframe );
+    IupSetAttribute( ihsort, "EXPAND", "HORIZONTAL" );
+    IupSetAttribute( ihsort, "VALUE", "sort_byname" );
+
+    // Main text display
     char buf[NXPIUP_TEMP_BUFSIZE] = {0};
 
     Ihandle *rule_text = IupMultiLine( NULL ); // read-only
@@ -378,6 +495,8 @@ void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule
     IupSetCallback( rule_text, "DESTROY_CB", (Icallback) ency_destroy_cb );
     sprintf( buf, "%s_view", ency_handle );
     IupSetHandle( buf, rule_text );
+    // Formatting
+    IupSetAttribute( rule_text, "FORMATTING", "YES" );
     
     /* Ihandle *rule_page = IupVal( "HORIZONTAL" ); */
     /* IupSetAttribute( rule_page, "MIN", "0" ); */
@@ -390,28 +509,52 @@ void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule
     /* IupSetAttribute( rule_page, "VALUE", "0" ); */
     /* IupSetCallback( rule_page, "VALUECHANGED_CB", (Icallback) ency_rules_valuechanged_cb ); */
 
+    // Bottom control panel: Navigating
     Ihandle *first = IupButton( "First", "" ),
       *prev = IupButton( "Prev", "" ),
       *next = IupButton( "Next", "" ),
       *last = IupButton( "Last", "" );
     IupSetAttribute( first, "EXPAND", "HORIZONTAL" );
+    S_ImgFirst = IupLoadImage( "first.png" );
+    IupSetHandle( "img_first", S_ImgFirst );
+    IupSetAttribute( first, "IMAGE", "img_first" );
+    
     IupSetAttribute( prev, "EXPAND", "HORIZONTAL" );
+    S_ImgPrev = IupLoadImage( "prev.png" );
+    IupSetHandle( "img_prev", S_ImgPrev );
+    IupSetAttribute( prev, "IMAGE", "img_prev" );
+
     IupSetAttribute( next, "EXPAND", "HORIZONTAL" );
+    S_ImgNext = IupLoadImage( "next.png" );
+    IupSetHandle( "img_next", S_ImgNext );
+    IupSetAttribute( next, "IMAGE", "img_next" );
+
     IupSetAttribute( last, "EXPAND", "HORIZONTAL" );
+    S_ImgLast = IupLoadImage( "last.png" );
+    IupSetHandle( "img_last", S_ImgLast );
+    IupSetAttribute( last, "IMAGE", "img_last" );
+    
     /* Registers callbacks */  
     IupSetCallback( first, "ACTION", (Icallback) ency_rules_first_cb );
     IupSetCallback( prev,  "ACTION", (Icallback) ency_rules_prev_cb  );     
     IupSetCallback( next,  "ACTION", (Icallback) ency_rules_next_cb  );
     IupSetCallback( last,  "ACTION", (Icallback) ency_rules_last_cb  );
+    //
+    Ihandle *current_rule = IupList( NULL );
+    IupSetAttribute( current_rule, "EDITBOX", "YES" );
+    IupSetAttribute( current_rule, "DROPDOWN", "YES" );
+    IupSetAttribute( current_rule, "EXPAND", "HORIZONTAL" );
+    IupSetHandle( "ency_current_rule", current_rule );
+    IupSetCallback( current_rule,  "VALUECHANGED_CB", (Icallback) ency_rules_current_valuechanged_cb );
     
-    Ihandle *rule_page = IupHbox( first, prev, next, last, NULL );
-    IupSetAttribute( rule_page, "HOMOGENEOUS", "YES" );
-    IupSetAttribute( rule_page, "NORMALIZESIZE", "HORIZONTAL" );
+    Ihandle *rule_page = IupHbox( first, prev, current_rule, next, last, NULL );
+    /* IupSetAttribute( rule_page, "HOMOGENEOUS", "YES" ); */
+    /* IupSetAttribute( rule_page, "NORMALIZESIZE", "HORIZONTAL" ); */
     IupSetAttribute( rule_page, "EXPAND", "HORIZONTAL" );
     IupSetAttribute( rule_page, "GAP", "20" );
     
       
-    Ihandle *ency_vbox = IupVbox( rule_text, rule_page, NULL );
+    Ihandle *ency_vbox = IupVbox( ihsort, rule_text, rule_page, NULL );
     IupSetAttribute( ency_vbox, "MARGIN","10x10" );
     
     dlg = IupDialog( ency_vbox );
@@ -420,9 +563,38 @@ void nxpiup_dlgency_rules( const char *ency_title, const char *ency_handle, rule
     IupSetAttribute( dlg, "EXPANDCHILDREN", "YES" );
     IupSetHandle( ency_handle, dlg );
     IupMap( dlg );
+    //
+    for( item=0; item<userdata->size; item++ ){
+      IupSetAttribute( current_rule, "APPENDITEM", userdata->seq[item]->str );
+    }
+    IupSetAttribute( current_rule, "VALUE", userdata->seq[0]->str);
     nxpiup_ency__logrule( rule_text, 1 );
   }
   IupShow( dlg );
+}
+
+// Another simplistic MVC: Engine callbacks should call `nxpiup_ency_update'
+void nxpiup_ency_update( Ihandle * ih, short rulep ){
+  ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  if( rulep ){
+    nxpiup_ency__logrule( ih, userdata->selected + 1 );
+  }
+  else{
+    char buf[NXPIUP_TEMP_BUFSIZE] = {0};
+    char val[NXPIUP_TEMP_BUFSIZE] = {0};
+    sign_rec_ptr sign;
+    for( short i=0; i<userdata->size; i++ ){
+      sign = (sign_rec_ptr) userdata->seq[i];
+      nxpiup_ency__valuestr( sign, val );
+      sprintf( buf, "%-32.32s  %16s", sign->str, val );
+      sprintf( val, "%d", i+1 );
+      IupSetAttribute( ih, val, buf );
+      *buf = 0x00;
+      sprintf( buf, "ITEMFGCOLOR%d", i+1 );
+      nxpiup_ency__fgcolor( sign, val );
+      IupSetAttribute( ih, buf, val );
+    }
+  }
 }
 
 /* void nxpiup_dlgency_hypos(){ */

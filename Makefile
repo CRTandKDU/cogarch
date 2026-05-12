@@ -4,6 +4,7 @@ CFLAGS		= -I./include -I./include/cd -I./include/im
 LFLAGS		= -I./lib
 LIBS_DIR	= ./lib
 LIBS_CD		=  $(LIBS_DIR)/cdcontextplus.dll   $(LIBS_DIR)/cd.dll # $(LIBS_DIR)/cdcairo.dll   $(LIBS_DIR)/cddirect2d.dll  $(LIBS_DIR)/cdgl.dll  $(LIBS_DIR)/cdim.dll  $(LIBS_DIR)/cdlua54.dll  $(LIBS_DIR)/cdluacairo54.dll  $(LIBS_DIR)/cdluacontextplus54.dll  $(LIBS_DIR)/cdluadirect2d54.dll  $(LIBS_DIR)/cdluagl54.dll  $(LIBS_DIR)/cdluaim54.dll  $(LIBS_DIR)/cdluapdf54.dll  $(LIBS_DIR)/cdpdf.dll
+LIBS_IM         = $(LIBS_DIR)/im.dll $(LIBS_DIR)/iupim.dll
 LIBS_IUP	= $(LIBS_DIR)/iup.dll $(LIBS_DIR)/iupcd.dll 
 LIBS		=  $(LIBS_DIR)/cdcontextplus.dll $(LIBS_DIR)/iupcd.dll $(LIBS_DIR)/iup.dll $(LIBS_DIR)/cd.dll $(LIBS_DIR)/iupcontrols.dll # ./lib/gdi32.dll ./lib/comdlg32.dll ./lib/comctl32.dll ./lib/uuid.dll ./lib/oleaut32.dll ./lib/ole32.dll
 
@@ -21,7 +22,7 @@ CSOURCES_NETW   = netw.c netw_internals.c netw_expansion.c netw_redraw.c
 CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c
 
 canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP)
-	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS)
+	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(LIBS_IM)
 
 # canvas2: canvas2.c
 # 	gcc canvas2.c -o canvas2.exe $(CFLAGS) $(LFLAGS) $(LIBS)
@@ -34,6 +35,9 @@ canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP)
 
 # list2: examples/C/matrixlist.c
 # 	gcc examples/C/matrixlist.c -o list2.exe $(CFLAGS) $(LFLAGS) $(LIBS)
+
+textformat: examples/C/textformat.c
+	gcc examples/C/textformat.c -o textformat.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
 
 # grid1: examples/C/gridbox.c

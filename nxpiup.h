@@ -32,18 +32,23 @@ int  nxpiup_dlgloadkb( void );
 void nxpiup_dlgquestion( sign_rec_ptr );
 void nxpiup_dlgency( const char *, const char *, sign_rec_ptr );
 void nxpiup_dlgency_rules( const char *, const char *, rule_rec_ptr );
-void nxpiup_ency_update( Ihandle * );
+void nxpiup_ency_update( Ihandle *, short );
 
 #define NXPIUP_UPDATES   Ihandle *netw = IupGetHandle( "rule_network" ); \
   if( netw ) IupUpdate( netw );						\
   Ihandle *ency = IupGetHandle( NXPIUP_ENCY_SIGNS_VIEW );		\
   if( ency ){								\
-    nxpiup_ency_update( ency );						\
+    nxpiup_ency_update( ency, 0 );					\
     IupUpdate( ency );							\
   }									\
   ency = IupGetHandle( NXPIUP_ENCY_HYPOS_VIEW );			\
   if( ency ){								\
-    nxpiup_ency_update( ency );						\
+    nxpiup_ency_update( ency, 0 );					\
+    IupUpdate( ency );							\
+  }									\
+  ency = IupGetHandle( NXPIUP_ENCY_RULES_VIEW );			\
+  if( ency ){								\
+    nxpiup_ency_update( ency, 1 );					\
     IupUpdate( ency );							\
   }									\
   IupLoopStep();
