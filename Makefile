@@ -18,6 +18,8 @@ APIS_DEP	= agenda.h Makefile
 APIS_CFLAGS     = -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv
 CFLAGS_NXP      = $(API_CFLAGS)
 
+CFLAGS_ZHASH    = -I$(APIS_DIR)/zhash
+
 CSOURCES_NETW   = netw.c netw_internals.c netw_expansion.c netw_redraw.c
 CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c
 
@@ -36,9 +38,8 @@ canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP)
 # list2: examples/C/matrixlist.c
 # 	gcc examples/C/matrixlist.c -o list2.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
-textformat: examples/C/textformat.c
-	gcc examples/C/textformat.c -o textformat.exe $(CFLAGS) $(LFLAGS) $(LIBS)
-
+# textformat: examples/C/textformat.c
+# 	gcc examples/C/textformat.c -o textformat.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
 # grid1: examples/C/gridbox.c
 # 	gcc examples/C/gridbox.c -o grid1.exe $(CFLAGS) $(LFLAGS) $(LIBS)
@@ -51,6 +52,10 @@ textformat: examples/C/textformat.c
 
 # nxpiupmenu: nxpiup_menu.c
 # 	gcc nxpiup_menu.c -o menu.exe $(CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(LIBS)
+
+helloz: helloz.c nxp_hash.c 
+	gcc helloz.c nxp_hash.c $(APIS_DIR)/zhash/src/zhash.c $(APIS_DIR)/zhash/src/zsorted_hash.c -o helloz.exe $(CFLAGS_ZHASH) 
+
 
 %.o: %.c $(API_DEPS)
 	$(CC) -c -o $@ $< $(APIS_CFLAGS) $(DSL_CFLAGS)
