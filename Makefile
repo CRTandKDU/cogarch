@@ -21,10 +21,10 @@ CFLAGS_NXP      = $(API_CFLAGS)
 CFLAGS_ZHASH    = -I$(APIS_DIR)/zhash
 
 CSOURCES_NETW   = netw.c netw_internals.c netw_expansion.c netw_redraw.c
-CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c
+CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c nxp_hash.c
 
-canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP)
-	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(LIBS_IM)
+canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP) $(APIS_DIR)/zhash/src/zhash.c
+	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(CFLAGS_ZHASH) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(LIBS_IM)
 
 # canvas2: canvas2.c
 # 	gcc canvas2.c -o canvas2.exe $(CFLAGS) $(LFLAGS) $(LIBS)

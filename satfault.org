@@ -476,6 +476,19 @@ pressure_P2 nxp@ pressure_P5 nxp@ <>
 THEN XDRC_FAILURE_OR_BIAS
 #+END_RULE
 
+** Annotations
+#+BEGIN_ANNOTATION $task
+VALUE FLUID_TRANSFER
+VALUE GROUND_TESTING
+VALUE OTHER
+#+END_ANNOTATION
+
+#+BEGIN_ANNOTATION $CRT_and_KDU
+VALUE AGREE
+VALUE DISAGREE
+#+END_ANNOTATION
+
+
 * A version of the original file
 Files preserved from the Java implementation on <1996-07-16 mar.>
 

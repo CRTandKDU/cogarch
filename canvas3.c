@@ -10,6 +10,7 @@
 #include "agenda.h"
 #include "netw.h"
 #include "nxpiup.h"
+#include "nxp_hash.h"
 
 /* World:
    The canvas will be a window into that space.
@@ -492,6 +493,8 @@ int main(int argc, char* argv[])
   engine_dsl_init();
 #endif
 
+  nxp_hash_open();
+
   //----------------------------------------------------------------------
   // IUP application
   //----------------------------------------------------------------------
@@ -509,7 +512,7 @@ int main(int argc, char* argv[])
   //----------------------------------------------------------------------
   // NXP epilogue
   //----------------------------------------------------------------------
-
+  nxp_hash_close();
 #ifdef ENGINE_DSL
   printf( "Shutdown -- Freeing DSL engine\n" );
   engine_dsl_free();

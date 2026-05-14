@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include "nxp_hash.h"
 
-void cb( char *name, char *prop, char *key, char *val ){
+void cb( char *name, char *prop, char *key, char *val, unsigned int idx ){
   printf( "CB %s %s %s %s\n", name, prop, key, val );
 }
 
@@ -23,9 +23,9 @@ int main ()
   nxp_hash_set( "EXC_P_RISE", "SEEALSO", "ALERT" );
   nxp_hash_set( "EXC_P_RISE", "SEEALSO", "POSSIBLE_LEAK" );
 
-  /* nxp_hash_print(); */
-  nxp_hash_iterate( "$task", "SEEALSO", cb );
-
+  nxp_hash_print();
+  nxp_hash_iterate( "$task", "VALUE", cb );
+  
   nxp_hash_close();
   return 0;
 }

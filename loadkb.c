@@ -8,6 +8,9 @@
 #include <string.h>
 #include <ctype.h>
 #include "agenda.h"
+#include "nxp_hash.h"
+
+#define TRACE_ON 1
 
 extern void  repl_log( const char *s );
 
@@ -16,6 +19,10 @@ const char * _END_RULE = "#+END_RULE";
 const char * _THEN = "THEN";
 const char * _BOOLYES = "YES";
 const char * _BOOLNO  = "NO";
+
+const char * _BEG_ANNO = "#+BEGIN_ANNOTATION";
+const char * _END_ANNO = "#+END_ANNOTATION";
+
 
 sign_rec_ptr KB_Signs = (sign_rec_ptr) NULL;;
 hypo_rec_ptr KB_Hypos = (hypo_rec_ptr) NULL;;
@@ -131,6 +138,8 @@ int loadkb_file( const char *fn ){
   rule_rec_ptr lrule;
   unsigned short schange;
   char dsl_expr[_DSL_LINE];
+  //
+  char name[128], key[128], *val;
   
   fp = fopen( fn, "r" );
   if (fp == NULL)
@@ -172,6 +181,18 @@ int loadkb_file( const char *fn ){
 	  }
 	  condno = 0;
 	  _TRANSITION(1);
+	}
+	else if( 0 == strcmp( _BEG_ANNO, pch ) ){
+	  pch = strtok( NULL, delims );
+	  if(TRACE_ON) printf( "\t[S:%d] FW %s (%d)\n", sno, pch, strlen(pch) );
+	  if( NULL != pch && *pch != 0x0A ){
+	    strcpy( name, pch );
+	    if(TRACE_ON) printf( "NW %s\n", name );
+	    _TRANSITION(3);
+	  }
+	  else{
+	    _TRANSITION(255);
+	  }
 	}
 	break;
 	
@@ -279,6 +300,30 @@ int loadkb_file( const char *fn ){
 #ifdef ENGINE_DSL
 	  KB_Signs = loadkb_parse( dsl_expr, (compound_rec_ptr)0, KB_Signs );
 #endif
+	}
+	break;
+
+      case 3:
+	// Parsing lines as PROP VALUE declarations
+	_FW(line,pch);
+	if( NULL != pch && *pch != 0x0A ){
+	  //
+	  if( 0 == strcmp( _END_ANNO, pch ) ){
+	    _TRANSITION(0);
+	  }
+	  else{
+	    strcpy( key, pch );
+	    pch = strtok( NULL, delims );
+	    if( NULL != pch && *pch != 0x0A ){
+	      val = (char *) malloc( strlen(pch)*sizeof(char) );
+	      strcpy( val, pch );
+	      if(TRACE_ON) printf( "Name=%s, key=%s, val=%s\n", name, key, val );
+	      nxp_hash_set( name, key, val );
+	    }
+	    else{
+	      _TRANSITION(255);
+	    }
+	  }
 	}
 	break;
 
