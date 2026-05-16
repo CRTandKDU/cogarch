@@ -32,6 +32,9 @@ canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP) $(APIS_DIR)/z
 # canvas1: canvas1.c
 # 	gcc canvas1.c -o canvas1.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
+canvas4: canvas4.c layout.cpp
+	g++ canvas4.c layout.cpp -o canvas4.exe $(CFLAGS) $(LFLAGS) $(LIBS) -IC:/Users/chauv/Documents/IUP/boost_1_91_0
+
 # list1: examples/C/list1.c
 # 	gcc examples/C/list1.c -o list1.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
@@ -53,9 +56,11 @@ canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP) $(APIS_DIR)/z
 # nxpiupmenu: nxpiup_menu.c
 # 	gcc nxpiup_menu.c -o menu.exe $(CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(LIBS)
 
-helloz: helloz.c nxp_hash.c 
-	gcc helloz.c nxp_hash.c $(APIS_DIR)/zhash/src/zhash.c $(APIS_DIR)/zhash/src/zsorted_hash.c -o helloz.exe $(CFLAGS_ZHASH) 
+# helloz: helloz.c nxp_hash.c 
+# 	gcc helloz.c nxp_hash.c $(APIS_DIR)/zhash/src/zhash.c $(APIS_DIR)/zhash/src/zsorted_hash.c -o helloz.exe $(CFLAGS_ZHASH) 
 
+layout: layout.cpp
+	g++ layout.cpp -o layout.exe -IC:/Users/chauv/Documents/IUP/boost_1_91_0
 
 %.o: %.c $(API_DEPS)
 	$(CC) -c -o $@ $< $(APIS_CFLAGS) $(DSL_CFLAGS)

@@ -1,0 +1,1 @@
+g++ canvas4.c layout.cpp -o canvas4.exe -I./include -I./include/cd -I./include/im -I./lib ./lib/cdcontextplus.dll ./lib/iupcd.dll ./lib/iup.dll ./lib/cd.dll ./lib/iupcontrols.dll  -IC:/Users/chauv/Documents/IUP/boost_1_91_0

@@ -1,0 +1,12 @@
+#ifndef LAYOUT_H
+#define LAYOUT_H
+
+typedef void (* layout_cb )( char *, double, double );
+
+void layout_open( void **, void ** );
+void layout_close( void *, void *, void * );
+void layout_add_edge( void *, void *, char *, char * );
+void layout_run( void *, void **, int, double, double  );
+void layout_enumerate( void *, void *, void *, layout_cb );
+
+#endif
