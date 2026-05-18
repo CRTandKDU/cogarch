@@ -18,6 +18,7 @@ struct layout_rec{
   void *g;
   void *names;
   void *positions;
+  void *weights;
 };
 
 typedef struct layout_rec layout_rec, *layout_rec_ptr;
@@ -133,7 +134,7 @@ void layout_update_cb (int iter ){
   cdCanvas *canvas = (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
   layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
   if( userdata ){
-    usleep( 50000 );
+    usleep( 10000 );
     cdCanvasActivate(canvas);
     cdCanvasClear(canvas);
     layout_enumerate_edges( (userdata->g), (userdata->names), (userdata->positions), redrawe_cb );
@@ -153,20 +154,22 @@ int toggle_redraw(void)
     layout_rec_ptr userdata = (layout_rec_ptr) malloc( sizeof( layout_rec ) );
     IupSetAttribute( ih, "USERDATA", (char *) userdata );
 
-    layout_open( &(userdata->g), &(userdata->names) );
+    layout_open( &(userdata->g), &(userdata->names), &(userdata->weights) );
 
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "0", (char *) "1" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "0", (char *) "2" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "0", (char *) "3" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "1", (char *) "4" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "1", (char *) "5" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "2", (char *) "6" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "3", (char *) "7" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "3", (char *) "8" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "3", (char *) "9" );
-    layout_add_edge( (userdata->g), (userdata->names), (char *) "2", (char *) "9" );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "1", 0, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "2", 1, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "3", 2, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "1", (char *) "4", 3, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "1", (char *) "5", 4, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "2", (char *) "6", 5, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "7", 6, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "8", 7, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "9", 8, 1.0 );
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "2", (char *) "9", 9, 1.0 );
 
-    layout_run( (userdata->g), &(userdata->positions), 100, (double) 200., (double) 200., layout_update_cb );
+    /* layout_run_fr( (userdata->g), &(userdata->positions), 100, (double) 200., (double) 200., layout_update_cb ); */
+    layout_run_kk( (userdata->g), &(userdata->positions), (userdata->weights),
+		   (double) 200., (double) 200., layout_update_cb );
     IupUpdate( ih );
   }
   return IUP_DEFAULT;
@@ -203,7 +206,7 @@ void redrawe_cb( char *source, double xs, double ys,
 int layout_destroy_cb( Ihandle *ih ){
   layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( (Ihandle *) cv, "USERDATA" );
   if( userdata ){
-    layout_close( (userdata->g), (userdata->names), (userdata->positions) );
+    layout_close( (userdata->g), (userdata->names), (userdata->positions), (userdata->weights) );
     free( (void *) userdata );
   }
   return IUP_DEFAULT;

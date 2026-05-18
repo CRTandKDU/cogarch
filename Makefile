@@ -32,7 +32,7 @@ canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP) $(APIS_DIR)/z
 # canvas1: canvas1.c
 # 	gcc canvas1.c -o canvas1.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
-canvas4: canvas4.c layout.cpp
+canvas4: canvas4.c layout.cpp C:/Users/chauv/Documents/IUP/boost_1_91_0/boost/graph/kamada_kawai_spring_layout.hpp
 	g++ canvas4.c layout.cpp -o canvas4.exe $(CFLAGS) $(LFLAGS) $(LIBS) -IC:/Users/chauv/Documents/IUP/boost_1_91_0
 
 # list1: examples/C/list1.c

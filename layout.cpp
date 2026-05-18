@@ -7,7 +7,9 @@
 //  Authors: Douglas Gregor
 //           Andrew Lumsdaine
 #include <boost/graph/fruchterman_reingold.hpp>
+#include <boost/graph/kamada_kawai_spring_layout.hpp>
 #include <boost/graph/random_layout.hpp>
+#include <boost/graph/circle_layout.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topology.hpp>
 #include <boost/lexical_cast.hpp>
@@ -45,14 +47,19 @@ void usage()
                  "vertex on each line, separated by spaces.\n";
 }
 
+
 typedef boost::rectangle_topology<> topology_type;
 typedef topology_type::point_type point_type;
 
 typedef adjacency_list< listS, vecS, undirectedS,
-    property< vertex_name_t, std::string > >
+			property< vertex_name_t, std::string >,
+			property< edge_index_t, int >                     
+			// 	  property< edge_weight_t, double > >
+			>
     Graph;
 
 typedef graph_traits< Graph >::vertex_descriptor Vertex;
+typedef graph_traits< Graph >::edge_descriptor Edge;
 
 typedef std::map< std::string, Vertex > NameToVertex;
 
@@ -61,6 +68,10 @@ typedef std::vector< point_type > PositionVec;
 typedef iterator_property_map< PositionVec::iterator,
 			       property_map< Graph, vertex_index_t >::type >
 PositionMap;
+
+typedef iterator_property_map< std::vector< double >::iterator,
+			       property_map< Graph, edge_index_t >::type >
+WMap;
 
 
 Vertex get_vertex(const std::string& name, Graph& g, NameToVertex& names)
@@ -98,28 +109,69 @@ private:
 };
 
 
-void layout_open( void ** graph, void ** labels ){
-  Graph *g		= new Graph;
-  NameToVertex *names	= new NameToVertex;
-  *graph		= (void *) g;
-  *labels		= (void *) names;
+void layout_open( void ** graph, void ** labels, void ** weights ){
+  Graph *g			= new Graph;
+  NameToVertex *names		= new NameToVertex;
+  std::vector<double> *w	= new std::vector<double>;
+  *graph			= (void *) g;
+  *labels			= (void *) names;
+  *weights                      = (void *) w;
 }
 
-void layout_close( void *g, void *names, void *pos ){
+void layout_close( void *g, void *names, void *pos, void *weights ){
   if( g )	delete (Graph *) g;
   if( names )	delete (NameToVertex *) names;
   if( pos )	delete (PositionMap *) pos;
+  if( weights ) delete (std::vector<double> *) weights;
 }
 
-void layout_add_edge( void *graph, void *labels, char *s, char *t ){
-  Graph *g = (Graph *) graph;
-  NameToVertex *names = (NameToVertex *) labels;
-  std::string source(s), target(t);
-  add_edge(get_vertex( source, *g, *names ),
-	   get_vertex( target, *g, *names ), *g );
+void layout_add_edge( void *graph, void *labels, void *weights,
+		      char *s, char *t, int n, double wedge ){
+  Graph *g			= (Graph *) graph;
+  NameToVertex *names		= (NameToVertex *) labels;
+  std::vector<double> *w	= (std::vector<double> *) weights;
+
+  // std::string source(s), target(t);
+  Edge edge;
+  bool b;
+  boost::tie( edge, b ) =  add_edge(get_vertex( std::string(s), *g, *names ),
+				    get_vertex( std::string(t), *g, *names ), n, *g );
+  (*w).push_back( wedge );
+  printf( "Adding Edge (%d): %s %s, weight=%f (size=%d)\n", b, (char *) get( vertex_name, *g, source( edge, *g ) ).c_str(),
+	  (char *) get( vertex_name, *g, target( edge, *g ) ).c_str(), wedge, (int) (*w).size()  );
 }
 
-void layout_run( void *graph, void **pos, int iterations, double width, double height, layout_update_cb_t f ){
+layout_update_cb_t S_cb = NULL;
+int S_iter = 0;
+
+bool kk_done( double delta_p, Vertex p, Graph g, bool maxp ){
+  layout_tolerance< double > f;
+  printf( "Done %f\n", delta_p );
+  // return f( delta_p, p, g, maxp );
+  S_cb( S_iter++ );
+  return delta_p < 1. ? true : false ;
+}
+
+void layout_run_kk( void *graph, void **pos, void * weights, double width, double height, layout_update_cb_t f ){
+  bool b;
+  Graph *g			= (Graph *) graph;
+  std::vector<double> *w        = (std::vector<double> *) weights;
+  PositionVec *position_vec	= new PositionVec(num_vertices(*g));
+  PositionMap *position		= new PositionMap((*position_vec).begin(), get(vertex_index, *g));
+  *pos = (void *) position;
+
+  minstd_rand gen;
+  topology_type topo(gen, -width / 2, -height / 2, width / 2, height / 2);
+  circle_graph_layout( *g, *position, (double) width / 2.0 );
+  printf( "Run K.-K.\n" );
+  S_cb = f;
+  WMap w_map = WMap( (*w).begin(), get( edge_index, *g ) );
+  b = kamada_kawai_spring_layout( *g, *position, w_map, topo,
+				  boost::side_length( (double) 100. ), kk_done );
+  S_cb = NULL;
+}
+
+void layout_run_fr( void *graph, void **pos, int iterations, double width, double height, layout_update_cb_t f ){
   Graph *g			= (Graph *) graph;
   PositionVec *position_vec	= new PositionVec(num_vertices(*g));
   PositionMap *position		= new PositionMap((*position_vec).begin(), get(vertex_index, *g));
@@ -166,79 +218,3 @@ void layout_enumerate_edges( void *graph, void *labels, void *pos, layout_enume_
   }
 }
 
-// int main(int argc, char* argv[])
-// {
-//     int iterations = 100;
-
-//     if (argc < 3)
-//     {
-//         usage();
-//         return -1;
-//     }
-
-//     double width = 0;
-//     double height = 0;
-
-//     for (int arg_idx = 1; arg_idx < argc; ++arg_idx)
-//     {
-//         std::string arg = argv[arg_idx];
-//         if (arg == "--iterations")
-//         {
-//             ++arg_idx;
-//             if (arg_idx >= argc)
-//             {
-//                 usage();
-//                 return -1;
-//             }
-//             iterations = lexical_cast< int >(argv[arg_idx]);
-//         }
-//         else
-//         {
-//             if (width == 0.0)
-//                 width = lexical_cast< double >(arg);
-//             else if (height == 0.0)
-//                 height = lexical_cast< double >(arg);
-//             else
-//             {
-//                 usage();
-//                 return -1;
-//             }
-//         }
-//     }
-
-//     if (width == 0.0 || height == 0.0)
-//     {
-//         usage();
-//         return -1;
-//     }
-
-//     Graph g;
-//     NameToVertex names;
-
-//     std::string source, target;
-//     while (std::cin >> source >> target)
-//     {
-//         add_edge(get_vertex(source, g, names), get_vertex(target, g, names), g);
-//     }
-
-//     typedef std::vector< point_type > PositionVec;
-//     PositionVec position_vec(num_vertices(g));
-//     typedef iterator_property_map< PositionVec::iterator,
-//         property_map< Graph, vertex_index_t >::type >
-//         PositionMap;
-//     PositionMap position(position_vec.begin(), get(vertex_index, g));
-
-//     minstd_rand gen;
-//     topology_type topo(gen, -width / 2, -height / 2, width / 2, height / 2);
-//     random_graph_layout(g, position, topo);
-//     fruchterman_reingold_force_directed_layout(
-//         g, position, topo, cooling(progress_cooling(iterations)));
-
-//     graph_traits< Graph >::vertex_iterator vi, vi_end;
-//     for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi)
-//     {
-//         std::cout << get(vertex_name, g, *vi) << '\t' << position[*vi][0]
-//                   << '\t' << position[*vi][1] << std::endl;
-//     }
-//     return 0;
-// }
