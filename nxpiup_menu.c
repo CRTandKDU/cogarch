@@ -3,6 +3,14 @@
  *
  * Written on 2026-05-06.
  */
+/*
+TODO:
+  - EVOKES zhash annotation and external agendas in engine, rule network and graph
+  - Volunteer, reusing questions
+  - right click contextual menus
+  - Web comms
+  - LLM comms
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -170,7 +178,67 @@ int nxpiup_dlgloadkb( void ){
 }
 
 // Main window w. menubar
-int exit_cb(void) { return IUP_CLOSE; }
+int exit_cb(void) {
+  Ihandle *ih = IupGetHandle( "graph" );
+  if( ih ) IupDestroy( ih );
+  ih = IupGetHandle( "rule_network" );
+  if( ih ) IupDestroy( ih );
+  return IUP_CLOSE;
+}
+
+static void build_graph_cb(){
+  short i, j;
+  int k = 0;
+  rule_rec_ptr rule;
+  cond_rec_ptr cond;
+  fwrd_rec_ptr cfwrd, fwrd;
+  // All hypos to signs in their respective rules
+  sign_rec_ptr compound, s, top = (sign_rec_ptr) loadkb_get_allhypos();
+  s = top;
+  while( s ){
+    for( i=0; i<s->ngetters; i++ ){
+      rule = ((bwrd_rec_ptr) s->getters[i])->rule;
+      for( j=0; j<rule->ngetters; j++ ){
+	cond = (cond_rec_ptr) rule->getters[j];
+	if( COMPOUND_MASK != (cond->sign->len_type & TYPE_MASK ) )
+	    nxpiup_layout_add_edge( s->str, cond->sign->str, k++, 1.0 );
+      }
+    }
+    s = s->next;
+  }
+  // All sign and their forward links
+  top = loadkb_get_allsigns();
+  s = top;
+  while( s ){
+    if( COMPOUND_MASK != (s->len_type & TYPE_MASK ) ){
+      for( i=0; i<s->nsetters; i++ ){
+	fwrd = (fwrd_rec_ptr) s->setters[i];
+	if( fwrd->idx_cond >= 0 ){
+	  nxpiup_layout_add_edge( ((sign_rec_ptr) fwrd->rule->setters)->str, s->str, k++, 2.0 );
+	}
+	else{
+	  compound = (sign_rec_ptr) fwrd->rule;
+	  for( j=0; j<compound->nsetters; j++ ){
+	    cfwrd = (fwrd_rec_ptr) compound->setters[j];
+	    if( cfwrd->idx_cond >= 0 ){
+	      nxpiup_layout_add_edge( ((sign_rec_ptr) cfwrd->rule->setters)->str, s->str, k++, 2.0 );
+	    }
+	  }
+	}
+      }
+    }
+    s = s->next;
+  }
+}
+
+int item_graph_cb(void){
+  Ihandle *dlg = IupGetHandle( "graph" );
+  if( !dlg )
+    dlg = nxpiup_layout_dlg( "220x220", build_graph_cb );
+  IupShowXY(dlg, IUP_CENTER, IUP_CENTER);
+
+  return IUP_DEFAULT;
+}
 
 int item_browse_cb(void){
   Ihandle *ih_item = IupGetHandle( "item_browse" );
@@ -217,7 +285,7 @@ void nxpiup_dlgmenu( void ){
   Ihandle *item_open, *item_exit,
     *item_suggest, *item_volunteer, *item_reset, *item_agenda, *item_knowcess,
     *item_rules, *item_signs, *item_hypos,
-    *item_browse;
+    *item_browse, *item_graph;
   Ihandle *file_menu, *edit_menu, *expert_menu, *ency_menu, *netw_menu;
   Ihandle *menu, *sub1, *sub3, *sub4, *sub5;
 
@@ -259,17 +327,21 @@ void nxpiup_dlgmenu( void ){
   //
   ency_menu = IupMenu( item_rules, item_signs, item_hypos, NULL );
   //
-  item_browse = IupItem ("Browse", NULL);
+  item_graph  = IupItem( "Browse Signs", NULL );
+  /* IupSetAttribute(item_browse, "KEY", "B"); */
+  IupSetCallback(item_graph, "ACTION", (Icallback)item_graph_cb);
+  IupSetHandle( "item_graph", item_graph );
+  item_browse = IupItem ("Browse Rules", NULL);
   IupSetAttribute(item_browse, "KEY", "B");
   IupSetCallback(item_browse, "ACTION", (Icallback)item_browse_cb);
   IupSetHandle( "item_browse", item_browse );
   //
-  netw_menu = IupMenu( item_browse, NULL );
+  netw_menu = IupMenu( item_graph, item_browse, NULL );
   //
   sub1 = IupSubmenu( "File", file_menu );
   sub3 = IupSubmenu( "Expert", expert_menu );
   sub4 = IupSubmenu( "Encyclopedia", ency_menu );
-  sub5 = IupSubmenu( "Network", netw_menu );
+  sub5 = IupSubmenu( "Networks", netw_menu );
   menu = IupMenu( sub1, sub3, sub4, sub5, NULL );
   IupSetHandle("mymenu", menu);
   //

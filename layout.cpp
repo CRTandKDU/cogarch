@@ -51,7 +51,7 @@ void usage()
 typedef boost::rectangle_topology<> topology_type;
 typedef topology_type::point_type point_type;
 
-typedef adjacency_list< listS, vecS, undirectedS,
+typedef adjacency_list< /*listS*/setS, vecS, undirectedS,
 			property< vertex_name_t, std::string >,
 			property< edge_index_t, int >                     
 			// 	  property< edge_weight_t, double > >
@@ -98,7 +98,7 @@ public:
     {
         ++(*display);
 	iter += 1;
-	cb( iter );
+	cb( iter, 10000 );
         return inherited::operator()();
     }
 
@@ -141,15 +141,15 @@ void layout_add_edge( void *graph, void *labels, void *weights,
 	  (char *) get( vertex_name, *g, target( edge, *g ) ).c_str(), wedge, (int) (*w).size()  );
 }
 
+// REDRAWING
 layout_update_cb_t S_cb = NULL;
-int S_iter = 0;
+int S_iter		= 0;
 
 bool kk_done( double delta_p, Vertex p, Graph g, bool maxp ){
   layout_tolerance< double > f;
-  printf( "Done %f\n", delta_p );
-  // return f( delta_p, p, g, maxp );
-  S_cb( S_iter++ );
-  return delta_p < 1. ? true : false ;
+  // printf( "Done %f, vertex=%s (max=%d)\n", delta_p,  (char *) get(vertex_name, g, p).c_str(), maxp );
+  S_cb( S_iter++, 100 );
+  return delta_p < 10. ? true : false ;
 }
 
 void layout_run_kk( void *graph, void **pos, void * weights, double width, double height, layout_update_cb_t f ){
@@ -163,12 +163,13 @@ void layout_run_kk( void *graph, void **pos, void * weights, double width, doubl
   minstd_rand gen;
   topology_type topo(gen, -width / 2, -height / 2, width / 2, height / 2);
   circle_graph_layout( *g, *position, (double) width / 2.0 );
-  printf( "Run K.-K.\n" );
-  S_cb = f;
+  S_cb		= f;
+  S_iter	= 0;
   WMap w_map = WMap( (*w).begin(), get( edge_index, *g ) );
   b = kamada_kawai_spring_layout( *g, *position, w_map, topo,
 				  boost::side_length( (double) 100. ), kk_done );
-  S_cb = NULL;
+  S_cb		= NULL;
+  S_iter	= 0;
 }
 
 void layout_run_fr( void *graph, void **pos, int iterations, double width, double height, layout_update_cb_t f ){

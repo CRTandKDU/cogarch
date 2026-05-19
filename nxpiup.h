@@ -34,6 +34,10 @@ void nxpiup_dlgency( const char *, const char *, sign_rec_ptr );
 void nxpiup_dlgency_rules( const char *, const char *, rule_rec_ptr );
 void nxpiup_ency_update( Ihandle *, short );
 
+typedef void (*nxp_graph_cb_t) ( void );
+Ihandle *nxpiup_layout_dlg( const char *, nxp_graph_cb_t );
+void nxpiup_layout_add_edge( char *, char *, int, double );
+
 #define NXPIUP_UPDATES   Ihandle *netw = IupGetHandle( "rule_network" ); \
   if( netw ) IupUpdate( netw );						\
   Ihandle *ency = IupGetHandle( NXPIUP_ENCY_SIGNS_VIEW );		\

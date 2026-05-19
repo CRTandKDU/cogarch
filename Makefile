@@ -16,12 +16,12 @@ APIS_DIR	= C:/Users/chauv/Documents/IUP
 APIS_NXP	= $(APIS_DIR)/sign.o $(APIS_DIR)/rule.o $(APIS_DIR)/hypo.o $(APIS_DIR)/compound.o $(APIS_DIR)/engine.o $(APIS_DIR)/engine_dsl.o $(APIS_DIR)/loadkb.o
 APIS_DEP	= agenda.h Makefile
 APIS_CFLAGS     = -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv
-CFLAGS_NXP      = $(API_CFLAGS)
+CFLAGS_NXP      = $(API_CFLAGS) -I$(APIS_DIR)/boost_1_91_0
 
 CFLAGS_ZHASH    = -I$(APIS_DIR)/zhash
 
 CSOURCES_NETW   = netw.c netw_internals.c netw_expansion.c netw_redraw.c
-CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c nxp_hash.c
+CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c nxp_hash.c nxp_layout.cpp layout.cpp
 
 canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP) $(APIS_DIR)/zhash/src/zhash.c
 	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(CFLAGS_ZHASH) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(LIBS_IM)

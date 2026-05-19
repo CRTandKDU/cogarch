@@ -253,12 +253,12 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend );
 
 sign_rec_ptr agenda_get_allsigns();
 
-int loadkb_file( const char *fn );
-void loadkb_reset();
-sign_rec_ptr loadkb_get_allsigns();
-hypo_rec_ptr loadkb_get_allhypos();
-rule_rec_ptr loadkb_get_allrules();
-int          loadkb_howmany( sign_rec_ptr top );
+int		loadkb_file( const char *fn );
+void		loadkb_reset();
+sign_rec_ptr	loadkb_get_allsigns();
+hypo_rec_ptr	loadkb_get_allhypos();
+rule_rec_ptr	loadkb_get_allrules();
+int		loadkb_howmany( sign_rec_ptr top );
 
 #define ENCY_SIGN 0
 #define ENCY_HYPO 1

@@ -1,5 +1,7 @@
-/*
- * IupCanvas Redraw example
+/**
+ * nxp_layout.cpp -- Another graph for NXP
+ *
+ * Written on Tuesday, May 19, 2026
  */
 
 #include <stdlib.h>
@@ -12,6 +14,8 @@
 #include <cdiup.h>
 #include <wd.h>
 
+#include "agenda.h"
+#include "nxpiup.h"
 #include "layout.h"
 
 struct layout_rec{
@@ -27,12 +31,7 @@ typedef struct layout_rec layout_rec, *layout_rec_ptr;
 #define WORLD_W 1000
 #define WORLD_H 1000
 
-Ihandle *dlg     = NULL;
-Ihandle *bt      = NULL;
-Ihandle *gauge   = NULL;
-Ihandle *tabs    = NULL;
-Ihandle *cv      = NULL;
-cdCanvas*cdcanvas= NULL;
+static nxp_graph_cb_t S_graph_cb = NULL;
 
 int need_redraw, redraw_count = 0;
 
@@ -41,23 +40,23 @@ void redrawe_cb( char *, double, double, char *, double, double );
 int redraw( Ihandle * );
 
 // From canvas3
-int scale = 1;
+int nxp_graph_scale = 1;
 
 void update_scrollbar(Ihandle* ih, int canvas_w, int canvas_h)
 {
   /* update page size, it is always the client size of the canvas,
      but must convert it to world coordinates.
-     If you change canvas size or scale must call this function. */
+     If you change canvas size or nxp_graph_scale must call this function. */
   double ww, wh;
-  if (scale > 0)
+  if (nxp_graph_scale > 0)
   {
-    ww = (double)canvas_w/scale;
-    wh = (double)canvas_h/scale;
+    ww = (double)canvas_w/nxp_graph_scale;
+    wh = (double)canvas_h/nxp_graph_scale;
   }
   else
   {
-    ww = canvas_w*abs(scale);
-    wh = canvas_h*abs(scale);
+    ww = canvas_w*abs(nxp_graph_scale);
+    wh = canvas_h*abs(nxp_graph_scale);
   }
   IupSetfAttribute(ih, "DX", "%g", ww);
   IupSetfAttribute(ih, "DY", "%g", wh);
@@ -75,23 +74,25 @@ void update_viewport(Ihandle* ih, cdCanvas *canvas, float posx, float posy)
   posy = IupGetFloat(ih, "YMAX")-IupGetFloat(ih, "DY") - posy;
   if (posy < 0) posy = 0;
 
-  if (scale > 0)
+  if (nxp_graph_scale > 0)
   {
-    view_w = WORLD_W*scale;
-    view_h = WORLD_H*scale;
-    view_x = (int)(posx*scale);
-    view_y = (int)(posy*scale);
+    view_w = WORLD_W*nxp_graph_scale;
+    view_h = WORLD_H*nxp_graph_scale;
+    view_x = (int)(posx*nxp_graph_scale);
+    view_y = (int)(posy*nxp_graph_scale);
   }
   else
   {
-    view_w = WORLD_W/abs(scale);
-    view_h = WORLD_H/abs(scale);
-    view_x = (int)(posx/abs(scale));
-    view_y = (int)(posy/abs(scale));
+    view_w = WORLD_W/abs(nxp_graph_scale);
+    view_h = WORLD_H/abs(nxp_graph_scale);
+    view_x = (int)(posx/abs(nxp_graph_scale));
+    view_y = (int)(posy/abs(nxp_graph_scale));
   }
 
   wdCanvasViewport(canvas, -view_x, view_w-1 - view_x, -view_y, view_h-1 - view_y);
 }
+
+// IUP dialog and its callbacks
 
 int resize_cb(Ihandle *ih, int canvas_w, int canvas_h)
 {
@@ -124,17 +125,16 @@ int scroll_cb(Ihandle *ih, int op, float posx, float posy)
 }
 
 
-//
 void update_redraw_cb( char *node, double x, double y ){
   printf( "\tUPDATE %s\t%f\t%f\n", node, x, y );
 }
 
-void layout_update_cb (int iter ){
+void layout_update_cb (int iter, int delay ){
   Ihandle *ih =  IupGetHandle( "layout_cv" );
   cdCanvas *canvas = (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
   layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
   if( userdata ){
-    usleep( 10000 );
+    usleep( delay );
     cdCanvasActivate(canvas);
     cdCanvasClear(canvas);
     layout_enumerate_edges( (userdata->g), (userdata->names), (userdata->positions), redrawe_cb );
@@ -142,9 +142,19 @@ void layout_update_cb (int iter ){
     IupUpdate( ih );
     /* printf( "%d ", iter ); */
   }
+  int ret = IupLoopStep();
 }
 
+void nxpiup_layout_add_edge( char *s, char *t, int index, double weight ){
+  Ihandle *ih			=  IupGetHandle( "layout_cv" );
+  cdCanvas *canvas		= (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
+  layout_rec_ptr userdata	= (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  if( userdata ){
+    layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), s, t, index, weight );
+  }
+}
 
+// Set up
 int toggle_redraw(void)
 {
   Ihandle *ih =  IupGetHandle( "layout_cv" );
@@ -158,25 +168,27 @@ int toggle_redraw(void)
     free( (void *) data );
   }
   //
-  int canvas_w, canvas_h;
-  IupGetIntInt( ih, "DRAWSIZE", &canvas_w, &canvas_h );
-  printf( "DRAWSIZE %d by %d\n", canvas_w, canvas_h );
+  // int canvas_w, canvas_h;
+  // IupGetIntInt( ih, "DRAWSIZE", &canvas_w, &canvas_h );
+  // printf( "DRAWSIZE %d by %d\n", canvas_w, canvas_h );
   //
+  nxp_graph_cb_t f = (nxp_graph_cb_t) IupGetAttribute( IupGetHandle( "graph_bt" ), "USERDATA" );
   layout_rec_ptr userdata = (layout_rec_ptr) malloc( sizeof( layout_rec ) );
   IupSetAttribute( ih, "USERDATA", (char *) userdata );
 
   layout_open( &(userdata->g), &(userdata->names), &(userdata->weights) );
 
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "1", 0, 2.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "2", 1, 2.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "3", 2, 2.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "1", (char *) "4", 3, 1.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "1", (char *) "5", 4, 1.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "2", (char *) "6", 5, 1.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "7", 6, 1.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "8", 7, 1.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "9", 8, 1.0 );
-  layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "2", (char *) "9", 9, 1.0 );
+  S_graph_cb();
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "1", 0, 2.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "2", 1, 2.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "0", (char *) "3", 2, 2.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "1", (char *) "4", 3, 1.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "1", (char *) "5", 4, 1.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "2", (char *) "6", 5, 1.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "7", 6, 1.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "8", 7, 1.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "3", (char *) "9", 8, 1.0 );
+  // layout_add_edge( (userdata->g), (userdata->names), (userdata->weights), (char *) "2", (char *) "9", 9, 1.0 );
 
   if( 0 == strcmp( "bykk", (char *) IupGetAttribute( ihalg, "VALUE" ) ) )
     layout_run_kk( (userdata->g), &(userdata->positions), (userdata->weights),
@@ -193,17 +205,29 @@ int toggle_redraw(void)
 void redrawv_cb( char * node, double x, double y ){
   int xx, yy;
   int canvas_w, canvas_h;
-  Ihandle *ih =  IupGetHandle( "layout_cv" );
-  cdCanvas *canvas = (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
-  layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  Ihandle *ih			= IupGetHandle( "layout_cv" );
+  cdCanvas *canvas		= (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
+  layout_rec_ptr userdata	= (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  sign_rec_ptr sign		= sign_find( node, loadkb_get_allhypos() );
   /* printf( "Point %s, x=%f, y=%f\n", node, x, y ); */
   //
   IupGetIntInt( ih, "DRAWSIZE", &canvas_w, &canvas_h );
   wdCanvasWorld2Canvas( canvas, x + WORLD_W/2, y + WORLD_H/2, &xx, &yy );
-  cdCanvasRect( canvas,
-		(int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
-		(int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
-  if( 1<=scale ){
+  if( sign && (0 == sign->nsetters) ){
+    int style		= cdCanvasInteriorStyle( canvas, CD_SOLID );
+    long int color	= cdCanvasForeground(canvas, CD_GRAY);
+    cdCanvasBox( canvas, 
+		  (int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
+		  (int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
+    color = cdCanvasForeground(canvas, color);
+    style = cdCanvasInteriorStyle( canvas, style );
+  }
+  else{
+    cdCanvasRect( canvas,
+		  (int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
+		  (int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
+  }
+  if( 1<=nxp_graph_scale ){
     cdCanvasText( canvas, (int) xx + _MARK_SIZE + 2, (int) yy, node );
   }
 }
@@ -226,8 +250,10 @@ void redrawe_cb( char *source, double xs, double ys,
 
 
 int layout_destroy_cb( Ihandle *ih ){
+  cdCanvas *cv = (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
   layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( (Ihandle *) cv, "USERDATA" );
   if( userdata ){
+    printf( "Clearing graph\n" );
     layout_close( (userdata->g), (userdata->names), (userdata->positions), (userdata->weights) );
     free( (void *) userdata );
   }
@@ -259,15 +285,15 @@ int wheel_cb(Ihandle *ih,float delta,int x,int y,char* status)
   (void)y;
   (void)status;
 
-  if (scale+delta==0) /* skip 0 */
+  if (nxp_graph_scale+delta==0) /* skip 0 */
   {
-    if (scale > 0) 
-      scale = -1;
+    if (nxp_graph_scale > 0) 
+      nxp_graph_scale = -1;
     else 
-      scale = 1;
+      nxp_graph_scale = 1;
   }
   else
-    scale += (int)delta;
+    nxp_graph_scale += (int)delta;
 
   cdCanvasActivate(canvas);
   cdCanvasGetSize(canvas, &canvas_w, &canvas_h, NULL, NULL);
@@ -278,38 +304,20 @@ int wheel_cb(Ihandle *ih,float delta,int x,int y,char* status)
 }
 
 int bykk_cb( Ihandle *ih, int state ){
-  /* printf( "ENCY rules: sort by name\n" ); */
-  if( 1 == state ){
-    /* Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW ); */
-    /* ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" ); */
-    /* qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(rule_rec_ptr), nxpiup_ency__compare ); */
-    /* userdata->selected = 0; */
-    /* ency_rules__update( 1 ); */
-  }
+  // if( 1 == state ){
+  // }
   return IUP_DEFAULT;
 }
 
 int byfr_cb( Ihandle *ih, int state ){
-  /* printf( "ENCY rules: sort by hypo\n" ); */
-  if( 1 == state ){
-    /* Ihandle *view = IupGetHandle( NXPIUP_ENCY_RULES_VIEW ); */
-    /* ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( view, "USERDATA" ); */
-    /* qsort( (void *) userdata->seq, (size_t) userdata->size, sizeof(rule_rec_ptr), nxpiup_ency__compare_hypos ); */
-    /* userdata->selected = 0; */
-    /* ency_rules__update( 1 ); */
-  }
+  // if( 1 == state ){
+  // }
   return IUP_DEFAULT;
 }
 
-int main(int argc, char **argv) 
-{
-  IupOpen(&argc, &argv);
-//  IupControlsOpen();
-  
-  /* gauge = IupProgressBar(); */
-//  gauge = IupGauge();
-  cv    = IupCanvas(NULL);
-  bt    = IupButton("Start/Stop", NULL);
+Ihandle * nxpiup_layout_dlg( const char *size_str, nxp_graph_cb_t f ){
+  Ihandle *cv    = IupCanvas(NULL);
+  Ihandle *bt    = IupButton("Start/Stop", NULL);
 
   Ihandle *bykk = IupToggle( "K.-K.", NULL );
   Ihandle *byfr = IupToggle( "F.-R.", NULL );
@@ -336,7 +344,7 @@ int main(int argc, char **argv)
 
   /* IupSetAttribute(gauge, "SIZE", "200x15"); */
   
-  IupSetAttribute( cv, "SIZE", "220x220");
+  IupSetAttribute( cv, "SIZE", size_str );
   IupSetAttribute( cv, "SCROLLBAR", "YES" );
   IupSetCallback( cv, "RESIZE_CB",	(Icallback) resize_cb);
   IupSetCallback( cv, "SCROLL_CB",	(Icallback) scroll_cb);
@@ -345,15 +353,14 @@ int main(int argc, char **argv)
   IupSetCallback( cv, "ACTION",		(Icallback) redraw );
   IupSetHandle( "layout_cv", cv );
   
-  dlg   = IupDialog( IupVbox( cv, ihalg, NULL ) );
+  Ihandle *dlg   = IupDialog( IupVbox( cv, ihalg, NULL ) );
   IupSetAttribute(dlg, "TITLE", "Redraw test");
-
+  IupSetHandle( "graph", dlg );
   IupMap(dlg);
   
-  cdCanvas *cdCanvas = cdCreateCanvas(CD_IUP, cv);
-  wdCanvasWindow(cdCanvas, 0, WORLD_W, 0, WORLD_H);
-  cdCanvasForeground(cdcanvas, CD_BLUE);
-  cdCanvasFont( cdCanvas, "Times", CD_PLAIN, 12);
+  cdCanvas *cdcanvas = cdCreateCanvas(CD_IUP, cv);
+  wdCanvasWindow(cdcanvas, 0, WORLD_W, 0, WORLD_H);
+  cdCanvasFont( cdcanvas, "Times", CD_PLAIN, 10);
   cdCanvasClear(cdcanvas);
   /* World size is fixed */
 
@@ -363,15 +370,23 @@ int main(int argc, char **argv)
   IupSetfAttribute(cv, "XMAX", "%d", WORLD_W);
   IupSetfAttribute(cv, "YMAX", "%d", WORLD_H);
   
+  IupSetHandle( "action_bt", bt );
+  S_graph_cb = f;
   IupSetCallback(bt, "ACTION", (Icallback)toggle_redraw);
   //
   /* layout_enumerate_vertices( (userdata->g), (userdata->names), (userdata->positions), print_cb ); */
   //
-  IupShowXY(dlg, IUP_CENTER, IUP_CENTER);
-  IupMainLoop();
-  //
-  //
-  IupClose();
-
-  return EXIT_SUCCESS;
+  return dlg;
 }
+
+// int main(int argc, char **argv) 
+// {
+//   IupOpen(&argc, &argv);
+
+//   IupMainLoop();
+//   //
+//   //
+//   IupClose();
+
+//   return EXIT_SUCCESS;
+// }
