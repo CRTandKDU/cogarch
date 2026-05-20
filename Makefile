@@ -1,5 +1,7 @@
 CPP 		= g++
 CC              = g++
+
+# 1) IUP, CD and IM Section
 CFLAGS		= -I./include -I./include/cd -I./include/im
 LFLAGS		= -I./lib
 LIBS_DIR	= ./lib
@@ -8,23 +10,36 @@ LIBS_IM         = $(LIBS_DIR)/im.dll $(LIBS_DIR)/iupim.dll
 LIBS_IUP	= $(LIBS_DIR)/iup.dll $(LIBS_DIR)/iupcd.dll 
 LIBS		=  $(LIBS_DIR)/cdcontextplus.dll $(LIBS_DIR)/iupcd.dll $(LIBS_DIR)/iup.dll $(LIBS_DIR)/cd.dll $(LIBS_DIR)/iupcontrols.dll # ./lib/gdi32.dll ./lib/comdlg32.dll ./lib/comctl32.dll ./lib/uuid.dll ./lib/oleaut32.dll ./lib/ole32.dll
 
-DSL_DIR		= C:/cygwin64/home/Moria
-DSL_CFLAGS	= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
-DSL_LFLAGS      = $(DSL_DIR)/libcsv/libcsv_la-libcsv.o $(DSL_DIR)/embed-master/util.o -L$(DSL_DIR)/embed-master -lembed # -lm
+# 2) NXP DSL (Embed FORTH) Section
+DSL_DIR			= C:/cygwin64/home/Moria
+DSL_CFLAGS		= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
+DSL_LFLAGS		= $(DSL_DIR)/libcsv/libcsv_la-libcsv.o $(DSL_DIR)/embed-master/util.o -L$(DSL_DIR)/embed-master -lembed # -lm
 
-APIS_DIR	= C:/Users/chauv/Documents/IUP
-APIS_NXP	= $(APIS_DIR)/sign.o $(APIS_DIR)/rule.o $(APIS_DIR)/hypo.o $(APIS_DIR)/compound.o $(APIS_DIR)/engine.o $(APIS_DIR)/engine_dsl.o $(APIS_DIR)/loadkb.o
-APIS_DEP	= agenda.h Makefile
-APIS_CFLAGS     = -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv
-CFLAGS_NXP      = $(API_CFLAGS) -I$(APIS_DIR)/boost_1_91_0
+# 3) NXP (40y, 2025 edition) Section
+APIS_DIR		= C:/Users/chauv/Documents/IUP
+APIS_OBJS_NXP		= $(APIS_DIR)/sign.o $(APIS_DIR)/rule.o $(APIS_DIR)/hypo.o $(APIS_DIR)/compound.o $(APIS_DIR)/engine.o $(APIS_DIR)/engine_dsl.o $(APIS_DIR)/loadkb.o $(APIS_DIR)/nxp_hash.o
+APIS_DEPS		= agenda.h Makefile
+APIS_CFLAGS		= -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv -I$(APIS_DIR)/zhash
 
-CFLAGS_ZHASH    = -I$(APIS_DIR)/zhash
+CFLAGS_BOOST		= -I$(APIS_DIR)/boost_1_91_0
+CFLAGS_ZHASH		= -I$(APIS_DIR)/zhash
 
-CSOURCES_NETW   = netw.c netw_internals.c netw_expansion.c netw_redraw.c
-CSOURCES_NXPIUP = nxpiup_menu.c nxpiup_ency.c nxp_hash.c nxp_layout.cpp layout.cpp
+CFLAGS_NXP		= $(API_CFLAGS) $(CFLAGS_ZHASH) $(CFLAGS_BOOST) 
 
-canvas3: canvas3.c $(CSOURCES_NXPIUP) $(CSOURCES_NETW) $(APIS_NXP) $(APIS_DIR)/zhash/src/zhash.c
-	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(CFLAGS_ZHASH) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(LIBS_IM)
+OBJS_ZHASH		= $(APIS_DIR)/zhash/src/zhash.o
+
+# 4) Rules Network Section
+# CSOURCES_NETW		= netw.c netw_internals.c netw_expansion.c netw_redraw.c
+OBJS_NETW		= netw.o netw_internals.o netw_expansion.o netw_redraw.o
+
+# 5) IUP GUI Section
+# CSOURCES_NXPIUP	= nxpiup_menu.c nxpiup_ency.c  nxp_layout.cpp layout.cpp
+OBJS_NXPIUP		= nxpiup_menu.o nxpiup_ency.o  nxp_layout.o layout.o
+
+
+# MAIN
+canvas3: canvas3.c $(OBJS_NXPIUP) $(OBJS_NETW) $(APIS_OBJS_NXP) $(OBJS_ZHASH)
+	$(CPP) $^ -o canvas3.exe  $(CFLAGS) $(DSL_CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(DSL_LFLAGS) $(LIBS) $(LIBS_IM)
 
 # canvas2: canvas2.c
 # 	gcc canvas2.c -o canvas2.exe $(CFLAGS) $(LFLAGS) $(LIBS)
@@ -62,5 +77,9 @@ canvas4: canvas4.c layout.cpp C:/Users/chauv/Documents/IUP/boost_1_91_0/boost/gr
 layout: layout.cpp
 	g++ layout.cpp -o layout.exe -IC:/Users/chauv/Documents/IUP/boost_1_91_0
 
+
 %.o: %.c $(API_DEPS)
-	$(CC) -c -o $@ $< $(APIS_CFLAGS) $(DSL_CFLAGS)
+	$(CC) -c -o $@ $< $(APIS_CFLAGS) $(CFLAGS) $(DSL_CFLAGS)
+
+%.o: %.cpp $(API_DEPS)
+	$(CPP) -c -o $@ $< $(CFLAGS_NXP) $(CFLAGS) $(DSL_CFLAGS)

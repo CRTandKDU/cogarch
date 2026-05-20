@@ -162,6 +162,17 @@ void nxpiup_ency__valuestr( sign_rec_ptr sign, char *svalue ){
   return;
 }
 
+sign_rec_ptr nxpiup_ency_selection( char *view ){
+  Ihandle *ih = IupGetHandle( view );
+  if( ih ){
+    ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+    int index = atoi( IupGetAttribute( ih, "VALUE" ) );
+    return userdata->seq[ index-1 ];
+  }
+  else
+    return NULL;
+}
+
 // -------------------------------------------------------------------------------
 // Signs and Hypos Encyclopediae share a dialog template.
 // The Rules Encyclopedia has additional features and a separate dialog.

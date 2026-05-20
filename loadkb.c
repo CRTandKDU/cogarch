@@ -10,7 +10,7 @@
 #include "agenda.h"
 #include "nxp_hash.h"
 
-#define TRACE_ON 1
+#define TRACE_ON 0
 
 extern void  repl_log( const char *s );
 
@@ -20,8 +20,8 @@ const char * _THEN = "THEN";
 const char * _BOOLYES = "YES";
 const char * _BOOLNO  = "NO";
 
-const char * _BEG_ANNO = "#+BEGIN_ANNOTATION";
-const char * _END_ANNO = "#+END_ANNOTATION";
+const char * _BEG_ANNO = "#+BEGIN_ATTRIBUTE";
+const char * _END_ANNO = "#+END_ATTRIBUTE";
 
 
 sign_rec_ptr KB_Signs = (sign_rec_ptr) NULL;;

@@ -27,12 +27,50 @@ TODO:
 
 sign_rec_ptr S_current_sign = NULL;
 
+int qcancel_cb( Ihandle *ih ){
+  return IUP_CLOSE;
+}
+
+int qbut_volunteer_cb( Ihandle *ih ){
+  char buf[NXPIUP_TEMP_BUFSIZE];
+  Ihandle *qwgt = ( nxp_hash_exists( S_current_sign->str, (char *) "VALUE" ) ) ?
+    IupGetHandle( "question_choices" ) : IupGetHandle( "question_text" );
+
+  printf( "Volunteered: %s for %s\n", IupGetAttribute( qwgt, (char *) "VALUE" ), S_current_sign->str );
+  // Handle sign value's expected type
+  struct val_rec val;
+  sign_rec_ptr sign = S_current_sign;
+  S_current_sign = NULL;
+  if( sign ){
+    val.status = _KNOWN;
+    val.type   = sign->val.type;
+    switch( sign->val.type ){
+    case _VAL_T_STR:
+      if( val.valptr ) free( val.valptr );
+      val.valptr = (char *)malloc( strlen( IupGetAttribute( qwgt, (char *) "VALUE" ) ) );
+      strcpy( val.valptr, IupGetAttribute( qwgt, (char *) "VALUE" ) );
+      //
+      sprintf( buf, "[SESSION] Volunteer (%s): %s DSL: %d", sign->str, val.valptr, sign->val.val_forth );
+      repl_log( buf );
+      break;
+    case _VAL_T_INT:
+      val.val_int = atoi( IupGetAttribute( qwgt, (char *) "VALUE" ) );
+      sprintf( buf, "[SESSION] Volunteer (%s): %d DSL: %d", sign->str, val.val_int, sign->val.val_forth );
+      repl_log( buf );
+      break;
+    }
+    sign_set_default( sign, &val );
+  }
+  return IUP_CLOSE;
+}
+
 int qbut_cb( Ihandle *ih ){
   char buf[NXPIUP_TEMP_BUFSIZE];
   Ihandle *qwgt = ( nxp_hash_exists( S_current_sign->str, (char *) "VALUE" ) ) ?
     IupGetHandle( "question_choices" ) : IupGetHandle( "question_text" );
-  printf( "Answer: %s for %s\n", IupGetAttribute( qwgt, (char *) "VALUE" ), S_current_sign->str );
+  /* short modalp = ( 0 == strcmp( "YES", IupGetAttribute( ih, "MODAL" ) ) ); */
   IupHide( IupGetHandle( "question" ) );
+  printf( "Answer: %s for %s\n", IupGetAttribute( qwgt, (char *) "VALUE" ), S_current_sign->str );
   // Handle sign value's expected type
   struct val_rec val;
   sign_rec_ptr sign = S_current_sign;
@@ -57,8 +95,8 @@ int qbut_cb( Ihandle *ih ){
     }
     sign_set_default( sign, &val );
     engine_resume_knowcess( repl_getState() );
-  }  
-  return IUP_DEFAULT;
+  }
+  return IUP_DEFAULT ;
 }
 
 void choices_cb( char *name, char *prop, char *key, char *val, unsigned int idx ){
@@ -68,84 +106,129 @@ void choices_cb( char *name, char *prop, char *key, char *val, unsigned int idx 
   IupSetAttribute( qchoices, buf, val );
 }
 
+Ihandle *nxpiup_question__generic( char *buf, sign_rec_ptr sign, int q_type ){
+  Ihandle *qlabel,
+    *qtext,
+    *qchoices;
+  Ihandle *qbut, *qcancel;
+  Ihandle *dlg;
+  printf( "QUESTION (new): %s\n", buf );
 
-void nxpiup_dlgquestion( sign_rec_ptr sign ){
-  Ihandle *qlabel, *qtext, *qchoices;
-  Ihandle *dlg = IupGetHandle( "question" );
-  char buf[NXPIUP_TEMP_BUFSIZE] = {0};
-  char tmp[NXPIUP_TEMP_BUFSIZE] = {0};
-  S_current_sign = sign;
-  sprintf( buf, "What is the value of %s?", sign->str );
-  if( dlg ){
-    qtext = IupGetHandle("question_text");
-    qchoices = IupGetHandle("question_choices");
-    IupSetAttribute( IupGetHandle("question_label"), "TITLE", buf );
-    IupSetAttribute( IupGetHandle("question_text"), "VALUE", "" );
-    IupSetAttribute( IupGetHandle("question_choices"), "VALUE", "" );
-    int n;
-    if( n = nxp_hash_exists( sign->str, (char *) "VALUE" ) ){
-      nxp_hash_iterate( sign->str, (char *) "VALUE", choices_cb );
-      sprintf( tmp, "%d", n+1 );
-      IupSetAttribute( qchoices, tmp, NULL );
-      IupSetAttribute( qchoices, "VISIBLE", "YES" );
-      IupSetAttribute( qtext, "VISIBLE", "NO" );
-    }
-    else{
-      IupSetAttribute( qchoices, "VISIBLE", "NO" );
-      IupSetAttribute( qtext, "VISIBLE", "YES" );
-    }
+  qlabel = IupLabel( buf );
+  IupSetHandle( "question_label", qlabel );
+  IupSetAttribute( qlabel, "ALIGNMENT", "ACENTER:ACENTER" );
+  //
+  qtext  = IupText( NULL );
+  IupSetHandle( "question_text", qtext );
+  IupSetAttribute( qtext, "VISIBLECOLUMNS", "16" );
+
+  qbut   = IupButton( "OK", "qbut" );
+  IupSetHandle( "qbut_OK", qbut );
+  IupSetCallback( qbut, "ACTION", (Icallback) qbut_cb );
+  qcancel   = IupButton( "Cancel", "qcancel" );
+  IupSetCallback( qcancel, "ACTION", (Icallback) qcancel_cb );
+
+  qchoices = IupList( NULL );
+  IupSetAttribute( qchoices, "EDITBOX", "YES" );
+  IupSetAttribute( qchoices, "DROPDOWN", "YES" );
+  IupSetAttribute( qchoices, "EXPAND", "NO" );
+  IupSetHandle( "question_choices", qchoices );
+    
+  Ihandle *qtext_box;
+  if( NXPIUP_DLG_QUESTION == q_type ){
+    qtext_box = IupHbox( qtext, qchoices, qbut, NULL );
+  }
+  else if ( NXPIUP_DLG_VOLUNTEER == q_type ){
+    Ihandle *vb = IupVbox( qbut, qcancel, NULL );
+    IupSetAttribute( vb, "GAP", "10" );
+    IupSetAttribute( vb, "EXPANDCHILDREN", "YES" );
+    qtext_box = IupHbox( qtext, qchoices, vb, NULL );
+  }
+  else
+    return NULL;
+      
+  IupSetAttribute( qtext_box, "ALIGNMENT", "ATOP" );
+  IupSetAttribute( qtext_box, "GAP", "20" );
+  IupSetAttribute( qtext_box, "MARGIN", "20x20" );
+
+  //
+  Ihandle *qvbox = IupVbox( qlabel, qtext_box, NULL );
+  IupSetAttribute( qvbox, "EXPANDCHILDREN", "YES" );
+
+  dlg = IupDialog( qvbox  );
+  IupSetAttributes( dlg, "EXPAND = YES, TITLE = Question, RESIZE = NO" );
+  IupSetAttributes( dlg, "MENUBOX = NO, MAXBOX = NO, MINBOX = NO" );
+  IupSetAttribute( dlg, "SIZE", "300xQUARTER" );
+  IupSetHandle( q_type == NXPIUP_DLG_QUESTION ? "question" : "volunteer", dlg );
+
+  IupMap( dlg );
+  int n;
+  if( n = nxp_hash_exists( sign->str, (char *) "VALUE" ) ){
+    nxp_hash_iterate( sign->str, (char *) "VALUE", choices_cb );
+    sprintf( buf, "%d", n+1 );
+    IupSetAttribute( qchoices, buf, NULL );
+    IupSetAttribute( qchoices, "VISIBLE", "YES" );
+    IupSetAttribute( qtext, "VISIBLE", "NO" );
   }
   else{
-    qlabel = IupLabel( buf );
-    IupSetHandle( "question_label", qlabel );
-    IupSetAttribute( qlabel, "ALIGNMENT", "ACENTER:ACENTER" );
-    //
-    qtext  = IupText( NULL );
-    IupSetHandle( "question_text", qtext );
-    IupSetAttribute( qtext, "VISIBLECOLUMNS", "16" );
-    Ihandle *qbut   = IupButton( "OK", "qbut" );
-    IupSetCallback( qbut, "ACTION", (Icallback) qbut_cb );
+    IupSetAttribute( qchoices, "VISIBLE", "NO" );
+    IupSetAttribute( qtext, "VISIBLE", "YES" );
+  }
+  return dlg;
+}
 
-    qchoices = IupList( NULL );
-    IupSetAttribute( qchoices, "EDITBOX", "YES" );
-    IupSetAttribute( qchoices, "DROPDOWN", "YES" );
-    IupSetAttribute( qchoices, "EXPAND", "NO" );
-    IupSetHandle( "question_choices", qchoices );
-    
-    Ihandle *qtext_box = IupHbox( qtext, qchoices, qbut, NULL );
-    IupSetAttribute( qtext_box, "ALIGNMENT", "ACENTER" );
-    IupSetAttribute( qtext_box, "GAP", "20" );
-    IupSetAttribute( qtext_box, "MARGIN", "20x20" );
+void nxpiup_question__update(){
+    NXPIUP_UPDATES;
+}
 
-    //
-    Ihandle *qvbox = IupVbox( qlabel, qtext_box, NULL );
-    IupSetAttribute( qvbox, "EXPANDCHILDREN", "YES" );
-
-    dlg = IupDialog( qvbox  );
-    IupSetAttributes( dlg, "EXPAND = YES, TITLE = Question, RESIZE = NO" );
-    IupSetAttributes( dlg, "MENUBOX = NO, MAXBOX = NO, MINBOX = NO" );
-    IupSetAttribute( dlg, "SIZE", "300xQUARTER" );
-    IupSetHandle( "question", dlg );
-
-    IupMap( dlg );
-    int n;
-    if( n = nxp_hash_exists( sign->str, (char *) "VALUE" ) ){
-      nxp_hash_iterate( sign->str, (char *) "VALUE", choices_cb );
-      sprintf( buf, "%d", n+1 );
-      IupSetAttribute( qchoices, buf, NULL );
-      IupSetAttribute( qchoices, "VISIBLE", "YES" );
-      IupSetAttribute( qtext, "VISIBLE", "NO" );
+void nxpiup_dlgquestion( sign_rec_ptr sign, int q_type ){
+  Ihandle *qlabel,
+    *qtext,
+    *qchoices;
+  char buf[NXPIUP_TEMP_BUFSIZE] = {0};
+  char tmp[NXPIUP_TEMP_BUFSIZE] = {0};
+  Ihandle *dlg = IupGetHandle( "question" );
+  Ihandle *vdlg, *qbut;
+  S_current_sign = sign;
+  switch( q_type ){
+  case NXPIUP_DLG_QUESTION:
+    sprintf( buf, "What is the value of %s?", sign->str );
+    if( dlg ){
+      printf( "QUESTION: %s\n", buf );
+      qtext = IupGetHandle("question_text");
+      qchoices = IupGetHandle("question_choices");
+      IupSetAttribute( IupGetHandle("question_label"), "TITLE", buf );
+      IupSetAttribute( IupGetHandle("question_text"), "VALUE", "" );
+      IupSetAttribute( IupGetHandle("question_choices"), "VALUE", "" );
+      int n;
+      if( n = nxp_hash_exists( sign->str, (char *) "VALUE" ) ){
+	nxp_hash_iterate( sign->str, (char *) "VALUE", choices_cb );
+	sprintf( tmp, "%d", n+1 );
+	IupSetAttribute( qchoices, tmp, NULL );
+	IupSetAttribute( qchoices, "VISIBLE", "YES" );
+	IupSetAttribute( qtext, "VISIBLE", "NO" );
+      }
+      else{
+	IupSetAttribute( qchoices, "VISIBLE", "NO" );
+	IupSetAttribute( qtext, "VISIBLE", "YES" );
+      }
     }
     else{
-      IupSetAttribute( qchoices, "VISIBLE", "NO" );
-      IupSetAttribute( qtext, "VISIBLE", "YES" );
+      dlg = nxpiup_question__generic( buf, sign, NXPIUP_DLG_QUESTION );
     }
-    
+    //
+    nxpiup_question__update();
+    IupShowXY( dlg, IUP_CENTER, IUP_CENTER );
+    break;
+
+  case NXPIUP_DLG_VOLUNTEER:
+    sprintf( buf, "Volunteer the value of %s?", sign->str );
+    vdlg = nxpiup_question__generic( buf, sign, NXPIUP_DLG_VOLUNTEER );
+    IupSetCallback( IupGetHandle( "qbut_OK" ), "ACTION", (Icallback) qbut_volunteer_cb );
+    IupPopup( vdlg, IUP_CENTER, IUP_CENTER );
+    IupDestroy( vdlg );
+    break;
   }
-  //
-  NXPIUP_UPDATES
-  /* Shows dialog on the center of the screen */
-  IupShowXY( dlg, IUP_CENTER, IUP_CENTER );
 }
 
 // Loading knowledge bases. (Specially formatted Org-mode files.)
@@ -252,14 +335,44 @@ int item_open_cb( void ){
   return IUP_DEFAULT;
 }
 
+int item_volunteer_cb( void ){
+  sign_rec_ptr sign = nxpiup_ency_selection( (char *) NXPIUP_ENCY_SIGNS_VIEW );
+  if( sign ){
+    nxpiup_dlgquestion( sign, NXPIUP_DLG_VOLUNTEER );
+  }
+  return IUP_DEFAULT;
+}
+
+int item_suggest_cb( void ){
+  hypo_rec_ptr hypo = (hypo_rec_ptr) nxpiup_ency_selection( (char *) NXPIUP_ENCY_HYPOS_VIEW );
+  if( hypo ){
+    int ret;
+    Ihandle* dlg = IupMessageDlg();
+    IupSetAttribute(dlg, "DIALOGTYPE", "QUESTION");
+    IupSetAttribute(dlg, "TITLE", "Confirm SUGGEST");
+    IupSetAttribute(dlg, "BUTTONS", "OKCANCEL");
+    IupSetAttribute(dlg, "VALUE", hypo->str );
+    /* IupSetCallback(dlg, "HELP_CB", (Icallback)help_cb); */
+    IupPopup(dlg, IUP_CURRENT, IUP_CURRENT);
+    ret = atoi( IupGetAttribute(dlg, "BUTTONRESPONSE") );
+    printf("BUTTONRESPONSE(%d)\n", ret );
+    IupDestroy(dlg);
+    if( 1 == ret ){
+      engine_pushnew_hypo( repl_getState(), hypo );
+      repl_msg( "[SESSION] Suggest %s", hypo->str );
+    }
+  }
+  return IUP_DEFAULT;
+}
+
 int item_knowcess_cb( void ){
   //
   Ihandle *ih_item = IupGetHandle( "item_knowcess" );
   IupSetAttribute( ih_item, "ACTIVE", "NO" );
   // For tests
-  hypo_rec_ptr h = (hypo_rec_ptr)sign_find( "POSSIBLE_LEAK", loadkb_get_allhypos() );
-  engine_pushnew_hypo( repl_getState(), h );
-  repl_msg( "[SESSION] Suggest %s", h->str );
+  /* hypo_rec_ptr h = (hypo_rec_ptr)sign_find( "POSSIBLE_LEAK", loadkb_get_allhypos() ); */
+  /* engine_pushnew_hypo( repl_getState(), h ); */
+  /* repl_msg( "[SESSION] Suggest %s", h->str ); */
   //
   engine_resume_knowcess( repl_getState() );
   
@@ -301,8 +414,10 @@ void nxpiup_dlgmenu( void ){
   //
   item_suggest		= IupItem ("Suggest", NULL);
   IupSetAttribute(item_suggest, "KEY", "S");
+  IupSetCallback(item_suggest, "ACTION", (Icallback)item_suggest_cb);
   item_volunteer	= IupItem ("Volunteer", NULL);
   IupSetAttribute(item_volunteer, "KEY", "V");
+  IupSetCallback(item_volunteer, "ACTION", (Icallback)item_volunteer_cb);
   item_reset		= IupItem ("Reset", NULL);
   IupSetAttribute(item_reset, "KEY", "Z");
   item_agenda		= IupItem ("Agenda", NULL);

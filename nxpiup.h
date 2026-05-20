@@ -16,7 +16,8 @@
 #define NXPIUP_ENCY_SIGNS_VIEW "ency_signs_view"
 #define NXPIUP_ENCY_RULES_VIEW "ency_rules_view"
 
-
+#define NXPIUP_DLG_QUESTION 2
+#define NXPIUP_DLG_VOLUNTEER 4
 
 #define _NXP_CURRENT ((unsigned short)0xFD)
 
@@ -29,10 +30,11 @@ int  nxpiup_inagendap( sign_rec_ptr sign );
 
 void nxpiup_dlgmenu( void );
 int  nxpiup_dlgloadkb( void );
-void nxpiup_dlgquestion( sign_rec_ptr );
+void nxpiup_dlgquestion( sign_rec_ptr, int );
 void nxpiup_dlgency( const char *, const char *, sign_rec_ptr );
 void nxpiup_dlgency_rules( const char *, const char *, rule_rec_ptr );
 void nxpiup_ency_update( Ihandle *, short );
+sign_rec_ptr  nxpiup_ency_selection( char * );
 
 typedef void (*nxp_graph_cb_t) ( void );
 Ihandle *nxpiup_layout_dlg( const char *, nxp_graph_cb_t );
