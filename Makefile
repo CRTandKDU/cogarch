@@ -34,7 +34,7 @@ OBJS_NETW		= netw.o netw_internals.o netw_expansion.o netw_redraw.o
 
 # 5) IUP GUI Section
 # CSOURCES_NXPIUP	= nxpiup_menu.c nxpiup_ency.c  nxp_layout.cpp layout.cpp
-OBJS_NXPIUP		= nxpiup_menu.o nxpiup_ency.o  nxp_layout.o layout.o
+OBJS_NXPIUP		= nxpiup_question.o nxpiup_menu.o nxpiup_ency.o  nxp_layout.o layout.o
 
 
 # MAIN

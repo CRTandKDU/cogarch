@@ -335,16 +335,15 @@ char *S_val_color( unsigned short val ){
 }
 
 void getter_sign( sign_rec_ptr sign, int *suspend ){
-  printf( "Question %s\n", sign->str );
-  cell_rec_ptr cell = repl_getState()->agenda;
-  while( cell ){
-    printf( "\t%s\n", cell->sign_or_hypo->str );
-    cell = cell->next;
-  }
+  printf( "GETTER Question %s\n", sign->str );
+  /* cell_rec_ptr cell = repl_getState()->agenda; */
+  /* while( cell ){ */
+  /*   printf( "\t%s\n", cell->sign_or_hypo->str ); */
+  /*   cell = cell->next; */
+  /* } */
   //
   nxpiup_dlgquestion( sign, NXPIUP_DLG_QUESTION );
   *suspend = _TRUE;
-  
 }
 
 static  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0, 0 };

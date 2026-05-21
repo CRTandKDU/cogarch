@@ -64,7 +64,7 @@ int nxp_hash_exists( char *name, char *key ){
   return (int) n;
 }
 
-void nxp_hash_iterate( char *name, char *key, nxp_hash_iter_t f ){
+void nxp_hash_iterate( char *name, char *key, nxp_hash_iter_t f, int context ){
   char zkey[128];
   unsigned int i;
   unsigned long long int  n;
@@ -73,7 +73,7 @@ void nxp_hash_iterate( char *name, char *key, nxp_hash_iter_t f ){
     n = (unsigned long long int) zhash_get( S_BigHash, zkey );
     for( i=1; i<=n; i++ ){
       sprintf( zkey, "%s%s%d", name, key, i );
-      f( name, key, zkey, (char *) zhash_get( S_BigHash, zkey ), i );
+      f( name, key, zkey, (char *) zhash_get( S_BigHash, zkey ), i, context );
     }
   }  
 }

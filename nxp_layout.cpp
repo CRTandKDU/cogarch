@@ -208,28 +208,48 @@ void redrawv_cb( char * node, double x, double y ){
   Ihandle *ih			= IupGetHandle( "layout_cv" );
   cdCanvas *canvas		= (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
   layout_rec_ptr userdata	= (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  long int color;
   sign_rec_ptr sign		= sign_find( node, loadkb_get_allhypos() );
-  /* printf( "Point %s, x=%f, y=%f\n", node, x, y ); */
+  if( !sign ){
+    // The vertex might be a (non-hypo) sign
+    sign = sign_find( node, loadkb_get_allsigns() );
+  }
+  // printf( "Redraw v %s, x=%f, y=%f\n", node, x, y );
   //
   IupGetIntInt( ih, "DRAWSIZE", &canvas_w, &canvas_h );
   wdCanvasWorld2Canvas( canvas, x + WORLD_W/2, y + WORLD_H/2, &xx, &yy );
+  // Gray interior if terminal hypo
   if( sign && (0 == sign->nsetters) ){
     int style		= cdCanvasInteriorStyle( canvas, CD_SOLID );
-    long int color	= cdCanvasForeground(canvas, CD_GRAY);
+    color	= cdCanvasForeground(canvas, CD_GRAY);
     cdCanvasBox( canvas, 
 		  (int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
 		  (int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
     color = cdCanvasForeground(canvas, color);
     style = cdCanvasInteriorStyle( canvas, style );
   }
-  else{
-    cdCanvasRect( canvas,
-		  (int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
-		  (int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
+  // Value-dependent exterior rect
+  if( sign && _KNOWN == sign->val.status ){
+    switch( sign->val.type ){
+    case _VAL_T_BOOL:
+      color = cdCanvasForeground( canvas, _FALSE == sign->val.val_bool ? CD_RED : CD_GREEN );
+      break;
+    default:
+      color = cdCanvasForeground( canvas, CD_BLUE );
+      break;
+    }
   }
+  cdCanvasRect( canvas,
+		(int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
+		(int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
+  
   if( 1<=nxp_graph_scale ){
     cdCanvasText( canvas, (int) xx + _MARK_SIZE + 2, (int) yy, node );
   }
+  if( sign && _KNOWN == sign->val.status  ){
+    color = cdCanvasForeground( canvas,	color );
+  }
+  
 }
 
 // Redrawing edges

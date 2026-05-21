@@ -57,6 +57,10 @@ void nxpiup_layout_add_edge( char *, char *, int, double );
     nxpiup_ency_update( ency, 1 );					\
     IupUpdate( ency );							\
   }									\
+  ency = IupGetHandle( "layout_cv" );					\
+  if( ency ){								\
+    IupUpdate( ency );							\
+  }									\
   IupLoopStep();
 
 
