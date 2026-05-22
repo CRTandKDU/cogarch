@@ -6,7 +6,7 @@
 /*
 TODO:
   - EVOKES zhash annotation and external agendas in engine, rule network and graph
-  - Volunteer, reusing questions
+  - DONE Volunteer, reusing questions
   - right click contextual menus
   - Web comms
   - LLM comms
@@ -196,15 +196,14 @@ void nxpiup_dlgmenu( void ){
   Ihandle *file_menu, *edit_menu, *expert_menu, *ency_menu, *netw_menu;
   Ihandle *menu, *sub1, *sub3, *sub4, *sub5;
 
-  item_open = IupItem ("Open...", NULL);
-  IupSetAttribute(item_open, "KEY", "O");
+  item_open = IupItem ("&Load KB...", NULL);
+
   IupSetCallback(item_open, "ACTION", (Icallback)item_open_cb);
- item_exit = IupItem ("Quit", NULL);
+  item_exit = IupItem ("Quit", NULL);
   IupSetAttribute(item_exit, "KEY", "Q");
   IupSetCallback(item_exit, "ACTION", (Icallback)exit_cb);
   //
   file_menu = IupMenu(item_open, IupSeparator(), item_exit, NULL);
-  printf( "1 " );
   //
   item_suggest		= IupItem ("Suggest", NULL);
   IupSetAttribute(item_suggest, "KEY", "S");
@@ -236,11 +235,11 @@ void nxpiup_dlgmenu( void ){
   //
   ency_menu = IupMenu( item_rules, item_signs, item_hypos, NULL );
   //
-  item_graph  = IupItem( "Browse Signs", NULL );
+  item_graph  = IupItem( "Signs Map", NULL );
   /* IupSetAttribute(item_browse, "KEY", "B"); */
   IupSetCallback(item_graph, "ACTION", (Icallback)item_graph_cb);
   IupSetHandle( "item_graph", item_graph );
-  item_browse = IupItem ("Browse Rules", NULL);
+  item_browse = IupItem ("Rules Network", NULL);
   IupSetAttribute(item_browse, "KEY", "B");
   IupSetCallback(item_browse, "ACTION", (Icallback)item_browse_cb);
   IupSetHandle( "item_browse", item_browse );

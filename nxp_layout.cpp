@@ -23,11 +23,11 @@ struct layout_rec{
   void *names;
   void *positions;
   void *weights;
+  void *selectedv;
 };
 
 typedef struct layout_rec layout_rec, *layout_rec_ptr;
 
-#define _MARK_SIZE 5
 #define WORLD_W 1000
 #define WORLD_H 1000
 
@@ -94,11 +94,11 @@ void update_viewport(Ihandle* ih, cdCanvas *canvas, float posx, float posy)
 
 // IUP dialog and its callbacks
 
-int resize_cb(Ihandle *ih, int canvas_w, int canvas_h)
+int layout_resize_cb(Ihandle *ih, int canvas_w, int canvas_h)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
 
-  printf("RESIZE_CB(%d, %d) RASTERSIZE=%s DRAWSIZE=%s \n", canvas_w, canvas_h, IupGetAttribute(ih, "RASTERSIZE"), IupGetAttribute(ih, "DRAWSIZE"));
+  printf("LAYOUT_RESIZE_CB(%d, %d) RASTERSIZE=%s DRAWSIZE=%s \n", canvas_w, canvas_h, IupGetAttribute(ih, "RASTERSIZE"), IupGetAttribute(ih, "DRAWSIZE"));
   /* When *AUTOHIDE=Yes, this can hide a scrollbar and so change the canvas drawsize */
   update_scrollbar(ih, canvas_w, canvas_h);  
   /* printf("                                DRAWSIZE=%s \n", IupGetAttribute(ih, "DRAWSIZE")); */
@@ -113,10 +113,10 @@ int resize_cb(Ihandle *ih, int canvas_w, int canvas_h)
   return IUP_DEFAULT;
 }
 
-int scroll_cb(Ihandle *ih, int op, float posx, float posy)
+int layout_scroll_cb(Ihandle *ih, int op, float posx, float posy)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
-  /* printf("SCROLL_CB(%g, %g)\n", posx, posy); */
+  /* printf("LAYOUT_SCROLL_CB(%g, %g)\n", posx, posy); */
   cdCanvasActivate(canvas);
   update_viewport(ih, canvas, posx, posy);
   IupRedraw(ih, 0);
@@ -176,6 +176,7 @@ int toggle_redraw(void)
   layout_rec_ptr userdata = (layout_rec_ptr) malloc( sizeof( layout_rec ) );
   IupSetAttribute( ih, "USERDATA", (char *) userdata );
 
+  userdata->selectedv = NULL;
   layout_open( &(userdata->g), &(userdata->names), &(userdata->weights) );
 
   S_graph_cb();
@@ -192,9 +193,9 @@ int toggle_redraw(void)
 
   if( 0 == strcmp( "bykk", (char *) IupGetAttribute( ihalg, "VALUE" ) ) )
     layout_run_kk( (userdata->g), &(userdata->positions), (userdata->weights),
-		   (double) 200., (double) 200., layout_update_cb );
+		   (double) WORLD_W, (double) WORLD_H, layout_update_cb );
   if( 0 == strcmp( "byfr", (char *) IupGetAttribute( ihalg, "VALUE" ) ) )
-    layout_run_fr( (userdata->g), &(userdata->positions), 100, (double) 200., (double) 200., layout_update_cb );
+    layout_run_fr( (userdata->g), &(userdata->positions), WORLD_H/10., (double) WORLD_W, (double) WORLD_H, layout_update_cb );
 
   IupUpdate( ih );
   //
@@ -208,7 +209,10 @@ void redrawv_cb( char * node, double x, double y ){
   Ihandle *ih			= IupGetHandle( "layout_cv" );
   cdCanvas *canvas		= (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
   layout_rec_ptr userdata	= (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
-  long int color;
+  long int color, ori_color;
+  int line_style	= 1,
+    style		= 0,
+    selected_p		= 0;
   sign_rec_ptr sign		= sign_find( node, loadkb_get_allhypos() );
   if( !sign ){
     // The vertex might be a (non-hypo) sign
@@ -220,7 +224,7 @@ void redrawv_cb( char * node, double x, double y ){
   wdCanvasWorld2Canvas( canvas, x + WORLD_W/2, y + WORLD_H/2, &xx, &yy );
   // Gray interior if terminal hypo
   if( sign && (0 == sign->nsetters) ){
-    int style		= cdCanvasInteriorStyle( canvas, CD_SOLID );
+    style	= cdCanvasInteriorStyle( canvas, CD_SOLID );
     color	= cdCanvasForeground(canvas, CD_GRAY);
     cdCanvasBox( canvas, 
 		  (int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
@@ -228,28 +232,49 @@ void redrawv_cb( char * node, double x, double y ){
     color = cdCanvasForeground(canvas, color);
     style = cdCanvasInteriorStyle( canvas, style );
   }
-  // Value-dependent exterior rect
+
+  selected_p = (userdata->selectedv &&
+		(( node == (char *) userdata->selectedv ) ||
+		 layout_adjacent_p( (userdata->g), (userdata->names), (userdata->positions),
+				    node, (char *) userdata->selectedv )));
+
+  // Value-dependent exterior color
   if( sign && _KNOWN == sign->val.status ){
     switch( sign->val.type ){
     case _VAL_T_BOOL:
-      color = cdCanvasForeground( canvas, _FALSE == sign->val.val_bool ? CD_RED : CD_GREEN );
+      color = cdCanvasForeground( canvas, _FALSE == sign->val.val_bool ?
+				  (selected_p ? CD_RED : (userdata->selectedv ? 0xFF8080L : CD_RED)) :
+				  (selected_p ? CD_GREEN : (userdata->selectedv ? 0x80FF80L : CD_GREEN) ) );
       break;
     default:
-      color = cdCanvasForeground( canvas, CD_BLUE );
+      color = cdCanvasForeground( canvas,
+				  (selected_p ? CD_BLUE : (userdata->selectedv ? 0x8080FFL : CD_BLUE) ) ); 
       break;
     }
   }
+  else{
+    color = cdCanvasForeground( canvas,
+				(selected_p ? CD_BLACK : (userdata->selectedv ? CD_GRAY : CD_BLACK) ) ); 
+  }
+  
+  if( selected_p  ){
+    line_style = cdCanvasLineWidth( canvas,  LAYOUT_SELECTED_LINESTYLE );
+    cdCanvasFont( canvas, NULL, CD_BOLD, 0);
+  }
+
   cdCanvasRect( canvas,
 		(int) xx - _MARK_SIZE, (int) xx + _MARK_SIZE,
 		(int) yy - _MARK_SIZE, (int) yy + _MARK_SIZE );
-  
   if( 1<=nxp_graph_scale ){
     cdCanvasText( canvas, (int) xx + _MARK_SIZE + 2, (int) yy, node );
   }
-  if( sign && _KNOWN == sign->val.status  ){
-    color = cdCanvasForeground( canvas,	color );
+
+  if( selected_p ){
+    line_style = cdCanvasLineWidth( canvas,  line_style );
+    cdCanvasFont( canvas, NULL, CD_PLAIN, 0);
   }
-  
+
+  color = cdCanvasForeground( canvas, color );
 }
 
 // Redrawing edges
@@ -257,15 +282,35 @@ void redrawe_cb( char *source, double xs, double ys,
 		 char *target, double xt, double yt ){
   int xxs, yys, xxt, yyt;
   int canvas_w, canvas_h;
-  Ihandle *ih =  IupGetHandle( "layout_cv" );
-  cdCanvas *canvas = (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
-  layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
+  int line_style;
+  long int color;
+  int selected_p		= 0;
+  Ihandle *ih			=  IupGetHandle( "layout_cv" );
+  cdCanvas *canvas		= (cdCanvas *) IupGetAttribute( ih, "_CD_CANVAS" );
+  layout_rec_ptr userdata	= (layout_rec_ptr) IupGetAttribute( ih, "USERDATA" );
   /* printf( "Point %s, x=%f, y=%f\n", node, x, y ); */
   //
   IupGetIntInt( ih, "DRAWSIZE", &canvas_w, &canvas_h );
   wdCanvasWorld2Canvas( canvas, xs + WORLD_W/2, ys + WORLD_H/2, &xxs, &yys );
   wdCanvasWorld2Canvas( canvas, xt + WORLD_W/2, yt + WORLD_H/2, &xxt, &yyt );
+  selected_p = (userdata->selectedv &&
+		(( source == (char *) userdata->selectedv ) ||
+		 ( target == (char *) userdata->selectedv )));
+  if( selected_p  ){
+    line_style = cdCanvasLineWidth( canvas,  LAYOUT_SELECTED_LINESTYLE );
+  }
+  if( userdata->selectedv && !selected_p ){
+    color = cdCanvasForeground( canvas, CD_GRAY ); 
+  }
+
   cdCanvasLine( canvas, xxs, yys, xxt, yyt );
+
+  if( selected_p  ){
+    line_style = cdCanvasLineWidth( canvas,  line_style );
+  }
+  if( userdata->selectedv && !selected_p ){
+    color = cdCanvasForeground( canvas, color ); 
+  }
 }
 
 
@@ -297,7 +342,7 @@ void print_cb( char * node, double x, double y ){
   printf( "Point %s, x=%f, y=%f\n", node, x, y );
 }
 
-int wheel_cb(Ihandle *ih,float delta,int x,int y,char* status)
+int layout_wheel_cb(Ihandle *ih,float delta,int x,int y,char* status)
 {
   int canvas_w, canvas_h;
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
@@ -320,6 +365,35 @@ int wheel_cb(Ihandle *ih,float delta,int x,int y,char* status)
   update_scrollbar(ih, canvas_w, canvas_h);
   update_viewport(ih, canvas, IupGetFloat(ih, "POSX"), IupGetFloat(ih, "POSY"));
   IupRedraw(ih, 0);
+  return IUP_DEFAULT;
+}
+
+int layout_button_cb(Ihandle* ih, int button, int pressed, int x, int y, char* status){
+  cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
+  layout_rec_ptr userdata = (layout_rec_ptr) IupGetAttribute( (Ihandle *) ih, "USERDATA" );
+  void *need_redraw = NULL;
+  double xx, yy;
+  if( userdata ){
+    switch( button ){
+    case IUP_BUTTON1:
+      if( pressed ){
+	cdCanvasUpdateYAxis( canvas, &y );
+	// xx = x; yy = y;
+	wdCanvasCanvas2World( canvas, x, y, &xx, &yy );
+	xx -= WORLD_W/2.; yy -= WORLD_H/2. ;
+	printf( "MAP Click at x=%f, y=%f\n", xx, yy );
+	if( need_redraw = layout_invertex_p( (userdata->g), (userdata->names), (userdata->positions),
+					     xx, yy ) ){
+	  userdata->selectedv = ( need_redraw == userdata->selectedv ) ? NULL : need_redraw;
+	  // printf( "Found Vertex=%s\n", (char *) need_redraw );
+	  IupUpdate( ih );
+	}
+      }
+      break;
+    default:
+      break;
+    }
+  }
   return IUP_DEFAULT;
 }
 
@@ -366,9 +440,10 @@ Ihandle * nxpiup_layout_dlg( const char *size_str, nxp_graph_cb_t f ){
   
   IupSetAttribute( cv, "SIZE", size_str );
   IupSetAttribute( cv, "SCROLLBAR", "YES" );
-  IupSetCallback( cv, "RESIZE_CB",	(Icallback) resize_cb);
-  IupSetCallback( cv, "SCROLL_CB",	(Icallback) scroll_cb);
-  IupSetCallback( cv, "WHEEL_CB",	(Icallback)wheel_cb);
+  IupSetCallback( cv, "RESIZE_CB",	(Icallback) layout_resize_cb);
+  IupSetCallback( cv, "SCROLL_CB",	(Icallback) layout_scroll_cb);
+  IupSetCallback( cv, "WHEEL_CB",	(Icallback) layout_wheel_cb);
+  IupSetCallback( cv, "BUTTON_CB",	(Icallback) layout_button_cb);
   IupSetCallback( cv, "DESTROY_CB",	(Icallback) layout_destroy_cb);
   IupSetCallback( cv, "ACTION",		(Icallback) redraw );
   IupSetHandle( "layout_cv", cv );

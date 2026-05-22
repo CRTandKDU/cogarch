@@ -167,7 +167,7 @@ void layout_run_kk( void *graph, void **pos, void * weights, double width, doubl
   S_iter	= 0;
   WMap w_map = WMap( (*w).begin(), get( edge_index, *g ) );
   b = kamada_kawai_spring_layout( *g, *position, w_map, topo,
-				  boost::side_length( (double) 100. ), kk_done );
+				  boost::side_length( (double) width/2.0 ), kk_done );
   S_cb		= NULL;
   S_iter	= 0;
 }
@@ -219,3 +219,36 @@ void layout_enumerate_edges( void *graph, void *labels, void *pos, layout_enume_
   }
 }
 
+void *layout_invertex_p( void *graph, void *labels, void *pos, double x, double y ){
+  Graph *g = (Graph *) graph;
+  PositionMap *position = (PositionMap *) pos;
+  graph_traits< Graph >::vertex_iterator vi, vi_end;
+  for (boost::tie(vi, vi_end) = vertices( *g ); vi != vi_end; ++vi){
+    // printf( "INVERTEXP %s Test x=%f, y=%f\n", (char *) get( vertex_name, *g, *vi ).c_str(),
+    // 	    (*position)[*vi][0], (*position)[*vi][1] );
+    if( (((*position)[*vi][0] - _MARK_SIZE) <= x) &&
+	(((*position)[*vi][0] + _MARK_SIZE) >= x) &&
+	(((*position)[*vi][1] - _MARK_SIZE) <= y) &&
+	(((*position)[*vi][1] + _MARK_SIZE) >= y) ){
+      return (void *) get( vertex_name, *g, *vi ).c_str() ;
+    }
+  }
+  return NULL;
+}
+
+int layout_adjacent_p( void *graph, void *labels, void *pos,
+		       char *node, char *selected ){
+  Graph *g		= (Graph *) graph;
+  NameToVertex *names	= (NameToVertex *) labels;
+  Vertex vSelected	= get_vertex( std::string(selected), *g, *names ),
+    vNode		= get_vertex( std::string(node), *g, *names );
+  typename graph_traits<Graph>::adjacency_iterator ai;
+  typename graph_traits<Graph>::adjacency_iterator ai_end;
+  for (boost::tie(ai, ai_end) = adjacent_vertices(vSelected, *g);
+       ai != ai_end; ++ai){
+    if( vNode == *ai )
+      return 1;
+  }
+
+  return 0;
+}
