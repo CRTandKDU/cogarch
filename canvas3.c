@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <cstring>
 #include <iup.h>
 #include <iupcontrols.h>
 #include <cd.h>
@@ -21,8 +22,8 @@
    Remember that:
    XMIN<=POSX<=XMAX-DX
 */
-#define WORLD_W 6000
-#define WORLD_H 400
+static int WORLD_W = 6000;
+static int WORLD_H = 2000;
 
 static int scale = 1;
 
@@ -88,12 +89,15 @@ static void update_viewport(Ihandle* ih, cdCanvas *canvas, float posx, float pos
 static int action(Ihandle *ih)
 {
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute(ih, "_CD_CANVAS");
-
+  Ihandle *ihradio = IupGetHandle( "netw_radio" );
+  unsigned short orientation = NETW_RL;
   /* printf("ACTION\n"); */
   cdCanvasActivate(canvas);
   cdCanvasClear(canvas);
-
-  netw_redrawkb( canvas, scale, WORLD_W, WORLD_H, NETW_RL );
+  if( ih ){
+    orientation = (0 == strcmp( IupGetAttribute( ihradio, "VALUE" ), "netw_rl" ) ) ? NETW_RL : NETW_LR;
+  }
+  netw_redrawkb( canvas, scale, WORLD_W, WORLD_H, orientation );
 
   /* cdCanvasForeground(canvas, CD_RED); */
   /* wdCanvasLine(canvas, 0, 0, WORLD_W, WORLD_H); */
@@ -189,7 +193,7 @@ static int map_cb(Ihandle *ih)
   IupSetfAttribute(ih, "XMAX", "%d", WORLD_W);
   IupSetfAttribute(ih, "YMAX", "%d", WORLD_H);
 
-  netw_initfill_all( canvas, WORLD_W, WORLD_H );
+  netw_initfill_all( canvas, WORLD_W, WORLD_H, NETW_RL );
 
   return IUP_DEFAULT;
 }
@@ -221,11 +225,15 @@ int button_cb(Ihandle* self, int but, int press, int x, int y, char *status)
   cdCanvas *canvas = (cdCanvas*)IupGetAttribute( self, "_CD_CANVAS" );
   int needredraw = 0;
   if( IUP_BUTTON1 == but ){
+    unsigned short orientation = NETW_RL;
+    Ihandle *ihradio = IupGetHandle( "netw_radio" );
+    if( ihradio )
+      orientation = (0 == strcmp( IupGetAttribute( ihradio, "VALUE" ), "netw_rl" ) ) ? NETW_RL : NETW_LR;
     cdCanvasUpdateYAxis( canvas, &y );
     printf( "Click at x=%d, y=%d\n", x, y );
     // Left button DOWN and UP in the same cell trigger event
     needredraw = netw_click( canvas, but, press, x, y, iup_isshift(status),
-			     WORLD_W, WORLD_H, NETW_LR );
+			     WORLD_W, WORLD_H, orientation );
     if( needredraw ) IupUpdate( self );
   }
 	
@@ -247,6 +255,34 @@ int close_cb( Ihandle *ih ){
   return IUP_IGNORE;
 }
 
+int netw_toggle_rl_cb( Ihandle *ih ){
+  Ihandle *cnv = IupGetHandle( "rule_network" );
+  cdCanvas *canvas = (cdCanvas*)IupGetAttribute(cnv, "_CD_CANVAS");
+
+  float posx = 0.;
+  printf("INIT SCROLL (%g, %g)\n", posx, 0.);
+  cdCanvasActivate(canvas);
+  IupSetFloat ( cnv, "POSX", posx );
+  update_viewport(cnv, canvas, posx, IupGetFloat( cnv, "POSY" ) );
+  IupUpdate( cnv );
+
+  return IUP_DEFAULT;
+}
+
+int netw_toggle_lr_cb( Ihandle *ih ){
+  Ihandle *cnv = IupGetHandle( "rule_network" );
+  cdCanvas *canvas = (cdCanvas*)IupGetAttribute(cnv, "_CD_CANVAS");
+
+  float posx = (float) (WORLD_W - IupGetInt( cnv, "DRAWSIZE" ));
+  printf("INIT SCROLL (%g, %g)\n", posx, 0.);
+  cdCanvasActivate(canvas);
+  IupSetFloat ( cnv, "POSX", posx );
+  update_viewport(cnv, canvas, posx, IupGetFloat( cnv, "POSY" ) );
+  IupUpdate( cnv );
+
+  return IUP_DEFAULT;
+}
+
 void CanvasScrollbarTest(void)
 {
   Ihandle *dlg, *cnv;
@@ -265,17 +301,46 @@ void CanvasScrollbarTest(void)
   IupSetCallback(cnv, "SCROLL_CB",	(Icallback)scroll_cb);
   IupSetCallback(cnv, "BUTTON_CB",	(Icallback)button_cb);
   IupSetCallback(cnv, "MOTION_CB",	(Icallback)motion_cb);
-
-                   
-  dlg = IupDialog(IupVbox(cnv, NULL));
+  //
+  Ihandle *netw_lr, *netw_rl;
+  Ihandle *hbox_orientation;
+  netw_lr = IupToggle( "Left-to-Right", NULL );
+  IupSetHandle( "netw_lr", netw_lr );
+  IupSetCallback( netw_lr, "ACTION",		(Icallback)netw_toggle_lr_cb );
+  netw_rl = IupToggle( "Right-to-Left", NULL );
+  IupSetHandle( "netw_rl", netw_rl );
+  IupSetCallback( netw_rl, "ACTION",		(Icallback)netw_toggle_rl_cb );
+  hbox_orientation = IupHbox( netw_rl, netw_lr, NULL );
+  IupSetAttribute( hbox_orientation, "EXPAND", "HORIZONTAL" );
+  IupSetAttribute( hbox_orientation, "MARGIN", "5x5" );
+  IupSetAttribute( hbox_orientation, "GAP", "10" );
+  Ihandle *netw_frame = IupFrame( hbox_orientation );
+  IupSetAttribute( netw_frame, "TITLE", "Orientation" );
+  Ihandle *netw_radio = IupRadio( netw_frame );
+  IupSetHandle( "netw_radio", netw_radio );
+  
+  dlg = IupDialog(IupVbox( netw_radio, cnv, NULL));
   IupSetAttribute(dlg, "TITLE", "Rule Network");
   IupSetAttribute(dlg, "MARGIN", "10x10");
   IupSetCallback( dlg, "CLOSE_CB",	(Icallback)close_cb);
 
   IupMap(dlg);
   IupSetAttribute(cnv, "RASTERSIZE", NULL);  /* release the minimum limitation */
- 
   IupShowXY(dlg,IUP_CENTER,IUP_CENTER);
+
+  /* int canvas_h, canvas_w; */
+  /* cdCanvas *canvas = (cdCanvas*)IupGetAttribute( cnv, "_CD_CANVAS" ); */
+  /* cdCanvasGetSize(canvas, &canvas_w, &canvas_h, NULL, NULL); */
+  /* (void) scroll_cb( cnv, IUP_SBPOSV, 0., WORLD_H/2. - 200. ); */
+  /* update_scrollbar(cnv, canvas_w, canvas_h); */
+  cdCanvas *canvas = (cdCanvas*)IupGetAttribute(cnv, "_CD_CANVAS");
+  float posy = WORLD_H/2. - 200.;
+  printf("INIT SCROLL (%g, %g)\n", 0., posy);
+  cdCanvasActivate(canvas);
+  IupSetFloat ( cnv, "POSY", posy );
+  update_viewport(cnv, canvas, 0, posy );
+  IupUpdate( cnv );
+
 }
 
 #ifndef BIG_TEST

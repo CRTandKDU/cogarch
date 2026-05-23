@@ -20,12 +20,23 @@
 
 static netw_cell_rec_ptr S_cellclicked = NULL;
 
-int netw__findcell( col_rec_ptr head, double xw, double yw, double WORLD_W, double WORLD_H,
+int netw__findcell( col_rec_ptr head, double xw, double yw, double WORLD_W, double WORLD_H, unsigned short orientation,
 		    netw_cell_rec_ptr *result_cell ){
   col_rec_ptr  col = head;
   netw_cell_rec_ptr cell;
+  int xmin, xmax;
   while( col ){
-    if( ( xw < WORLD_W - CELL_W*col->x ) && ( WORLD_W - CELL_W*col->x - CELL_W < xw ) ){
+    switch( orientation ){
+    case NETW_RL:
+      xmax = WORLD_W - CELL_W*col->x ;
+      xmin = WORLD_W - CELL_W*col->x - CELL_W;
+      break;
+    case NETW_LR:
+      xmax = CELL_W*col->x + CELL_W;
+      xmin = CELL_W*col->x ;
+      break;
+    }
+    if( ( xw < xmax ) && ( xmin < xw ) ){
       cell = col->first;
       while( cell ){
 	if( ( cell->y*CELL_H < yw ) && ( yw < cell->y*CELL_H + CELL_H ) ){
@@ -47,7 +58,8 @@ int netw_click( cdCanvas *canvas, int but, int press, int x, int y, int shifted,
   int needredraw = 0;
   wdCanvasCanvas2World( canvas, x, y, &xw, &yw);
   printf( "Converts %f %f, shifted=%d\n", xw, yw, shifted );
-  if( netw__findcell( (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ), xw, yw, WORLD_W, WORLD_H, &cell ) ){
+  if( netw__findcell( (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ), xw, yw, WORLD_W, WORLD_H, orientation,
+		      &cell ) ){
     printf( "Found at col=%d, cell=%d, %s\n", cell->head->x, cell->y, ((sign_rec_ptr)cell->client_data)->str );
     if( press && NULL == S_cellclicked ){
       S_cellclicked = cell;
@@ -78,7 +90,7 @@ void netw_adjust_vert( cdCanvas *canvas, int inc ){
   }
 }
 
-void netw_initfill_all( cdCanvas *canvas, double WORLD_W, double WORLD_H ){
+void netw_initfill_all( cdCanvas *canvas, double WORLD_W, double WORLD_H, unsigned short orientation ){
   sign_rec_ptr s, top = (sign_rec_ptr) loadkb_get_allhypos();
   col_rec_ptr col = _NEW_COL;
   col->x	= WORLD_W/CELL_W - 3;
@@ -134,7 +146,7 @@ void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H,
   long int text_color;
 
   cdCanvasFont( canvas, "Times", CD_PLAIN, 10 );
-  cdCanvasTextAlignment( canvas, CD_SOUTH_EAST );
+  cdCanvasTextAlignment( canvas, NETW_RL == orientation ? CD_SOUTH_EAST : CD_SOUTH_WEST );
   if( 1 == scale )
     // On-scale redrawing
     netw__redraw_onscale( canvas, scale, WORLD_W, WORLD_H, orientation );
@@ -146,9 +158,13 @@ void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H,
       while( cell ){
 	// Draw default 50%-reduced inside rectangle
 	if( _NETW_JUNCTION_T  != cell->client_data_t ){
-	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - CELL_W),
+	  wdCanvasWorld2Canvas( canvas, (double)
+				(NETW_RL == orientation ?
+				 (WORLD_W - CELL_W*col->x - CELL_W) : CELL_W*col->x + CELL_W ),
 				(double) (CELL_H*cell->y), &xmin, &ymin );
-	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x),
+	  wdCanvasWorld2Canvas( canvas, (double)
+				(NETW_RL == orientation ?
+				 (WORLD_W - CELL_W*col->x) : CELL_W*col->x ),
 				(double) (CELL_H*cell->y + CELL_H), &xmax, &ymax );
 	  xw = (xmax - xmin)/4; yh = (ymax - ymin)/4;
 	  current =  ( _NETW_RULE_T == cell->client_data_t ) ?
@@ -176,16 +192,24 @@ void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H,
 	// Draw right links
 	if( cell->nright ){
 	  if( _NETW_JUNCTION_T  == cell->client_data_t ){
-	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - CELL_W),
+	    wdCanvasWorld2Canvas( canvas, (double) 
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*col->x - CELL_W) : CELL_W*col->x + CELL_W ),
 				  (double) (CELL_H*cell->y), &xmin, &ymin );
-	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x),
+	    wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*col->x) : CELL_W*col->x ),
 				  (double) (CELL_H*cell->y + CELL_H), &xmax, &ymax );
 	    xv = (xmax + xmin)/2; yv = (ymax + ymin)/2;
 	  }
 	  else{
-	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - CELL_W),
+	    wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*col->x - CELL_W) : CELL_W*col->x + CELL_W ),
 				  (double) (CELL_H*cell->y), &xmin, &ymin );
-	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x),
+	    wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*col->x) : CELL_W*col->x ),
 				  (double) (CELL_H*cell->y + CELL_H), &xmax, &ymax );
 	    xw = (xmax - xmin)/4; yh = (ymax - ymin)/4;
 	    xv = xmax - xw; yv = ymin + yh + yh;
@@ -193,16 +217,28 @@ void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H,
 	  //
 	  for( i=0; i<cell->nright; i++ ){
 	    if( _NETW_JUNCTION_T  == cell->right[i]->client_data_t ){
-	      wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->right[i]->head->x - CELL_W),
+	      wdCanvasWorld2Canvas( canvas, (double)
+				    (NETW_RL == orientation ?
+				     (WORLD_W - CELL_W*cell->right[i]->head->x - CELL_W) :
+				     CELL_W*cell->right[i]->head->x + CELL_W ),
 				    (double) (CELL_H*cell->right[i]->y), &xmin, &ymin );
-	      wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->right[i]->head->x),
+	      wdCanvasWorld2Canvas( canvas, (double)
+				    (NETW_RL == orientation ?
+				     (WORLD_W - CELL_W*cell->right[i]->head->x) :
+				     CELL_W*cell->right[i]->head->x ),
 				    (double) (CELL_H*cell->right[i]->y + CELL_H), &xmax, &ymax );
 	      x0 = (xmax + xmin)/2; y0 = (ymax + ymin)/2;
 	    }
 	    else{
-	      wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->right[i]->head->x - CELL_W),
+	      wdCanvasWorld2Canvas( canvas, (double)
+				    (NETW_RL == orientation ?
+				     (WORLD_W - CELL_W*cell->right[i]->head->x - CELL_W) :
+				     CELL_W*cell->right[i]->head->x + CELL_W ),
 				    (double) (CELL_H*cell->right[i]->y), &xmin, &ymin );
-	      wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->right[i]->head->x),
+	      wdCanvasWorld2Canvas( canvas, (double)
+				    (NETW_RL == orientation ?
+				     (WORLD_W - CELL_W*cell->right[i]->head->x) :
+				     CELL_W*cell->right[i]->head->x ),
 				    (double) (CELL_H*cell->right[i]->y + CELL_H), &xmax, &ymax );
 	      xw = (xmax - xmin)/4; yh = (ymax - ymin)/4;
 	      x0 = xmin + xw; y0 = ymin + yh + yh;
@@ -213,17 +249,27 @@ void netw_redrawkb( cdCanvas *canvas, int scale, double WORLD_W, double WORLD_H,
 	
 	// Draw left links
 	if( cell->nleft ){
-	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x - CELL_W),
+	  wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*col->x - CELL_W) : CELL_W*col->x + CELL_W ),
 				(double) (CELL_H*cell->y), &xmin, &ymin );
-	  wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*col->x),
+	  wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*col->x ) : CELL_W*col->x  ),
 				(double) (CELL_H*cell->y + CELL_H), &xmax, &ymax );
 	  xw = (xmax - xmin)/4; yh = (ymax - ymin)/4;
 	  xv = xmin + xw; yv = ymin + yh + yh;
 	  //
 	  for( i=0; i<cell->nleft; i++ ){
-	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->left[i]->head->x - CELL_W),
+	    wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*cell->left[i]->head->x - CELL_W) :
+				   CELL_W*cell->left[i]->head->x + CELL_W ),
 				  (double) (CELL_H*cell->left[i]->y), &xmin, &ymin );
-	    wdCanvasWorld2Canvas( canvas, (double) (WORLD_W - CELL_W*cell->left[i]->head->x),
+	    wdCanvasWorld2Canvas( canvas, (double)
+				  (NETW_RL == orientation ?
+				   (WORLD_W - CELL_W*cell->left[i]->head->x) :
+				   CELL_W*cell->left[i]->head->x ),
 				  (double) (CELL_H*cell->left[i]->y + CELL_H), &xmax, &ymax );
 	    xw = (xmax - xmin)/4; yh = (ymax - ymin)/4;
 	    x0 = xmax - xw; y0 = ymin + yh + yh;
