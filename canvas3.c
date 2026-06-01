@@ -541,11 +541,16 @@ int  nxpiup_inagendap( sign_rec_ptr sign ){
   return 0;
 }
 
+#include "ndug.c"
+
 Ihandle *nxpiup_splash(){
-  Ihandle *splash = IupLoadImage( "ndug.png" );
+  /* Ihandle *splash = IupLoadImage( "ndug.png" ); */
+  Ihandle *splash = create_image_splash();
   IupSetHandle( "splash", splash );
   Ihandle *label  = IupLabel( "" );
   IupSetAttribute( label, "IMAGE", "splash" );
+  //
+  /* int res = IupSaveImageAsText( splash, "ndug.c", "C", NULL ); */
   //
   Ihandle *dlg = IupDialog( IupVbox( label, NULL ) );
   IupSetAttributes( dlg, "RESIZE=NO, MAXBOX=NO, MINBOX=NO, MENUBOX=NO" );
@@ -561,6 +566,7 @@ int timer_cb( Ihandle *ih ){
   IupSetAttribute( S_Timer, "RUN", "NO" );
   IupHide( S_splash );
   IupDestroy( S_splash );
+  IupDestroy( IupGetHandle( "splash" ) );
   return IUP_DEFAULT;
 }
 
