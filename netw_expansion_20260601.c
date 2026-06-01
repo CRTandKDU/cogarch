@@ -109,22 +109,6 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   _EXP_LR_SET(cell);
 }
 
-void netw__useupper( int z, int *y1, int *y2 ){
-  // Use upper space in COL2
-  if( z > *y2 ){
-    // Bottom of a horizontal new block in COL2 higher than max height
-    // This might create gaps within COL2
-    *y2 = z + 1;
-    *y1 = *y2 > *y1 ? *y2 : *y1 ;
-  }
-  else{
-    // Default: higher than the max height in COL2
-    *y1 = *y2 + 1 > *y1 ? *y2 + 1 : *y1 + 1 ;
-    *y2 = *y1;
-  }
-
-}
-
 void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
 			     double WORLD_W, double WORLD_H, unsigned short orientation ){
   rule_rec_ptr r;
@@ -164,28 +148,25 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
 	  ncol2, y1min, y2min );
   //
   if( y2 ){
-    if( cell->y < cparent1min->y ){
-      // Cell clicked is lower than the same-column parent of the lowest cells in col1 and col2
-      // COL2 has cells between y2min and y2
-      if( ncol2 < y2min ){
-	// There is a wide enough gap under the minimum height in COL2
-	y1 = y2min - ncol2 - 1;
-	y2 = y1;
-      }
-      else{
-	// Experiment with moving up all network ncol2 - y2min + 1
-	// For now
-	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
-      }
-    }
-    else if( cell->y > cparent1->y ){
-      // Cell clicked is higher than the same-column parent of the highest cells in col1 and col2
-      netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+    // COL2 has cells between y2min and y2
+    if( ncol2 < y2min ){
+      // There is a wide enough gap under the minimum height in COL2
+      y1 = y2min - ncol2 - 1;
+      y2 = y1;
     }
     else{
-      // Cell clicked is in between, prefer upper space
-      // Experiment with closer up or down
-      netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+      // Use upper space in COL2
+      if( (cell->y - ncol2/2) > y2 ){
+	// Bottom of a horizontal new block in COL2 higher than max height
+	// This might create gaps within COL2
+	y2 = cell->y - ncol2/2 + 1;
+	y1 = y2 > y1 ? y2 : y1 ;
+      }
+      else{
+	// Default: higher than the max height in COL2
+	y1 = y2 + 1 > y1 ? y2 + 1 : y1 + 1 ;
+	y2 = y1;
+      }
     }
   }
   else{

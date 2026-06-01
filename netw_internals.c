@@ -81,21 +81,54 @@ void netw__col_unlink_cell( col_rec_ptr col, netw_cell_rec_ptr cell ){
   /* printf( "\t\tDone\n" ); */
 }
 
-int netw__col_ymax_cell( col_rec_ptr col ){
+netw_cell_rec_ptr  netw__cell_parent( col_rec_ptr head, netw_cell_rec_ptr cell ){
+  int idcol		= cell->head->x;
+  col_rec_ptr col	= head;
+  netw_cell_rec_ptr c	= NULL;
+  short i;
+  // Find previous column
+  while( col ){
+    if( (idcol - 1) == col->x ){
+      c = col->first;
+      // Find cell with a left link to input cell
+      /* printf( "\tParent of %d cell (%ld) in col=%d\n", idcol, (long int) cell, col->x ); */
+      while( c ){
+	for( i=0; i<c->nleft; i++ ){
+	  /* printf( "\t\t%ld\n", (long int) c->left[i] ); */
+	  if( cell == (c->left[i]) ) return c;
+	}
+	c = c->next;
+      }
+      return NULL;
+    }
+    col = col->next;
+  }
+  return NULL;
+}
+
+int netw__col_ymax_cell( col_rec_ptr head, col_rec_ptr col, netw_cell_rec_ptr *parent ){
   netw_cell_rec_ptr c = col->first;
   int ymax = 0;
+  //
   while( c ){
-    if( ymax < c->y ) ymax = c->y;
+    if( ymax < c->y ){
+      *parent = netw__cell_parent( head, c );
+      ymax = c->y;
+    }
     c = c->next;
   }
   return ymax;
 }
 
-int netw__col_ymin_cell( col_rec_ptr col ){
+int netw__col_ymin_cell( col_rec_ptr head, col_rec_ptr col, netw_cell_rec_ptr *parent ){
   netw_cell_rec_ptr c = col->first;
   int ymin = _NETW_INFINITY;
+  //
   while( c ){
-    if( ymin > c->y ) ymin = c->y;
+    if( ymin > c->y ){
+      *parent = netw__cell_parent( head, c );
+      ymin = c->y;
+    }
     c = c->next;
   }
   return ymin;

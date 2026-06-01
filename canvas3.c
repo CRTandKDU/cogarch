@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <iup.h>
+#include <iupim.h>
 #include <iupcontrols.h>
 #include <cd.h>
 #include <cdiup.h>
@@ -12,6 +13,9 @@
 #include "netw.h"
 #include "nxpiup.h"
 #include "nxp_hash.h"
+
+static Ihandle *S_Timer  = NULL;
+static Ihandle *S_splash = NULL;
 
 /* World:
    The canvas will be a window into that space.
@@ -537,6 +541,29 @@ int  nxpiup_inagendap( sign_rec_ptr sign ){
   return 0;
 }
 
+Ihandle *nxpiup_splash(){
+  Ihandle *splash = IupLoadImage( "ndug.png" );
+  IupSetHandle( "splash", splash );
+  Ihandle *label  = IupLabel( "" );
+  IupSetAttribute( label, "IMAGE", "splash" );
+  //
+  Ihandle *dlg = IupDialog( IupVbox( label, NULL ) );
+  IupSetAttributes( dlg, "RESIZE=NO, MAXBOX=NO, MINBOX=NO, MENUBOX=NO" );
+  IupSetAttribute(dlg, "BORDER", "NO");
+  IupSetAttribute(dlg, "MARGIN", "10x10");
+  IupMap( dlg );
+  IupShowXY(dlg,IUP_CENTER,IUP_CENTER);
+  return dlg;
+}
+
+int timer_cb( Ihandle *ih ){
+  nxpiup_dlgmenu();
+  IupSetAttribute( S_Timer, "RUN", "NO" );
+  IupHide( S_splash );
+  IupDestroy( S_splash );
+  return IUP_DEFAULT;
+}
+
 int main(int argc, char* argv[])
 {
   //----------------------------------------------------------------------
@@ -566,9 +593,14 @@ int main(int argc, char* argv[])
 
   IupOpen(&argc, &argv);
   IupControlsOpen();
-
+  // Faking a splash screen
+  S_splash = nxpiup_splash();
+  S_Timer  = IupTimer();
+  IupSetCallback( S_Timer, "ACTION_CB",	(Icallback)timer_cb );
+  IupSetAttribute( S_Timer, "TIME", "1000" );
+  IupSetAttribute( S_Timer, "RUN", "YES" );
+  
   /* CanvasScrollbarTest();  */
-  nxpiup_dlgmenu();
   
   IupMainLoop();
 
