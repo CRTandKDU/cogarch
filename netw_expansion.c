@@ -122,7 +122,12 @@ void netw__useupper( int z, int *y1, int *y2 ){
     *y1 = *y2 + 1 > *y1 ? *y2 + 1 : *y1 + 1 ;
     *y2 = *y1;
   }
+}
 
+void netw__uselower( int z, int *y1, int *y2 ){
+  // There is a wide enough gap under the minimum height in COL2 (z>0)
+  *y1 = z - 1;
+  *y2 = *y1;
 }
 
 void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
@@ -140,6 +145,7 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
     cparent1min = NULL,
     cparent2min = NULL;
   short ir, i;
+  int z;
   int y1		= netw__col_ymax_cell( head, col1, &cparent1 );
   int y2		= netw__col_ymax_cell( head, col2, &cparent2 );
   int y1min		= netw__col_ymin_cell( head, col1, &cparent1min );
@@ -167,10 +173,10 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
     if( cell->y < cparent1min->y ){
       // Cell clicked is lower than the same-column parent of the lowest cells in col1 and col2
       // COL2 has cells between y2min and y2
-      if( ncol2 < y2min ){
+      z = y2min - ncol2;
+      if( 0 < z ){
 	// There is a wide enough gap under the minimum height in COL2
-	y1 = y2min - ncol2 - 1;
-	y2 = y1;
+	netw__uselower( z, &y1, &y2 );
       }
       else{
 	// Experiment with moving up all network ncol2 - y2min + 1
@@ -183,9 +189,11 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
       netw__useupper( (cell->y - ncol2/2), &y1, &y2);
     }
     else{
-      // Cell clicked is in between, prefer upper space
-      // Experiment with closer up or down
-      netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+      if( (cparent1->y - cell->y) >= (cell->y - cparent1min->y) )
+	// TODO: Not enough lower space
+	netw__uselower( y2min - ncol2, &y1, &y2);
+      else
+	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
     }
   }
   else{
