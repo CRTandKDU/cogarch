@@ -26,8 +26,6 @@ static Ihandle *S_splash = NULL;
    Remember that:
    XMIN<=POSX<=XMAX-DX
 */
-static int WORLD_W = 6000;
-static int WORLD_H = 2000;
 
 static int scale = 1;
 

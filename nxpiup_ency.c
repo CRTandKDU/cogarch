@@ -17,6 +17,8 @@
 
 #include "agenda.h"
 #include "nxpiup.h"
+#include "netw.h"
+#include "netw_internals.h"
 
 #define NXPIUP_RED	"255 0 0"
 #define NXPIUP_GREEN	"0 255 0"
@@ -166,7 +168,8 @@ sign_rec_ptr nxpiup_ency_selection( char *view ){
   Ihandle *ih = IupGetHandle( view );
   if( ih ){
     ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
-    int index = atoi( IupGetAttribute( ih, "VALUE" ) );
+    /* int index = atoi( IupGetAttribute( ih, "VALUE" ) ); */
+    int index = IupGetInt( ih, "VALUE" );
     return userdata->seq[ index-1 ];
   }
   else
@@ -176,6 +179,49 @@ sign_rec_ptr nxpiup_ency_selection( char *view ){
 // -------------------------------------------------------------------------------
 // Signs and Hypos Encyclopediae share a dialog template.
 // The Rules Encyclopedia has additional features and a separate dialog.
+
+int item_focus_hypo_cb( void ){
+  Ihandle *ih		= IupGetHandle( "rule_network" );
+  if( !ih ){
+    CanvasScrollbarTest();
+    ih = IupGetHandle( "rule_network" );
+  }
+  cdCanvas *canvas	= (cdCanvas*)IupGetAttribute( ih, "_CD_CANVAS" );
+  col_rec_ptr col	= (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ); 
+  hypo_rec_ptr hypo     = (hypo_rec_ptr) nxpiup_ency_selection( (char *) NXPIUP_ENCY_HYPOS_VIEW );
+  netw_cell_rec_ptr cptr;
+  //
+  if( col ) netw_free( canvas );
+  col				= _NEW_COL;
+  col->x			= WORLD_W/CELL_W - 3;
+  col->next			= NULL;
+  cptr				= (netw_cell_rec_ptr) col; // Leverages that fields 'first' and 'next' are the same in the structs
+  _NETW_NEWCELL( cptr->next );
+  cptr->next->y			= 1;
+  cptr->next->head		= col;
+  cptr->next->client_data_t	= _NETW_SIGN_T;
+  cptr->next->client_data	= (void *) hypo;
+  cdCanvasSetAttribute( canvas, "USERDATA", (char *) col);
+  // Second pass to adjust height of cells
+  int inc = (WORLD_H/CELL_H - 1)/2;
+  printf("INITFILLALL i=%d, inc=%d\n", 0, inc );
+  netw__adjust_col_vert( col->first, inc );
+  //
+  netw__expand_backward( canvas, col->first, WORLD_W, WORLD_H, NETW_RL );
+  //
+  IupUpdate( ih );
+
+  return IUP_DEFAULT;
+}
+
+int item_focus_sign_cb( void ){
+  Ihandle *ih		= IupGetHandle( "rule_network" );
+  cdCanvas *canvas	= (cdCanvas*)IupGetAttribute( ih, "_CD_CANVAS" );
+  col_rec_ptr col	= (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ); 
+  if( col ) netw_free( canvas );
+  IupUpdate( ih );
+  return IUP_DEFAULT;
+}
 
 int ency_destroy_cb( Ihandle *ih ){
   ency_rec_ptr userdata = (ency_rec_ptr) IupGetAttribute( ih, "USERDATA" );
@@ -249,11 +295,28 @@ void nxpiup_dlgency( const char *ency_title, const char *ency_handle, sign_rec_p
     //
     Ihandle *ency_vbox = IupVbox( IupFrame( encyh ), NULL );
     IupSetAttribute( ency_vbox, "MARGIN","10x10" );
+    //
+    Ihandle *ency_item_op, *ency_item_focus;
+    Ihandle *local_menu;
+    ency_item_focus = IupItem ("Focus Network", NULL);
+    if( 0 == strcmp( ency_handle, NXPIUP_ENCY_HYPOS) ){
+      ency_item_op = IupItem ("Suggest", NULL);
+      IupSetCallback( ency_item_op, "ACTION", (Icallback)item_suggest_cb );
+      IupSetCallback( ency_item_focus, "ACTION", (Icallback)item_focus_hypo_cb );    }
+    else{
+      ency_item_op = IupItem ("Volunteer...", NULL);
+      IupSetCallback( ency_item_op, "ACTION", (Icallback)item_volunteer_cb );
+      IupSetCallback( ency_item_focus, "ACTION", (Icallback)item_focus_sign_cb );
+    }
+
+    local_menu = IupMenu( ency_item_op, IupSeparator(), ency_item_focus, NULL );
+    IupSetHandle( "local_menu", local_menu );
     
     dlg = IupDialog( ency_vbox );
     sprintf( buf, "Encyclopedia %s", ency_title );
     IupSetAttribute( dlg, "TITLE", buf );
     IupSetAttribute( dlg, "EXPANDCHILDREN", "YES" );
+    IupSetAttribute( dlg, "MENU", "local_menu" );
     IupSetHandle( ency_handle, dlg );
   }
   IupShow( dlg );

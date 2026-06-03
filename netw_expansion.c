@@ -32,13 +32,21 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   col_rec_ptr  head	= (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
   col_rec_ptr  col1	= netw__col_get_create( canvas, cell->head->x - 1 );
   col_rec_ptr  col2	= netw__col_get_create( canvas, cell->head->x - 2 );
-  int y1		= netw__col_ymax_cell( head, col1, &cp1 ) + 1;
-  int y2		= netw__col_ymax_cell( head, col2, &cp2 ) + 1;
+  int y1		= netw__col_ymax_cell( head, col1, &cp1 );
+  int y2		= netw__col_ymax_cell( head, col2, &cp2 );
   netw_cell_rec_ptr junction, chypo;
   sign_rec_ptr h;
   int ncol2 = 0;
   short i, j;
   // Create junction cell in col+1
+  printf( "Exp FWRD y1=%d, y2=%d\n", y1, y2 );
+  if( 0 == y1 && 0 == y2 ){
+    y1 = y2 = cell->y - 1;
+  }
+  else{
+    y1 += 1; y2 += 1;
+  }
+  //
   _NETW_NEWCELL( junction );
   junction->y			= y1 + 1;
   junction->head		= col1;
@@ -52,6 +60,7 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   printf( "FWRD Added junction in %d, col=%d at y=%d\n",
 	  cell->nright - 1, junction->head->x, junction->y );
   // Link junction to forward hypotheses (w/o repetition)
+  
   if( y1 > y2 ){
     // Junction height is heigher than top of COL2
     // Move it higher to accomodate the number of forward signs.
@@ -169,31 +178,57 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   printf( "ToggleExpand: nconds=%d, ymin1=%d, ymin2=%d\n",
 	  ncol2, y1min, y2min );
   //
+  printf( "ToggleExpand: y1=%d, y2=%d - p1=%d p2=%d\n", y1, y2, (long int) cparent1, (long int) cparent2 );
   if( y2 ){
-    if( cell->y < cparent1min->y ){
-      // Cell clicked is lower than the same-column parent of the lowest cells in col1 and col2
-      // COL2 has cells between y2min and y2
-      z = y2min - ncol2;
-      if( 0 < z ){
-	// There is a wide enough gap under the minimum height in COL2
-	netw__uselower( z, &y1, &y2 );
+    if( cparent1min && cparent1 ){
+      if( cell->y < cparent1min->y ){
+	// Cell clicked is lower than the same-column parent of the lowest cells in col1 and col2
+	// COL2 has cells between y2min and y2
+	z = y2min - ncol2;
+	if( 0 < z ){
+	  // There is a wide enough gap under the minimum height in COL2
+	  netw__uselower( z, &y1, &y2 );
+	}
+	else{
+	  // Experiment with moving up all network ncol2 - y2min + 1
+	  // For now
+	  netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+	}
+      }
+      else if( cell->y > cparent1->y ){
+	// Cell clicked is higher than the same-column parent of the highest cells in col1 and col2
+	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
       }
       else{
-	// Experiment with moving up all network ncol2 - y2min + 1
-	// For now
-	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+	if( (cparent1->y - cell->y) >= (cell->y - cparent1min->y) )
+	  // TODO: Not enough lower space
+	  netw__uselower( y2min - ncol2, &y1, &y2);
+	else
+	  netw__useupper( (cell->y - ncol2/2), &y1, &y2);
       }
     }
-    else if( cell->y > cparent1->y ){
-      // Cell clicked is higher than the same-column parent of the highest cells in col1 and col2
-      netw__useupper( (cell->y - ncol2/2), &y1, &y2);
-    }
     else{
-      if( (cparent1->y - cell->y) >= (cell->y - cparent1min->y) )
-	// TODO: Not enough lower space
-	netw__uselower( y2min - ncol2, &y1, &y2);
-      else
-	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+      // Old computation mode w bias toward lower space
+      // COL2 has cells between y2min and y2
+      if( ncol2 < y2min ){
+	// There is a wide enough gap under the minimum height in COL2
+	y1 = y2min - ncol2 - 1;
+	y2 = y1;
+      }
+      else{
+	// Use upper space in COL2
+	if( (cell->y - ncol2/2) > y2 ){
+	  // Bottom of a horizontal new block in COL2 higher than max height
+	  // This might create gaps within COL2
+	  y2 = cell->y - ncol2/2 + 1;
+	  y1 = y2 > y1 ? y2 : y1 ;
+	}
+	else{
+	  // Default: higher than the max height in COL2
+	  y1 = y2 + 1 > y1 ? y2 + 1 : y1 + 1 ;
+	  y2 = y1;
+	}
+      }
     }
   }
   else{
@@ -201,6 +236,7 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
     y2 = (cell->y - ncol2/2) > 0 ? (cell->y - ncol2/2) : 1;
     y1 = y2;
   }
+  printf( "ToggleExpand: y1=%d, y2=%d\n", y1, y2 );
   //
   for( ir=0; ir<ncol1; ir++ ){
     r = (rule_rec_ptr) ((bwrd_rec_ptr) sign->getters[ ncol1 - 1 - ir ])->rule;

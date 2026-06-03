@@ -46,7 +46,7 @@ void netw_adjust_vert( cdCanvas *, int );
 void netw_get_cell_size( int *, int * );
 
 int  netw_click( cdCanvas *, int, int, int, int, int, double, double, unsigned short );
-void netw_initfill_all( cdCanvas *, double, double );
+void netw_initfill_all( cdCanvas *, double, double, unsigned short );
 void netw_free( cdCanvas * );
 void netw_redrawkb( cdCanvas *, int, double, double, unsigned short );
 
@@ -60,5 +60,8 @@ void CanvasScrollbarTest( void );
 #define _EXP_LR_SET(cell) ((cell)->expanded) |= NETW_LR
 #define _EXP_RL_RESET(cell) ((cell)->expanded) &= ~ NETW_RL
 #define _EXP_LR_RESET(cell) ((cell)->expanded) &= ~ NETW_LR
+
+static int WORLD_W = 6000;
+static int WORLD_H = 2000;
 
 #endif

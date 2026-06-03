@@ -26,7 +26,10 @@
 void			repl_log( const char* );
 void			repl_msg( const char *, ... );
 engine_state_rec_ptr	repl_getState();
+
 int  nxpiup_inagendap( sign_rec_ptr sign );
+int  item_volunteer_cb( void );
+int  item_suggest_cb( void );
 
 void nxpiup_dlgmenu( void );
 int  nxpiup_dlgloadkb( void );

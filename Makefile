@@ -1,5 +1,6 @@
 CPP 		= g++
 CC              = g++
+MSVCPP          = "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx86/arm/cl.exe"
 
 # 1) IUP, CD and IM Section
 CFLAGS		= -I./include -I./include/cd -I./include/im
@@ -7,8 +8,11 @@ LFLAGS		= -I./lib
 LIBS_DIR	= ./lib
 LIBS_CD		=  $(LIBS_DIR)/cdcontextplus.dll   $(LIBS_DIR)/cd.dll # $(LIBS_DIR)/cdcairo.dll   $(LIBS_DIR)/cddirect2d.dll  $(LIBS_DIR)/cdgl.dll  $(LIBS_DIR)/cdim.dll  $(LIBS_DIR)/cdlua54.dll  $(LIBS_DIR)/cdluacairo54.dll  $(LIBS_DIR)/cdluacontextplus54.dll  $(LIBS_DIR)/cdluadirect2d54.dll  $(LIBS_DIR)/cdluagl54.dll  $(LIBS_DIR)/cdluaim54.dll  $(LIBS_DIR)/cdluapdf54.dll  $(LIBS_DIR)/cdpdf.dll
 LIBS_IM         = $(LIBS_DIR)/im.dll $(LIBS_DIR)/iupim.dll
-LIBS_IUP	= $(LIBS_DIR)/iup.dll $(LIBS_DIR)/iupcd.dll 
+LIBS_IUP	= $(LIBS_DIR)/iup.dll $(LIBS_DIR)/iupcd.dll
+LIBS_WEB        = $(LIBS_DIR)/iupweb.dll 
 LIBS		=  $(LIBS_DIR)/cdcontextplus.dll $(LIBS_DIR)/iupcd.dll $(LIBS_DIR)/iup.dll $(LIBS_DIR)/cd.dll $(LIBS_DIR)/iupcontrols.dll # ./lib/gdi32.dll ./lib/comdlg32.dll ./lib/comctl32.dll ./lib/uuid.dll ./lib/oleaut32.dll ./lib/ole32.dll
+MSV_CFLAGS      = -I"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/include"
+
 
 # 2) NXP DSL (Embed FORTH) Section
 DSL_DIR			= C:/cygwin64/home/Moria
@@ -47,8 +51,8 @@ canvas3: canvas3.c $(OBJS_NXPIUP) $(OBJS_NETW) $(APIS_OBJS_NXP) $(OBJS_ZHASH)
 # canvas1: canvas1.c
 # 	gcc canvas1.c -o canvas1.exe $(CFLAGS) $(LFLAGS) $(LIBS)
 
-canvas4: canvas4.c layout.cpp C:/Users/chauv/Documents/IUP/boost_1_91_0/boost/graph/kamada_kawai_spring_layout.hpp
-	g++ canvas4.c layout.cpp -o canvas4.exe $(CFLAGS) $(LFLAGS) $(LIBS) -IC:/Users/chauv/Documents/IUP/boost_1_91_0
+# canvas4: canvas4.c layout.cpp C:/Users/chauv/Documents/IUP/boost_1_91_0/boost/graph/kamada_kawai_spring_layout.hpp
+# 	g++ canvas4.c layout.cpp -o canvas4.exe $(CFLAGS) $(LFLAGS) $(LIBS) -IC:/Users/chauv/Documents/IUP/boost_1_91_0
 
 # list1: examples/C/list1.c
 # 	gcc examples/C/list1.c -o list1.exe $(CFLAGS) $(LFLAGS) $(LIBS)
@@ -72,10 +76,14 @@ canvas4: canvas4.c layout.cpp C:/Users/chauv/Documents/IUP/boost_1_91_0/boost/gr
 # 	gcc nxpiup_menu.c -o menu.exe $(CFLAGS) $(CFLAGS_NXP) $(LFLAGS) $(LIBS)
 
 # helloz: helloz.c nxp_hash.c 
-# 	gcc helloz.c nxp_hash.c $(APIS_DIR)/zhash/src/zhash.c $(APIS_DIR)/zhash/src/zsorted_hash.c -o helloz.exe $(CFLAGS_ZHASH) 
+# 	gcc helloz.c nxp_hash.c $(APIS_DIR)/zhash/src/zhash.c $(APIS_DIR)/zhash/src/zsorted_hash.c -o helloz.exe $(CFLAGS_ZHASH)
 
-layout: layout.cpp
-	g++ layout.cpp -o layout.exe -IC:/Users/chauv/Documents/IUP/boost_1_91_0
+# webbrowser: examples/C/webbrowser.c Makefile
+# 	$(CC) examples/C/webbrowser.c -o webbrowser.exe $(CFLAGS) $(LFLAGS) $(LIBS) $(LIBS_WEB)
+
+
+# layout: layout.cpp
+# 	g++ layout.cpp -o layout.exe -IC:/Users/chauv/Documents/IUP/boost_1_91_0
 
 
 %.o: %.c $(API_DEPS)
