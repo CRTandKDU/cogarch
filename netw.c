@@ -60,18 +60,20 @@ int netw_click( cdCanvas *canvas, int but, int press, int x, int y, int shifted,
   printf( "Converts %f %f, shifted=%d\n", xw, yw, shifted );
   if( netw__findcell( (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ), xw, yw, WORLD_W, WORLD_H, orientation,
 		      &cell ) ){
-    printf( "Found at col=%d, cell=%d, %s\n", cell->head->x, cell->y, ((sign_rec_ptr)cell->client_data)->str );
+    /* printf( "Found at col=%d, cell=%d, %s\n", cell->head->x, cell->y, */
+    /* 	    ((sign_rec_ptr)cell->client_data) ? ((sign_rec_ptr)cell->client_data)->str : "NO SIGN" ); */
     if( press && NULL == S_cellclicked ){
       S_cellclicked = cell;
     }
     else if ( !press && S_cellclicked ){
       if( S_cellclicked == cell ){
-	printf( "Clicked in col=%d, cell=%d, %s\n", cell->head->x, cell->y, ((sign_rec_ptr)cell->client_data)->str );
+	/* printf( "Clicked in col=%d, cell=%d, %s\n", cell->head->x, cell->y, */
+	/* 	((sign_rec_ptr)cell->client_data) ? ((sign_rec_ptr)cell->client_data)->str : "NO SIGN" ); */
 	netw__toggle_expand( canvas, cell, shifted, WORLD_W,  WORLD_H, NETW_RL );
 	needredraw = 1;
       }
       else{
-	printf( "No click\n" );
+	/* printf( "No click\n" ); */
       }
       S_cellclicked = NULL;
     }

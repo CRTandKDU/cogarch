@@ -25,30 +25,41 @@
 void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
 		    double WORLD_W, double WORLD_H, unsigned short orientation ){
   sign_rec_ptr sign = (sign_rec_ptr) cell->client_data;
-  if( sign->nsetters == 0 ) return;
-  if( cell->head->x <= 2  ) return;
+  if( !sign )			return;
+  if( sign->nsetters == 0 )	return;
+  if( cell->head->x <= 2  )	return;
   //
-  netw_cell_rec_ptr cp1, cp2;
+  netw_cell_rec_ptr cp1, cp2, cp1min, cp2min;
   col_rec_ptr  head	= (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
   col_rec_ptr  col1	= netw__col_get_create( canvas, cell->head->x - 1 );
   col_rec_ptr  col2	= netw__col_get_create( canvas, cell->head->x - 2 );
   int y1		= netw__col_ymax_cell( head, col1, &cp1 );
   int y2		= netw__col_ymax_cell( head, col2, &cp2 );
+  int y1min		= netw__col_ymin_cell( head, col1, &cp1min );
+  int y2min		= netw__col_ymin_cell( head, col2, &cp2min );
   netw_cell_rec_ptr junction, chypo;
   sign_rec_ptr h;
-  int ncol2 = 0;
+  int ncol2 = 0,
+    z = WORLD_H/(CELL_H+CELL_H);
   short i, j;
   // Create junction cell in col+1
   printf( "Exp FWRD y1=%d, y2=%d\n", y1, y2 );
   if( 0 == y1 && 0 == y2 ){
+    // COL1 and COL2 are both empty
     y1 = y2 = cell->y - 1;
   }
   else{
-    y1 += 1; y2 += 1;
+    if( cell->y >= z ){
+      y1 += 1; y2 += 1;
+    }
+    else{
+      y1 = y1min - 2;
+     }
   }
+  printf( "Exp FWRD junction at y1=%d, y2=%d\n", y1, y2 );
   //
   _NETW_NEWCELL( junction );
-  junction->y			= y1 + 1;
+  junction->y			= y1;
   junction->head		= col1;
   junction->client_data_t	= _NETW_JUNCTION_T;
   junction->client_data	= NULL;
@@ -59,9 +70,9 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   cell->right[0] = junction;
   printf( "FWRD Added junction in %d, col=%d at y=%d\n",
 	  cell->nright - 1, junction->head->x, junction->y );
-  // Link junction to forward hypotheses (w/o repetition)
-  
-  if( y1 > y2 ){
+  // Link junction to forward hypotheses (w/o repetition) and readjust heights
+  printf( "\tFWRD y1=%d, y2=%d, y1min=%d, y2min=%d\n", y1, y2, y1min, y2min );
+  if( cell->y >= z && y1 > y2 ){
     // Junction height is heigher than top of COL2
     // Move it higher to accomodate the number of forward signs.
     // (The number of distinct forward signs would be better.)
@@ -71,6 +82,26 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
       y1 = y2 + 1 + sign->nsetters/2;
     }
   }
+  else if( cell->y >= z ){
+    y1 = y2 + 1 + sign->nsetters/2;
+  }
+  else if( cell->y < z && y1 < y2min ){
+    // Junction height is lower than the min height of COL2
+    if( y1 + sign->nsetters/2 < y2min -1 ){
+      y2 = y1 - sign->nsetters/2;
+    }
+    else{
+      y1 = y2min - 1 - sign->nsetters/2;
+      y2 = y2min - 1 - sign->nsetters;
+    }
+  }
+  else if( cell->y < z ){
+      y1 = y2min - 1 - sign->nsetters/2;
+      y2 = y2min - 2 - sign->nsetters;
+  }
+  printf( "\tFWRD y1=%d, y2=%d, y1min=%d, y2min=%d\n", y1, y2, y1min, y2min );
+  junction->y = y1;
+  //
   for( i=0; i<sign->nsetters; i++ ){
     h = (sign_rec_ptr) ((fwrd_rec_ptr) sign->setters[i])->rule->setters;
     printf( "FWRD %s\n", h->str );
@@ -159,6 +190,9 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   int y2		= netw__col_ymax_cell( head, col2, &cparent2 );
   int y1min		= netw__col_ymin_cell( head, col1, &cparent1min );
   int y2min		= netw__col_ymin_cell( head, col2, &cparent2min );
+  // Nothing to expand
+  if( !sign ) return;
+  
   printf( "ToggleExpand %s (%d,%d): nrules=%d, ymax1=%d, ymax2=%d\npmax1=%d, pmax2=%d, pmin1=%d, pmin2=%d\n",
 	  sign->str, cell->head->x, cell->y, ncol1, y1, y2,
 	  cparent1 ? cparent1->y : -1,
@@ -208,26 +242,12 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
       }
     }
     else{
-      // Old computation mode w bias toward lower space
-      // COL2 has cells between y2min and y2
-      if( ncol2 < y2min ){
-	// There is a wide enough gap under the minimum height in COL2
-	y1 = y2min - ncol2 - 1;
-	y2 = y1;
+      z = WORLD_H/(CELL_H+CELL_H);
+      if( cell->y > z ){
+	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
       }
       else{
-	// Use upper space in COL2
-	if( (cell->y - ncol2/2) > y2 ){
-	  // Bottom of a horizontal new block in COL2 higher than max height
-	  // This might create gaps within COL2
-	  y2 = cell->y - ncol2/2 + 1;
-	  y1 = y2 > y1 ? y2 : y1 ;
-	}
-	else{
-	  // Default: higher than the max height in COL2
-	  y1 = y2 + 1 > y1 ? y2 + 1 : y1 + 1 ;
-	  y2 = y1;
-	}
+	netw__uselower( y2min - ncol2, &y1, &y2);
       }
     }
   }

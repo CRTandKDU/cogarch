@@ -320,8 +320,16 @@ void CanvasScrollbarTest(void)
   IupSetAttribute( netw_frame, "TITLE", "Orientation" );
   Ihandle *netw_radio = IupRadio( netw_frame );
   IupSetHandle( "netw_radio", netw_radio );
+
+  Ihandle *netw_compound = IupToggle( "Forward-expand RHS/Compounds", NULL );
+  IupSetHandle( "netw_compound", netw_compound );
+  Ihandle *hbox_params = IupHbox( netw_radio, netw_compound, NULL );
+  IupSetAttribute( hbox_params, "ALIGNMENT", "ACENTER" );
+  IupSetAttribute( hbox_params, "EXPAND", "HORIZONTAL" );
+  IupSetAttribute( hbox_params, "MARGIN", "5x5" );
+  IupSetAttribute( hbox_params, "GAP", "10" );
   
-  dlg = IupDialog(IupVbox( netw_radio, cnv, NULL));
+  dlg = IupDialog(IupVbox( hbox_params, cnv, NULL));
   IupSetAttribute(dlg, "TITLE", "Rule Network");
   IupSetAttribute(dlg, "MARGIN", "10x10");
   IupSetCallback( dlg, "CLOSE_CB",	(Icallback)close_cb);
