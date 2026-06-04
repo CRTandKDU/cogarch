@@ -138,7 +138,7 @@ col_rec_ptr netw__col_get_create( cdCanvas *canvas, int x ){
   col_rec_ptr  tophead = (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
   // ASSERT: Cols are in increasing x-order from head
   printf( "COL_GET_CREATE %d %d >\n", tophead->x, x );
-  netw__trace(tophead);
+  /* netw__trace(tophead); */
   col_rec_ptr newc, c = tophead;
   if( c ){
     while( c ){
@@ -170,7 +170,7 @@ col_rec_ptr netw__col_get_create( cdCanvas *canvas, int x ){
   }
   //
   tophead = (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
-  netw__trace(tophead);
+  /* netw__trace(tophead); */
   printf( "> COL_GET_CREATE %d %d\n", tophead->x, newc->x );
   return newc;
 }
