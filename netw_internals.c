@@ -179,13 +179,21 @@ void netw__text( cdCanvas *canvas, netw_cell_rec_ptr cell, char *buf, int *bufsi
   sign_rec_ptr s;
   short i;
   int p;
-  if( _NETW_JUNCTION_T == cell->client_data_t ){
-    *bufsize = 0;
-    buf[0] = 0x00;
-    return;
-  }
+  char *param = IupGetAttribute( IupGetHandle( "netw_compound" ), "VALUE" );
+  int  compound_p = (0 == strcmp( "ON", param ));
   //
   switch( cell->client_data_t ){
+  case _NETW_JUNCTION_T:
+    if( compound_p ){
+      s = (sign_rec_ptr) cell->client_data;
+      sprintf( buf, "%s", s->str );
+    }
+    else{
+      *bufsize = 0;
+      buf[0] = 0x00;
+      return;
+    }
+    break;
   case _NETW_RULE_T:
     s = (sign_rec_ptr) cell->client_data;
     sprintf( buf, "%s", s->str );

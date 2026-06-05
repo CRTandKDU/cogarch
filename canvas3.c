@@ -285,6 +285,11 @@ int netw_toggle_lr_cb( Ihandle *ih ){
   return IUP_DEFAULT;
 }
 
+int netw_toggle_compound_cb( Ihandle *ih ){
+  IupUpdate( IupGetHandle( "rule_network" ) );
+  return IUP_DEFAULT;
+}
+
 void CanvasScrollbarTest(void)
 {
   Ihandle *dlg, *cnv;
@@ -321,8 +326,9 @@ void CanvasScrollbarTest(void)
   Ihandle *netw_radio = IupRadio( netw_frame );
   IupSetHandle( "netw_radio", netw_radio );
 
-  Ihandle *netw_compound = IupToggle( "Forward-expand RHS/Compounds", NULL );
+  Ihandle *netw_compound = IupToggle( "Forward-expand DSL conditions", NULL );
   IupSetHandle( "netw_compound", netw_compound );
+  IupSetCallback( netw_compound, "ACTION", (Icallback)netw_toggle_compound_cb );
   Ihandle *hbox_params = IupHbox( netw_radio, netw_compound, NULL );
   IupSetAttribute( hbox_params, "ALIGNMENT", "ACENTER" );
   IupSetAttribute( hbox_params, "EXPAND", "HORIZONTAL" );

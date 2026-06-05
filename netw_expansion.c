@@ -38,7 +38,7 @@ netw_cell_rec_ptr netw__forward_junction( cdCanvas *canvas, netw_cell_rec_ptr ce
   int z                 = WORLD_H/(CELL_H+CELL_H);
 
   // Create junction cell in col+1
-  printf( "Exp FWRD y1=%d, y2=%d\n", y1, y2 );
+  /* printf( "Exp FWRD y1=%d, y2=%d\n", y1, y2 ); */
   if( 0 == y1 && 0 == y2 ){
     // COL1 and COL2 are both empty
     y1 = y2 = cell->y - 1;
@@ -51,13 +51,13 @@ netw_cell_rec_ptr netw__forward_junction( cdCanvas *canvas, netw_cell_rec_ptr ce
       y1 = y1min - 2;
      }
   }
-  printf( "* Exp FWRD junction at y1=%d, y2=%d\n", y1, y2 );
+  /* printf( "* Exp FWRD junction at y1=%d, y2=%d\n", y1, y2 ); */
   //
   _NETW_NEWCELL( junction );
   junction->y			= y1;
   junction->head		= col1;
   junction->client_data_t	= _NETW_JUNCTION_T;
-  junction->client_data	= NULL;
+  junction->client_data		= sign;
   netw__col_append_cell( col1, junction );
   // Update shift-clicked cell
   if( 0 == cell->nright ){
@@ -69,10 +69,10 @@ netw_cell_rec_ptr netw__forward_junction( cdCanvas *canvas, netw_cell_rec_ptr ce
     cell->right   = (netw_cell_rec_ptr *) realloc( (void *) cell->right, cell->nright * sizeof(netw_cell_rec_ptr) );
   }
   cell->right[ cell->nright - 1 ] = junction;
-  printf( "* FWRD Added junction in [%d], col=%d at y=%d\n",
-	  cell->nright - 1, junction->head->x, junction->y );
+  /* printf( "* FWRD Added junction in [%d], col=%d at y=%d\n", */
+  /* 	  cell->nright - 1, junction->head->x, junction->y ); */
   // Link junction to forward hypotheses (w/o repetition) and readjust heights
-  printf( "\t* FWRD y1=%d, y2=%d, y1min=%d, y2min=%d\n", y1, y2, y1min, y2min );
+  /* printf( "\t* FWRD y1=%d, y2=%d, y1min=%d, y2min=%d\n", y1, y2, y1min, y2min ); */
   if( cell->y >= z && y1 > y2 ){
     // Junction height is heigher than top of COL2
     // Move it higher to accomodate the number of forward signs.
@@ -100,7 +100,7 @@ netw_cell_rec_ptr netw__forward_junction( cdCanvas *canvas, netw_cell_rec_ptr ce
       y1 = y2min - 1 - sign->nsetters/2;
       y2 = y2min - 2 - sign->nsetters;
   }
-  printf( "\tFWRD y1=%d, y2=%d, y1min=%d, y2min=%d\n", y1, y2, y1min, y2min );
+  /* printf( "\tFWRD y1=%d, y2=%d, y1min=%d, y2min=%d\n", y1, y2, y1min, y2min ); */
   junction->y = y1;
   //
   *y1ptr = y1; *y2ptr = y2;
@@ -115,7 +115,7 @@ void netw__forward_junction_expand( cdCanvas *canvas, netw_cell_rec_ptr cell,
   col_rec_ptr  head	= (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" );
   col_rec_ptr  col1	= netw__col_get_create( canvas, cell->head->x - 1 );
   col_rec_ptr  col2	= netw__col_get_create( canvas, cell->head->x - 2 );
-  printf( "FWRD Junction expand %s\n", h->str );
+  /* printf( "FWRD Junction expand %s\n", h->str ); */
   if( 0 == junction->nright ){
     junction->nright = 1;
     junction->right = (netw_cell_rec_ptr *) malloc( sizeof(netw_cell_rec_ptr) );
@@ -127,8 +127,8 @@ void netw__forward_junction_expand( cdCanvas *canvas, netw_cell_rec_ptr cell,
     netw__col_append_cell( col2, chypo );
     *y2ptr += 1;
     junction->right[0] = chypo;
-    printf( "FWRD Added %s in %d, col=%d at y=%d\n",
-	    h->str, junction->nright - 1, chypo->head->x, chypo->y );
+    /* printf( "FWRD Added %s in %d, col=%d at y=%d\n", */
+    /* 	    h->str, junction->nright - 1, chypo->head->x, chypo->y ); */
   }
   else{
     // Is it already present?
@@ -142,7 +142,7 @@ void netw__forward_junction_expand( cdCanvas *canvas, netw_cell_rec_ptr cell,
     if( !found ){
       junction->nright += 1;
       junction->right = (netw_cell_rec_ptr *) realloc( junction->right, junction->nright*sizeof(netw_cell_rec_ptr) );
-      if( !junction->right ) printf( "*** ERROR reallocating\n\n" );
+      if( !junction->right ) /* printf( "*** ERROR reallocating\n\n" ); */
       _NETW_NEWCELL( chypo );
       chypo->y			= *y2ptr + 1;
       chypo->head		= col2;
@@ -151,8 +151,8 @@ void netw__forward_junction_expand( cdCanvas *canvas, netw_cell_rec_ptr cell,
       netw__col_append_cell( col2, chypo );
       *y2ptr += 1;
       junction->right[ junction->nright - 1 ] = chypo;
-      printf( "FWRD Added %s in %d, col=%d at y=%d\n",
-	      h->str, junction->nright - 1, chypo->head->x, chypo->y );
+      /* printf( "FWRD Added %s in %d, col=%d at y=%d\n", */
+      /* 	      h->str, junction->nright - 1, chypo->head->x, chypo->y ); */
     }
   }
 }
@@ -184,7 +184,7 @@ void netw__forward_compound( cdCanvas *canvas, netw_cell_rec_ptr cell,
     for( i=0; i<s->nsetters; i++ ){
       fwrd = (fwrd_rec_ptr) s->setters[i];
       if( fwrd->idx_cond < 0 && compound == (sign_rec_ptr) fwrd->rule ){
-	printf( "DSL VAR: %s, in %s\n", s->str, compound->str );
+	/* printf( "DSL VAR: %s, in %s\n", s->str, compound->str ); */
 	netw__forward_dslvar( canvas, cell, WORLD_W, WORLD_H, orientation, s );
       }
     }
@@ -218,7 +218,7 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
 
   // Eligible to frwrd expansion
   char *param = IupGetAttribute( IupGetHandle( "netw_compound" ), "VALUE" );
-  printf( "FWRD %s (%d) with compound=%s\n", sign->str, sign->nsetters, param );
+  /* printf( "FWRD %s (%d) with compound=%s\n", sign->str, sign->nsetters, param ); */
   if( COMPOUND_MASK == (sign->len_type & TYPE_MASK) && 0 == strcmp( "OFF", param ) )
     return;
   if( cell->head->x <= 2  )
@@ -234,6 +234,7 @@ void netw__expand_forward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
 }
 
 void netw__useupper( int z, int *y1, int *y2 ){
+  /* printf("\tUPPER z=%d, y1=%d, y2=%d\n", z, *y1, *y2 ); */
   // Use upper space in COL2
   if( z > *y2 ){
     // Bottom of a horizontal new block in COL2 higher than max height
@@ -246,12 +247,15 @@ void netw__useupper( int z, int *y1, int *y2 ){
     *y1 = *y2 + 1 > *y1 ? *y2 + 1 : *y1 + 1 ;
     *y2 = *y1;
   }
+  /* printf("\tUPPER z=%d, y1=%d, y2=%d\n", z, *y1, *y2 ); */
 }
 
 void netw__uselower( int z, int *y1, int *y2 ){
+  /* printf("\tLOWER z=%d, y1=%d, y2=%d\n", z, *y1, *y2 ); */
   // There is a wide enough gap under the minimum height in COL2 (z>0)
   *y1 = z - 1;
   *y2 = *y1;
+  /* printf("\tLOWER z=%d, y1=%d, y2=%d\n", z, *y1, *y2 ); */
 }
 
 void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
@@ -282,12 +286,12 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
   if( COMPOUND_MASK == (sign->len_type & TYPE_MASK) )
     return;
 
-  printf( "ToggleExpand %s (%d,%d): nrules=%d, ymax1=%d, ymax2=%d\npmax1=%d, pmax2=%d, pmin1=%d, pmin2=%d\n",
-	  sign->str, cell->head->x, cell->y, ncol1, y1, y2,
-	  cparent1 ? cparent1->y : -1,
-	  cparent2 ? cparent2->y : -1,
-	  cparent1min ? cparent1min->y : -1,
-	  cparent2min ? cparent2min->y : -1 );
+  /* printf( "ToggleExpand %s (%d,%d): nrules=%d, ymax1=%d, ymax2=%d\npmax1=%d, pmax2=%d, pmin1=%d, pmin2=%d\n", */
+  /* 	  sign->str, cell->head->x, cell->y, ncol1, y1, y2, */
+  /* 	  cparent1 ? cparent1->y : -1, */
+  /* 	  cparent2 ? cparent2->y : -1, */
+  /* 	  cparent1min ? cparent1min->y : -1, */
+  /* 	  cparent2min ? cparent2min->y : -1 ); */
   // Allocate left links in RL orientation
   cell->nleft = ncol1;
   cell->left = (netw_cell_rec_ptr *) malloc( ncol1 * sizeof(netw_cell_rec_ptr) );
@@ -298,10 +302,10 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
     r = (rule_rec_ptr) ((bwrd_rec_ptr) sign->getters[ ncol1 - 1 - ir ])->rule;
     ncol2 += r->nrhs + r->ngetters + 1;
   }
-  printf( "ToggleExpand: nconds=%d, ymin1=%d, ymin2=%d\n",
-	  ncol2, y1min, y2min );
+  /* printf( "ToggleExpand: nconds=%d, ymin1=%d, ymin2=%d\n", */
+  /* 	  ncol2, y1min, y2min ); */
   //
-  printf( "ToggleExpand: y1=%d, y2=%d - p1=%d p2=%d\n", y1, y2, (long int) cparent1, (long int) cparent2 );
+  /* printf( "ToggleExpand: y1=%d, y2=%d - p1=%d p2=%d\n", y1, y2, (long int) cparent1, (long int) cparent2 ); */
   if( y2 ){
     if( cparent1min && cparent1 ){
       if( cell->y < cparent1min->y ){
@@ -310,33 +314,49 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
 	z = y2min - ncol2;
 	if( 0 < z ){
 	  // There is a wide enough gap under the minimum height in COL2
+	  /* printf( "\tCase 0\n" ); */
 	  netw__uselower( z, &y1, &y2 );
 	}
 	else{
 	  // Experiment with moving up all network ncol2 - y2min + 1
 	  // For now
+	  /* printf( "\tCase 1\n" ); */
 	  netw__useupper( (cell->y - ncol2/2), &y1, &y2);
 	}
       }
       else if( cell->y > cparent1->y ){
 	// Cell clicked is higher than the same-column parent of the highest cells in col1 and col2
+	/* printf( "\tCase 2\n" ); */
 	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
       }
       else{
-	if( (cparent1->y - cell->y) >= (cell->y - cparent1min->y) )
+	if( (cparent1->y - cell->y) >= (cell->y - cparent1min->y) ){
 	  // TODO: Not enough lower space
+	  /* printf( "\tCase 3\n" ); */
 	  netw__uselower( y2min - ncol2, &y1, &y2);
-	else
+	}
+	else{
+	  /* printf( "\tCase 4\n" ); */
 	  netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+	}
       }
     }
     else{
       z = WORLD_H/(CELL_H+CELL_H);
       if( cell->y > z ){
-	netw__useupper( (cell->y - ncol2/2), &y1, &y2);
+	/* printf( "\tCase 5\n" ); */
+	r = (rule_rec_ptr) ((bwrd_rec_ptr) sign->getters[ ncol1 - 1 ])->rule;
+	netw__useupper( (cell->y - (r->nrhs + r->ngetters + 1)/2), &y1, &y2);
       }
       else{
-	netw__uselower( y2min - ncol2, &y1, &y2);
+	if( y2min < y1min ){
+	  /* printf( "\tCase 6\n" ); */
+	  netw__uselower( y2min - ncol2, &y1, &y2);
+	}
+	else{
+	  /* printf( "\tCase 7\n" ); */
+	  netw__uselower( y1min - ncol2, &y1, &y2);
+	}
       }
     }
   }
@@ -345,7 +365,7 @@ void netw__expand_backward(  cdCanvas *canvas, netw_cell_rec_ptr cell,
     y2 = (cell->y - ncol2/2) > 0 ? (cell->y - ncol2/2) : 1;
     y1 = y2;
   }
-  printf( "ToggleExpand: y1=%d, y2=%d\n", y1, y2 );
+  /* printf( "ToggleExpand: y1=%d, y2=%d\n", y1, y2 ); */
   //
   for( ir=0; ir<ncol1; ir++ ){
     r = (rule_rec_ptr) ((bwrd_rec_ptr) sign->getters[ ncol1 - 1 - ir ])->rule;
@@ -389,10 +409,6 @@ void netw__recursive_remove_forward( cdCanvas *canvas, netw_cell_rec_ptr cell, u
   short i, j;
   netw_cell_rec_ptr junction, c;
 
-  /* printf( "REMOVE cell=%s, nleft=%d, expanded=%d\n", */
-  /* 	  netw__client_text(cell), */
-  /* 	  cell->nleft, */
-  /* 	  cell->expanded ); */
   switch( orientation ){
   case NETW_RL:
     // Remove right subtree
@@ -425,17 +441,12 @@ void netw__recursive_remove_backward( cdCanvas *canvas, netw_cell_rec_ptr cell, 
   short i, ir;
   netw_cell_rec_ptr crule, c;
 
-  /* printf( "REMOVE cell=%s, nleft=%d, expanded=%d\n", */
-  /* 	  netw__client_text(cell), */
-  /* 	  cell->nleft, */
-  /* 	  cell->expanded ); */
-  
   switch( orientation ){
   case NETW_RL:
     // Remove left subtree
     for( ir=0; ir<cell->nleft; ir++ ){
       crule = cell->left[ir];
-      /* printf( "\tRule %s nleft=%d\n", netw__client_text(crule), crule->nleft ); */
+
       for( i=0; i<(crule->nleft); i++ ){
 	c = crule->left[i];
 	if( NETW_BOOLEAN_SIGN(c) && _EXP_RL_P( c ) ) netw__recursive_remove_backward( canvas, c, orientation );
@@ -446,7 +457,7 @@ void netw__recursive_remove_backward( cdCanvas *canvas, netw_cell_rec_ptr cell, 
       netw__col_unlink_cell( crule->head, crule );
       if( crule->nleft ) free( (void *) crule->left );
       free( (void *) crule );
-      /* printf( "\tRemoved\n" ); */
+
     }
     if( cell->nleft ) free( (void *) cell->left );
     cell->nleft = 0;
@@ -473,7 +484,7 @@ void netw__toggle_expand( cdCanvas *canvas, netw_cell_rec_ptr cell, int shifted,
 	if( NETW_BOOLEAN_SIGN( cell ) ){
 	  netw__expand_backward( canvas, cell, WORLD_W, WORLD_H, orientation );
 	  // Expand DRAWSIZE left as needed, by shifting colums right
-	  /* printf( "EXPANDED cell at x=%d, y=%d, max=%d\n", cell->head->x, cell->y, WORLD_W/CELL_W ); */
+
 	  if( (cell->head->x) > (WORLD_W/CELL_W - 2) )
 	    netw_adjust_horz( (col_rec_ptr) cdCanvasGetAttribute( canvas, "USERDATA" ), -2 );
 	}

@@ -27,7 +27,7 @@ APIS_CFLAGS		= -I$(APIS_DIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$
 
 CFLAGS_BOOST		= -I$(APIS_DIR)/boost_1_91_0
 CFLAGS_ZHASH		= -I$(APIS_DIR)/zhash
-
+CFLAGS_WEB              = -I./webview-master/core/include
 CFLAGS_NXP		= $(API_CFLAGS) $(CFLAGS_ZHASH) $(CFLAGS_BOOST) 
 
 OBJS_ZHASH		= $(APIS_DIR)/zhash/src/zhash.o
@@ -81,6 +81,8 @@ canvas3: canvas3.c $(OBJS_NXPIUP) $(OBJS_NETW) $(APIS_OBJS_NXP) $(OBJS_ZHASH)
 # webbrowser: examples/C/webbrowser.c Makefile
 # 	$(CC) examples/C/webbrowser.c -o webbrowser.exe $(CFLAGS) $(LFLAGS) $(LIBS) $(LIBS_WEB)
 
+# wv: wv.c Makefile
+# 	$(CC) wv.c -o wv.exe $(CFLAGS) $(CFLAGS_WEB) $(LFLAGS) $(LIBS) $(LIBS_WEB)
 
 # layout: layout.cpp
 # 	g++ layout.cpp -o layout.exe -IC:/Users/chauv/Documents/IUP/boost_1_91_0

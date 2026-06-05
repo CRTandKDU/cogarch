@@ -49,6 +49,7 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
 			      (double) (CELL_H*cell->y), &xv, &yv);
 	break;
       case _NETW_RULE_T:
+      case _NETW_JUNCTION_T:
 	// Centered
 	wdCanvasWorld2Canvas( canvas, (double)
 			      (NETW_RL == orientation ?
@@ -72,6 +73,7 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
 	}
 
 	cdCanvasText( canvas, xv, yv, buf );
+
 	if( !current &&
 	   _KNOWN      == ((sign_rec_ptr) cell->client_data)->val.status &&
 	    _VAL_T_BOOL == ((sign_rec_ptr) cell->client_data)->val.type ){
@@ -79,6 +81,16 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
 	}
 	cdCanvasFont( canvas, NULL, CD_PLAIN, 0 );
 	current = 0;
+      }
+      else{
+	int font_size;
+	char *param = IupGetAttribute( IupGetHandle( "netw_compound" ), "VALUE" );
+	if( 0 == strcmp( "ON", param ) ){
+	  cdCanvasGetFont( canvas, NULL, NULL, &font_size );
+	  cdCanvasFont( canvas, NULL, -1, 8 );
+	  cdCanvasText( canvas, xv, yv, buf );
+	  cdCanvasFont( canvas, NULL, -1, font_size );
+	}
       }
 
       // Draw right links
@@ -161,6 +173,7 @@ void netw__redraw_onscale( cdCanvas *canvas, int scale, double WORLD_W, double W
 				  (double) (CELL_H*cell->left[i]->y + font_height/2), &x0, &y0);
 	    break;
 	  case _NETW_RULE_T:
+	  case _NETW_JUNCTION_T:
 	    wdCanvasWorld2Canvas( canvas, (double)
 				  (NETW_RL == orientation ?
 				   (WORLD_W - CELL_W*cell->left[i]->head->x - (CELL_W - p0)/2 ) :
